@@ -52,6 +52,17 @@ class OwnershipTests(unittest.TestCase):
                 operator.cleanup("case", "ours", self.image)
             self.assertEqual(len(docker.call_args_list), 1)
 
+    def test_incomplete_log_archive_preserves_stopped_container(self):
+        with patch.object(operator, 'inspect', side_effect=[self.value(), self.value(running=False, pid=0), None]), \
+                patch.object(operator, 'docker') as docker, \
+                patch.object(operator, 'capture_logs', side_effect=[{'complete': False}, {'complete': True}]):
+            result = operator.cleanup('case', 'ours', self.image, self.identity, Path('/private/case'))
+            self.assertTrue(result['execution_stop_confirmed'])
+            self.assertFalse(result['logs_complete'])
+            self.assertFalse(result['container_removed'])
+            self.assertEqual(result['container_id'], self.identity)
+            self.assertEqual([call.args[0] for call in docker.call_args_list], ['stop'])
+
     def test_absence_is_not_stop_acknowledgement(self):
         with patch.object(operator, "inspect", return_value=None), patch.object(operator, "docker") as docker:
             result = operator.cleanup("case", "ours", self.image, self.identity)

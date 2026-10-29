@@ -11,8 +11,8 @@
 | M0-01 产品规格 | ✅ `ACCEPTED` | [PRD](../product/PRD.md) 固定两种部署操作者、权限矩阵、导航和六条输入/结果/失败流程；8 项文档验收检查通过 | 应用实现由后续里程碑交付 |
 | M0-02 机器契约 | `IMPLEMENTED` | 60 个 Schema 定义、18 条 OpenAPI 路径、107 个正反例、15 个生命周期案例通过验证；干净服务器按完整 hash 锁安装后复跑通过 | 结合真实原生 Harness 与生产隔离准入冻结契约 |
 | M0-03 首个 Harness | ✅ `ACCEPTED` · 已开发完成 | 固定四工具组合：两模型实际身份与 HTTP 目标、工具/文件/历史、原生取消、人工拒绝、重启后原生续聊均已验证 | 范围限于本次组合；locked-stream 的断线中断、重启后旧 Run 查询404按实声明，通用工具与生产隔离由后续任务验收 |
-| M0-04 多 Harness | `IN_PROGRESS` | 候选源码已复核；OpenCode 修复镜像启动、原生读写与精确审批已有子项证据，12项组件测试通过 | 原自动探针超时保留；完整原生能力、候选实际比较、正式目标和 Octop 分项结论继续验证 |
-| M0-05 执行隔离 | `IN_PROGRESS` | 第三次封闭 KVM 基线完整通过；此前失败记录保留 | 选择性出网、生产租户策略、lease/fencing、资源耗尽和故障恢复等完整准入 |
+| M0-04 多 Harness | `IN_PROGRESS` | OpenCode5个真实用例、OpenClaw两模型工具任务及取消通过；Octop Harness和完整服务分层验证；[能力矩阵](../../research/m0-runtime-evidence-matrix.md)固定三个正式开发目标与顺序 | 独立模型发送缺口、Octop ACP实际委派、DSH最小SDK及契约交叉核对；正式Adapter未实现 |
+| M0-05 执行隔离 | `IN_PROGRESS` | 封闭KVM基线与第三轮真实NIC82项检查通过；临时规则、资源及原有效策略恢复均确认 | 生产Egress代理、专用身份、硬配额、lease/fencing、资源耗尽及故障恢复等完整准入 |
 | M0-06 来源与依赖基线 | ✅ `ACCEPTED` | 当前 MIT 自有范围、第三方来源及分发边界已清点；验证工具依赖已精确锁定和校验 | 新增依赖、原生运行包及镜像分发仍须继续核对来源、许可和材料 |
 | M0-07 验收与资源 | `IN_PROGRESS` | [验收基线](../operations/ACCEPTANCE-BASELINE.md) 已形成 | 原生三端 CI/签名、容量、备份和相关外部资源逐项验证 |
 | M0-08 排期与准入 | `TODO` | 67 项任务及阶段依赖已形成 | M0-01～07 全部证据和关键可行性结论到位后，冻结具体投入与排期 |
@@ -43,6 +43,21 @@
 | E20 | 当前四工具镜像的 primary、secondary 各7条历史在新容器启动及实际 `docker restart` 后，均与各自原报告的完整hash一致、产物hash不变。primary 另发不含旧nonce/receipt的新提示，真实续聊正确回忆、无工具、原历史前缀和产物不变；actual模型锁及一次新HTTP200匹配，报告3333 tokens；secondary 恢复没有新增模型调用。两配置的旧 locked-stream Run 查询均HTTP404，报告分别记历史恢复通过、旧Run轮询恢复未通过 | [路径与恢复限制](../../research/hermes-native-model-evidence.md) | 对应model-case中的独立 `recovery-<run>/report.json`；primary 另有 `continuation.json`；失败和补证均保留 |
 | E21 | OpenCode 1.19.5 首个固定运行包的离线版本/rg/动态库检查通过，但非root实际启动因镜像目录缺少遍历权限失败，尚未请求模型。源码 `810c0eba1a7348036f8bdf61e6632d0c36c6876c`，官方 npm 完整 SRI 与 ripgrep/source pins 已核对；当时7项准备工具组件通过。旧image store ID `sha256:bfc9e8b6bb477f3ff0beb61e1a8f060ded16284651ea77bdf210bf14ceea0b7b`；归档499,581,440 bytes，SHA-256 `80b29c2154d850ac1ab20902457bd16f3e0c3c26f78b5f542537e79ecf8ee603`。原归档及失败保留，不能作为可运行或正式集成准入证据 | [OpenCode 运行包](../../deploy/qualification/opencode/README.md)、[候选核验](../../research/m0-harness-candidate-qualification.md) | `images/containers/opencode/1.19.5/<image-id>.docker.tar` 及 provenance；`.private/validation/opencode-prepare-localinputs-<run>.log`；对应启动失败记录 |
 | E22 | OpenCode 修复镜像实际服务启动：health1.19.5、缺失/错误Basic认证401、原生OpenAPI3.1；一个真实任务记录精确目标edit审批once200及原生read→write→read完成。原自动探针错误读取assistant.time.end而非completed，等待超时并abort200，报告保持失败。独立离线补证11个子项通过：全部固定路径、顺序、随机challenge与实际文件一致；原生assistant的stop/completed早于截止下界108.706秒、早于预abort历史快照109.161秒且无error。未重复模型调用。12项组件回归在本机与服务器通过。尚无当时session idle快照、独立served-model传输、SSE、恢复、原生运行中取消或生产隔离证据，M0-04未验收 | [原生探针](../../scripts/qualification/probe_opencode.py)、[组件测试](../../scripts/qualification/test_prepare_opencode.py)、[运行包与结果](../../deploy/qualification/opencode/README.md) | `.private/qualification/opencode-native-smoke/<run>/probe/report.json`、`offline-supplement.json`及独立清理记录；`.private/validation/<opencode-components>.log` |
+| E23 | OpenCode沿用固定1.19.5修复镜像，两个新独立真实smoke自动通过：DeepSeek报告15148 tokens、Qwen报告16201 tokens；原生读写/精确审批、随机输入与产物、idle及stop/completed均通过。早期失败未改写 | [本轮固定组合与结果](../../deploy/qualification/opencode/README.md)、[操作者](../../scripts/qualification/run_opencode_qualification.py) | `.private/qualification/opencode-admission/<primary-or-secondary-case>/operator.json`、`probe/`、`source-sha256.json`；汇总 `final-summary-20261029.json` |
+| E24 | OpenCode Qwen恢复用例通过：以同home/workspace重建容器并实际restart，完整原生历史相等；同原生Session用不含旧随机值的新提示续聊，正确回忆nonce/challenge，原历史前缀及产物不变、无工具，新增回答报告5066 tokens | [恢复方法与边界](../../deploy/qualification/opencode/README.md) | `.private/qualification/opencode-admission/<recovery-case>/operator.json`及原生history/status材料 |
+| E25 | OpenCode Qwen拒绝与执行中取消分别自动通过：reject200后原生write error/idle、无待执行工具/审批且无文件，迟到重复reject404，3677 tokens；取消前已观察同session/message真实SSE文本delta与busy，abort200后MessageAbortedError/completed/idle及无运行工具，0.016秒确认原生终态，用量unknown。原12项与新增7项组件在本机/服务器通过；本轮全部5个容器PID0后移除、日志保存、端口释放 | [生命周期组件](../../scripts/qualification/test_opencode_lifecycle.py)、[完整结果](../../deploy/qualification/opencode/README.md) | `.private/qualification/opencode-admission/<denial-or-cancellation-case>/operator.json`及审批/SSE/原生状态；汇总与组件日志 |
+| E26 | Octop Harness1.0.5固定commit `76cd38d7b8ffc66c28ba24ad60bbab206a95d3ac`：93个官方wheel、31,330,542 bytes逐项核验SHA/size；根wheel的216个Python文件与固定源码一致，Python3.14.10禁网hash安装/pip check通过。Docker image ID `sha256:714e015d1c1281e1c91bd2ae67f39191b99c408eb7523b62a409831e912a73d5`；归档496,659,456 bytes，SHA-256 `f5fa07a06006c9f1dca7471bb3135ba22834eb22a7914c1754731b9d2334c470` | [固定配方](../../deploy/qualification/octop/README.md)、[完整锁](../../deploy/qualification/octop/harness.requirements.lock)、[来源记录](../../research/octop-native-qualification.md) | `images/containers/octop/harness/<image-id>.docker.tar`；来源由 `.private/qualification/octop/<build-run>/report.json`、lock/wheel-provenance/build/save日志关联，归档相邻无provenance文件 |
+| E27 | Octop Harness本次4个Qwen任务共9次HTTP200、无重试；首allow因末尾换行不符而精确拒绝，保持失败。3个独立后续用例通过：allow原生read/write/精确HITL approve，6条history、6388 tokens；deny原生write_file error/rejected、无输出，6条history、6378 tokens；cancel确认合成wait真实开始后0.006415275秒stream返回、handler finally、无自然完成marker，2条history、1388 tokens。目标hash/request model与原生供应商model_name匹配；4个容器均PID0后移除 | [独立原生资格记录](../../research/octop-native-qualification.md)、[原生探针](../../scripts/qualification/probe_octop.py) | `.private/qualification/octop/native-<case>/result/report.json`、`operator-report.json`、state/events及只追加的 `offline-supplement.json`；具体原始hash见研究记录 |
+| E28 | Octop早期准备器6项、探针9项通过，独立审阅后最终38项组件在本机/服务器通过：operator13、prepare8、SDK probe11、service guard4、service probe2；镜像内禁网、无凭据的3项真实SDK组件通过，覆盖原生构造/history、HITL配置及被阻塞异步iterator的取消/finally。成功真实用例关闭并重构Agent后SQLite历史逐条相等，未新增模型调用；首失败HITL另有7项离线精确审批回归 | [准备器测试](../../scripts/qualification/test_prepare_octop.py)、[探针测试](../../scripts/qualification/test_probe_octop.py)、[SDK组件](../../scripts/qualification/test_octop_native_components.py) | `.private/qualification/octop/component-tests-final.log`、`probe-components.log`、`history-regression.json`、`approval-regression.json`及原生case；组件与真实用例证据分别记录 |
+| E29 | Octop完整服务早期独立准备记录：1.0.3b1固定commit `890111b7879665840414ca28ab168b05b0db0921`，官方锁选201个发行物；纯wheel解析因缺适配wheel失败保留，5个锁定sdist已在无网、非root固定builder中构建成功。该记录时完整服务镜像/启动尚未完成，后续构建/原生证据见E36；ACP委派尚未执行；均不继承Harness SDK结果 | [完整服务状态](../../research/octop-native-qualification.md)、[sdist构建器](../../scripts/qualification/build_octop_sdists.py)、[服务准备器](../../scripts/qualification/prepare_octop_service.py) | `.private/qualification/octop/<service-build-or-sdist-run>/`；未完成项没有通过标记 |
+| E30 | 前两轮真实NIC合法TLS失败保留。授权只读诊断在对应窗口取得6+3条精确匹配的UFW BLOCK，确认Guest SYN至获准10018被宿主INPUT路径拒绝。第三轮仅临时加入本任务两条精确规则后，2VM各41项、共82项全部通过：合法TLS、host10019/peer/metadata/外网/其他host/source-spoof拒绝、负向后合法仍通。canary12次请求，禁止端口Guest命中0；零模型。两规则、所有VM/network/filter/写入层回收，原有效nft/filter、libvirt对象及base不变，端口释放 | [真实NIC与精确临时例外](../../scripts/qualification/KVM-NETWORK.md)、[执行评审](../../research/m0-execution-network-review.md) | `.private/qualification/network-<third-run>/report.json`、`verification-sanitized.json`与`host-input-policy/`；早期失败和授权只读诊断目录独立保留 |
+| E31 | 21项组件本机/服务器通过：6项网络护栏、15项私有凭据/规则归属/恢复边界。独立审阅修复named counter身份不能被归一化抹掉、未决sudo writer不得声明恢复、启动信号窗口必须先登记pending；默认不变更策略，只有显式opt-in为本任务10018添加精确例外 | [策略边界](../../scripts/qualification/kvm_host_policy.py)、[组件测试](../../scripts/qualification/test_kvm_host_policy.py) | 授权只读诊断目录中的递增component/source receipts；生产egress、身份、配额、watchdog/fencing仍未验收 |
+| E32 | OpenClaw2026.10.8官方linux/amd64镜像：GHCR/DockerHub固定manifest/config字节相同，42个OCI blob全部匹配官方SHA/size。Docker归档674,162,688 bytes，SHA-256 `adab4f92ac77655b55573eb1560eac9d77c99199e09a496d78148bdc91f23804`；image store/manifest为`sha256:eba17fa04b4ac5616496c2ce374a95afb6db6ff52d8bf73bf87dc8c7b8656cad`。两次在线下载失败及OCI标签解析失败保留，按同一固定manifest完成离线载入与归档 | [官方固定配方](../../deploy/qualification/openclaw/README.md)、[获取与校验](../../scripts/qualification/prepare_openclaw.py) | `images/containers/openclaw/2026.10.8/<manifest>.docker.tar`及provenance；`.private/qualification/openclaw-image/<attempt>/` |
+| E33 | 最终固定镜像内30项禁网组件通过，0跳过：22实际Undici观察、4私有配置、4原生协议判据；Node24.22.1、Undici8.11.2、非rootUID。另5项OCI边界本机/服务器通过。原生config validate通过；Gateway协议4、Ed25519设备签名、operator scopes及missing/wrong token拒绝通过 | [真实操作者](../../scripts/qualification/run_openclaw.py)、[协议探针](../../scripts/qualification/probe_openclaw.mjs) | `.private/validation/openclaw-image-components-<final-run>/report.json`及TAP；`.private/qualification/openclaw-native/<validate-or-preflight>/` |
+| E34 | OpenClaw两个独立真实smoke通过：DeepSeek/Qwen各原生read→write→read、随机产物/工具配对/native idle与final；各4条实际Undici HTTP200请求/响应，目标/model hash匹配、无重定向/未知/错误。Qwen报告14949 tokens；DeepSeek部分assistant无usage，完整总用量保持unknown。Qwen生成取消通过：同run实际文本delta与active在先，chat.abort匹配runIds，约0.153秒确认aborted+idle、无工具调用/工作区条目变化，1条匹配HTTP200，用量unknown。3任务共9次匹配HTTP，容器PID0后回收 | [原生组合范围](../../deploy/qualification/openclaw/README.md)、[当前能力矩阵](../../research/m0-runtime-evidence-matrix.md) | `.private/qualification/openclaw-native/<model-smoke-or-cancellation>/operator.json`、`evidence/`；所有原始轨迹只在私有目录 |
+| E35 | 独立审阅修复共享清理逻辑：日志归档不完整时仍停止并确认PID0，但保留已停止容器和身份供证据恢复，不再先rm丢日志。回归先红后绿，Linux服务器14项全通过；本机13项通过、Linux父进程死亡用例显式跳过，已由服务器补验 | [共享操作者](../../scripts/qualification/run_hermes_qualification.py)、[回归](../../scripts/qualification/test_run_hermes_qualification.py) | 本轮组件输出及源码；已有真实用例日志完整，原历史结果不改写 |
+| E36 | Octop完整服务201固定包及5个sdist完成禁网构建/pip check，归档867,920,384 bytes，SHA-256 `1506f719e58af360203a113d51c11a2ccae9709fb62d1400efc1f94812547f70`；image ID `sha256:8dbb51439f4ff7597352035e30e7d0099e3ba6e143fd538c9a2f4a4cd0f932c7`。原生SQLite/setup/admin201、缺失/错误认证401及已认证HTTP200通过；独立原生WS模型用例通过：1次实际Qwen HTTP200、40个原生事件、随机echo精确、REST历史2条/assistant1条，无工具/错误且turn inactive；操作者PASS、PID0/移除与清理0错误。此前零请求准备失败保留。与Harness SDK分开登记，ACP仍未验 | [服务固定锁](../../deploy/qualification/octop/service.requirements.lock)、[服务来源](../../deploy/qualification/octop/service.wheel-provenance.json)、[分层结果](../../research/octop-native-qualification.md) | `.private/qualification/octop/<service-build-or-native-case>/`；服务原始失败/成功分别保存 |
+| E37 | 三平台契约CI配置已实现：Ubuntu24.04、Windows Server2025、macOS15；Python3.12、完整hash锁、只读权限及固定Actions提交；首次实际CI结果待回填。此项不等同桌面构建、安装、签名或GUI验收 | [工作流](../../.github/workflows/contracts.yml)、[资源基线](../operations/ACCEPTANCE-BASELINE.md) | 实际GitHub run/job与公开合成报告在首次执行后关联 |
 
 OpenCode 当前修复镜像的 image store ID 为 `sha256:ef392b1148602b61ad4ea1e9dcca9b05337adc3c7ef9fc97434d632c69b8373c`；归档499,582,464 bytes，SHA-256 `c50dd9d32477a4fc70a8e4ba0a985e6bb41688b633d77990869f7078e9e194bc`。构建新增非root用户的目录遍历、文件可读及配置目录不可写检查；原有只读根文件系统、非root用户和凭据权限要求保留。实际原生服务已启动，健康检查报告1.19.5，缺失及错误Basic认证均401，原生OpenAPI为3.1。该镜像与旧归档分别保存，功能测试结果独立记录。
 
@@ -53,6 +68,12 @@ E05 的 Guest 没有 NIC。该结果证明真实 KVM 启停、该拓扑下的隔
 E06 使用合成 Guest 和真实 UNIX socket，没有启动 VM、创建 TCP 端口或调用模型；测试通过只证明失败留证逻辑。该测试不替代 E05 的硬件证据，也不重新计算此前真实运行的结论。
 
 E08/E09 及 E10 的输入复制测试是组件验证。E11/E13 来自真实原生执行，仅代表所列子项；早期 canonical 配置的有效模型未被该接口报告，E12 的原始失败保持不变；新增 locked-session 与传输观察证据另见 E17。上述 token 数均为相应 Provider/Harness 报告口径，不代表已对账费用；不同用例分别记账，不混成单次运行。
+
+E23–25补齐OpenCode本轮真实用例，不回填E22当时不存在的证据。模型身份仍限原生configured metadata；独立HTTP发送目标与供应商served-model未知。SSE仅证明在线事件观察，没有durable游标重放；已完成Session重启续聊不等于执行中崩溃断点续跑；0.016秒也不是供应商计费或任意外部副作用停止保证。
+
+E26–28仅覆盖固定Octop Harness SDK组合。供应商返回model_name不独立证明后台权重；SDK重构后history一致不等于容器/进程重启后续聊；取消后的history停在tool_calls，不伪造assistant completed/Run终态。完整服务与ACP委派继续按E29分别记录。OpenClaw本轮结果见E32–34；DSH与HarnessRouter仍没有本项目实际运行资格。
+
+OpenClaw配置首轮因已退役`logging.redactSensitive`被拒，按固定上游强制脱敏语义删除旧开关后通过；两次零模型握手在原生`startup-sidecars`未就绪状态失败，随后仅对该明确无提交状态进行有界等待，缺失/错误token门槛保持不变。所有旧报告保留，未在启动失败时消耗模型任务。
 
 ## 失败历史与证据保留
 
@@ -71,6 +92,35 @@ Hermes 的在线构建先后因官方 Pillow、OpenAI wheel 连接超时失败�
 当前 locked-session 的第一次恢复检查要求旧 Run 可继续轮询，实际HTTP404导致失败，原报告保留。随后分别核对原生历史、实际重启和获准续聊，在新报告中记录 E20 的已验证子项与404限制；两份恢复报告均不把旧 Run 轮询恢复标为通过。平台 Run 持久化、原生历史续接与崩溃断点续跑仍按不同能力实现和验收。
 
 OpenCode 的公开输入准备因官方下载连接超时失败后，仍按原始官方pin核对输入，没有替换包版本或跳过hash；离线构建的rg版本断言随后按实际版本行修正。首份镜像虽通过版本与链接检查，实际非root启动发现COPY创建的目录缺少遍历权限；修复目录权限并增加非root检查后形成独立新归档，旧镜像与失败保留。首次真实任务又因验收探针把原生相对worktree的权限路径误当作相对工作目录而拒绝固定输出请求；当次没有授予权限，原始失败与原生轨迹保留。修复仅允许权威worktree解析后的精确目标，并关联metadata.filepath及原生write callID，不能据此批准任意路径。
+
+Octop Harness首次allow实际输入含末尾换行，模型提出的write内容没有该换行，精确HITL校验拒绝且无输出；没有放宽审批或改写失败。新的独立用例采用无尾换行随机输入后成功。4个历史用例的operator运行前没有保存独立脚本hash，不能追补成当时已记录；追加补证保留原报告hash，最终探针为后续运行保存源码快照。完整服务的下载和纯wheel失败也不表示其不可部署，后续sdist构建及服务资格独立推进。
+
+首轮NIC资格的合法路径失败之外，结束端口bind检查也报错；随后确认两端口无LISTEN/TIME_WAIT，不重写原报告，也不猜测首次报错一定由TIME_WAIT导致。第二轮使用一致的TCP地址复用语义、读取LISTEN并增加网络诊断，清理通过；合法TLS仍失败。因此两次均不能算网络隔离通过，更不能关闭M0-05。
+
+## 网络资格的管理员核对与解除条件
+
+本轮已完成授权诊断和精确临时例外下的复测：实际UFW日志命中9条对应Guest/bridge/10018的拒绝；第三轮全部82检查通过，原策略已恢复。以下保留可复现的只读诊断步骤，由有权限的管理员在实际任务资源存在期间执行；`HARNIQO_VM_UUID`、`HARNIQO_BRIDGE`、`HARNIQO_GUEST_IP`、`HARNIQO_GATEWAY`必须来自该次私有ownership/实际XML，不复用已回收资源的名称。
+
+只读诊断，不添加或删除规则：
+
+```bash
+sudo ufw status verbose
+sudo ufw show raw
+sudo nft list ruleset
+sudo iptables-save -c
+sudo ip6tables-save -c
+sudo ebtables-save
+virsh --connect qemu:///system dumpxml "$HARNIQO_VM_UUID"
+ip -j link show dev "$HARNIQO_BRIDGE"
+ip -j neigh show dev "$HARNIQO_BRIDGE"
+ss -H -ltn '( sport = :10018 or sport = :10019 )'
+sudo tcpdump -nn -i "$HARNIQO_BRIDGE" -c 40 -s 96 \
+  "arp or (host $HARNIQO_GUEST_IP and host $HARNIQO_GATEWAY and tcp port 10018)"
+```
+
+完整规则/抓包只保存到0700私有证据目录，不粘贴进公开报告。结合canary实际监听、SYN/返回包与现有计数器判断阻断位置；若系统使用其他后端，管理员读取相应有效规则，不能因某一命令空输出推断没有过滤。
+
+**变更与上述只读步骤分开。** 确认规则原因后，管理员只为该次/生产固定策略登记的专用bridge、Guest来源、网关目标和TCP10018提供最小入站例外；10019、管理端口、metadata、peer和直接外网继续拒绝。变更应记录精确规则身份与回滚方法；不得flush规则集、放开全局INPUT、修改既有业务网络或借特权Docker绕过。资格脚本默认不变更规则；显式`--allow-owned-host-canary-input`才允许两条完全绑定本任务身份的临时例外，停止VM后按完整selector精确撤销并核对有效策略。特权writer结果未决时不得宣称已恢复或删除其网络。第三轮已按此方式通过，旧失败保留；生产UID、资源硬配额与watchdog/fencing仍各自验收。
 
 ## 下一步准入
 

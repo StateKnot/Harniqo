@@ -112,7 +112,15 @@ AGPL、非商业、附加 SaaS 条件、自定义地区/数据条款、缺失许
 
 Hermes 固定源码 `a382af23f4c067d23463b5781958684c2cda82bc` 的四工具资格验证组合保留原有74包依赖锁，仅增加本项目工具与只记录 hash 的传输观察代码；按新 image ID 和 recipe SHA 区分旧组合。来源、改动和实际验收见 [配方](../../deploy/qualification/hermes/README.md) 与 [证据索引](../planning/M0-RESULTS.md)。
 
-OpenCode 准备固定 `1.19.5` / `810c0eba1a7348036f8bdf61e6632d0c36c6876c` 的官方 Linux x64 baseline 二进制；GitHub release SHA-256 和显式选择的同版官方 npm SHA-512 SRI 分别记录，不冒用彼此的归档身份。保留固定源码 MIT LICENSE、package.json 与 bun.lock；同时固定官方 ripgrep15.1.0 musl 二进制及其 MIT/Unlicense/COPYING 文件，避免运行时下载。完整输入、解包边界与当前结论见 [配方](../../deploy/qualification/opencode/README.md) 和 [候选核验](../../research/m0-harness-candidate-qualification.md)。这些材料用于受控准入；完整镜像系统包/Bun嵌入依赖 SBOM、正式二进制分发材料和真实功能仍须按后续门槛验收。
+OpenCode 固定 `1.19.5` / `810c0eba1a7348036f8bdf61e6632d0c36c6876c` 的官方 Linux x64 baseline 二进制；GitHub release SHA-256 和显式选择的同版官方 npm SHA-512 SRI 分别记录，不冒用彼此的归档身份。保留固定源码 MIT LICENSE、package.json 与 bun.lock；同时固定官方 ripgrep15.1.0 musl 二进制及其 MIT/Unlicense/COPYING 文件，避免运行时下载。本轮5个原生用例复用已有修复镜像，没有更换依赖或新增归档。完整输入、解包边界与当前能力限制见 [配方](../../deploy/qualification/opencode/README.md) 和 [候选核验](../../research/m0-harness-candidate-qualification.md)。完整镜像系统包/Bun嵌入依赖 SBOM及正式二进制分发材料仍须按后续门槛验收，真实用例通过不代替分发清点。
+
+Octop Harness固定 `1.0.5` / `76cd38d7b8ffc66c28ba24ad60bbab206a95d3ac`，使用官方Python3.14.10固定基镜像及该commit的上游uv.lock选择93个wheel，共31,330,542 bytes。逐发行物核验官方PyPI metadata、SHA/size；根wheel的216个Python文件与固定源码一致，禁网hash安装/pip check通过。完整锁SHA-256为`f566ec85a38feda0529dd1a9313f5d0289af2aa86207fab81765531e91ed3d71`，材料见 [锁](../../deploy/qualification/octop/harness.requirements.lock)、[官方wheel来源](../../deploy/qualification/octop/harness.wheel-provenance.json) 和 [独立资格记录](../../research/octop-native-qualification.md)。新增Docker归档与原生SDK证据分别登记；顶层MIT不覆盖DeepAgents、MCP、LangGraph、解释器与镜像全部组件，完整SBOM/NOTICE及各实际wheel许可材料仍须发行前核验。
+
+Octop完整服务固定 `1.0.3b1` / `890111b7879665840414ca28ab168b05b0db0921`，其官方uv.lock SHA-256为`c6b4c1a8f96c37351731b7eab79772fccffbc1ae7aadd501df28be954b52c907`，选择201个发行物。纯wheel配方失败后，固定sdist的evdev1.9.3、oss2 2.19.1、crcmod1.7、aliyun-python-sdk-core2.16.0、esdk-obs-python3.26.6已用无网非root builder构建；构建工具setuptools80.9.0、wheel0.45.1、packaging26.2及其官方hash独立登记。服务201包完整镜像及零模型原生HTTP/认证已完成，服务模型资格仍独立记录，不继承Harness的93包锁、镜像或原生资格；本地构建wheel的源码hash、工具链与产出hash需同时保留，见 [sdist构建器](../../scripts/qualification/build_octop_sdists.py)。
+
+OpenClaw2026.10.8固定commit `dc2523e5a5c7a309517fd7fa834add938231d526`的官方slim镜像已按manifest/config及42blob完整核验，两官方registry字节相同；Node24.22.1/Undici8.11.2实际镜像验证及归档/真实用例见[配方](../../deploy/qualification/openclaw/README.md)和E32–34。此为上游官方二进制输入核验，未宣称源码可复现构建或已完成所有系统/传递组件的发行SBOM；正式分发仍需完整许可材料。网络资格新增脚本仅使用Python标准库和既有宿主工具，没有安装新的宿主依赖；固定TLS canary不是正式代理发行物，不增加生产隔离通过声明。
+
+三平台契约CI仅使用官方Actions不可变提交：checkout v7.0.1 `3d3c42e5aac5ba805825da76410c181273ba90b1`、setup-python v7.1.0 `6d4fd22b20465ccc0f7354476588e8df7c9ca0e0`、upload-artifact v7.0.2 `cf430e030ddbb5b0abf93d22962f4752f3646cd9`，从各官方仓库release/tag解析确认；它们是CI执行依赖，不捆入客户端。运行时Python补丁版本、锁hash与安装包清单由各job记录。
 
 ## 5. 版本、来源和 NOTICE 的执行规则
 

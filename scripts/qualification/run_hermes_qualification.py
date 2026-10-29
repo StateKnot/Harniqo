@@ -99,6 +99,14 @@ def cleanup(name, attempt, image_id, expected_id=None, case=None):
             "container_stop_not_confirmed")
     if case is not None:
         logs.append(capture_logs(identity, case, "after-stop"))
+    if not all(item.get("complete") is True for item in logs):
+        # Stopping is mandatory even if archival failed. Removal is not: retain
+        # the stopped container's original log store for an explicit recovery.
+        return {"container_id": identity, "native_process_stopped": True,
+                "host_pid_after_stop": 0, "execution_stop_confirmed": True,
+                "container_removed": False, "private_home_and_workspace_retained": True,
+                "native_logs": logs, "logs_complete": False,
+                "retention_reason": "incomplete_log_archive"}
     docker("rm", identity)
     require(inspect(name) is None, "container_removal_not_confirmed")
     return {"container_id": identity, "native_process_stopped": True,

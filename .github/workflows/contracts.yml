@@ -1,0 +1,68 @@
+name: Contract verification
+
+on:
+  push:
+    branches: [main]
+    paths: ['packages/contracts/**', 'scripts/contracts/**', 'scripts/ci/**', '.github/workflows/contracts.yml']
+  pull_request:
+    paths: ['packages/contracts/**', 'scripts/contracts/**', 'scripts/ci/**', '.github/workflows/contracts.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: contracts-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  contracts:
+    name: Python 3.12 contracts / ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            python: .venv/contracts/bin/python
+          - os: windows-2025
+            python: .venv/contracts/Scripts/python.exe
+          - os: macos-15
+            python: .venv/contracts/bin/python
+    env:
+      PYTHONUTF8: "1"
+      PYTHONDONTWRITEBYTECODE: "1"
+      PIP_DISABLE_PIP_VERSION_CHECK: "1"
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout exact revision
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+      - name: Record environment and verify free space
+        run: python scripts/ci/contracts_environment.py
+      - name: Install exact hash-locked validation dependencies
+        run: |
+          python -m venv .venv/contracts
+          "${{ matrix.python }}" -m pip install --require-hashes -r scripts/contracts/requirements.lock
+          "${{ matrix.python }}" -m pip freeze --all > ci-evidence/packages.txt
+      - name: Verify schemas, generated OpenAPI, fixtures and lifecycle
+        run: '"${{ matrix.python }}" scripts/contracts/validate.py --report ci-evidence/contracts.json'
+      - name: Keep bounded public test evidence
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: contracts-${{ matrix.os }}-${{ github.sha }}
+          path: |
+            ci-evidence/environment.json
+            ci-evidence/packages.txt
+            ci-evidence/contracts.json
+          if-no-files-found: warn
+          retention-days: 14

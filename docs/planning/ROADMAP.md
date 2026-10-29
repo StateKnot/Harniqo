@@ -1,6 +1,6 @@
 # Harniqo 开发方案与里程碑
 
-版本：1.2 · 日期：2026-10-29 · 状态：M0 进行中（3/8 已验收）；机器契约已实现，模型前置探针与封闭 KVM 基线通过，固定 Hermes 组合已验证，生产隔离尚未验收，应用尚未实现。正式仓库：[StateKnot/Harniqo](https://github.com/StateKnot/Harniqo)，MIT 许可证。
+版本：1.3 · 日期：2026-10-29 · 状态：M0 进行中（3/8 已验收）；机器契约已实现，固定 Hermes 组合已验证，OpenCode与Octop Harness新增原生子项证据；生产网络资格仍失败，应用尚未实现。正式仓库：[StateKnot/Harniqo](https://github.com/StateKnot/Harniqo)，MIT 许可证。
 
 本文与 [BACKLOG](BACKLOG.md)、[ACCEPTANCE](ACCEPTANCE.md)、[GLOSSARY](../../GLOSSARY.md) 共同构成后续开发基线，当前结果与证据边界见 [M0 执行证据索引](M0-RESULTS.md)。正式开发与服务端验收使用指定的服务器工作区；确切目录、机器连接、资源和端口实测记录保存在不进入开源仓库的 `.private/development-environment.md`。本地副本便于阅读，开发开始后以服务器工作区和对应 Git 提交中的计划为准。
 
@@ -71,6 +71,8 @@ flowchart TB
 
 开发环境已通过无 NIC 的封闭 KVM/libvirt 基线：两台 VM 各两次冷启动、44 项 Guest 检查、日志归档与临时资源回收通过，基础镜像和既有 domain 不变。该结果不涵盖生产选择性出网、租约、资源耗尽或故障恢复；完整 M0-05 仍须取得网络和执行策略的真实证据，主机实例及失败历史保存在私有环境记录。若环境不满足剩余条件，M0 必须落实可用的隔离执行资源后再关闭任务。首版只实现一个经过验证的执行后端，后续有实际需求再扩展云厂商后端。[KVM/libvirt](https://libvirt.org/)、[Docker 安全边界](https://docs.docker.com/engine/security/)。
 
+后续两轮真实NIC资格均在Guest合法TLS路径超时，未进入负向探测；第二轮ARP正常且清理零错误。固定TLS canary不调用模型，也不是生产Egress。当前需要管理员核对宿主有效入站规则并确保专用入口可达；不能因观察到UFW默认DROP就指定唯一根因，或扩大整体策略继续验收。具体只读诊断、变更界限与解除条件见 [M0网络记录](M0-RESULTS.md#网络资格的管理员核对与解除条件) 和 [生产实现评审](../../research/m0-execution-network-review.md)。
+
 同机控制面适合开发与有明确可用性边界的私有部署。公网 SaaS 的发布拓扑至少分离控制面和不可信执行面、异地保存备份，并按 M0 锁定的可用性目标部署。单节点首版如果只承诺单节点恢复能力，须明确故障期间不可用窗口；不能标称高可用。要求高可用时，相应控制面副本、数据库与对象存储冗余必须进入实际部署和演练。
 
 已存在的外部 Harness 服务也必须登记归属与执行信任域。共享一套管理员连接或原生多用户 UI，不能证明不同组织已隔离。
@@ -115,6 +117,8 @@ docs/                  方案、决策、运行与贡献文档
 | DSH | M0 探测，默认预览兼容 | 固定版本、插件组合、模型端点、审批、持久化与破坏性升级 |
 
 研究来源见 [预研报告](../../research/multi-harness-client-research.md)。上述正式 Adapter 尚未实现；Hermes 的固定受控组合已取得两模型、原生工具、取消、拒绝与续聊技术证据，具体路径能力与限制分别记录，详见 [执行证据](M0-RESULTS.md)。M0 锁定 3 个正式集成及优先顺序；如首选未通过，先记录证据和替代决定。Octop 不从清单消失：完整服务连接须给出验收结论，若核心能力不满足则明确阻塞/预览范围，不以 iframe 或外链代替集成。
+
+本轮OpenCode固定1.19.5的两模型smoke、Qwen重启续聊/拒绝/取消共5真实用例通过，但独立传输目标/served-model仍未知。Octop Harness1.0.5固定93包组合取得原生allow/deny/合作式cancel和history重开证据；完整服务201包镜像及原生HTTP/认证已通过，ACP委派未执行。OpenClaw两个模型工具闭环与原生生成取消已通过，正式开发顺序固定为Hermes→OpenCode→OpenClaw；当前限制和未验范围见[能力矩阵](../../research/m0-runtime-evidence-matrix.md)。上述进展不提前接受M0-04，也不将三个Octop scope合并计数。
 
 Octop 原生、Octop Harness、Octop 委派外部 Agent 是三个不同实验身份。后者必须记录外层 Agent、内层 Harness、额外调用、提示词转换和累计费用。
 

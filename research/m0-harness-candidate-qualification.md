@@ -104,3 +104,7 @@ OpenCode下一轮最小真实任务应至少产生不可预先猜测的工具侧
 配置模型metadata为`harniqo/qwen3.8-flash`，属于native configured metadata证据，不冒充独立served-model传输证明。当时session idle快照没有保存，不能由abort后状态推导；SSE/恢复/原生Run取消、拒绝、第二模型、生产VM隔离与对外发行合规仍未完成。本轮验证的是实际原生子项，未锁定3个正式Runtime，M0-04继续IN_PROGRESS。
 
 当前报告不关闭任何M0-04任务。源码/许可研究、可下载固定artifact、离线构建、真实模型工具回合和生产VM准入是五类不同证据。
+
+## 本轮增量结果入口
+
+上文保留早期研究/失败时点，不能作为最新完成状态。随后OpenCode5个真实用例、OpenClaw两模型工具及生成取消、Octop分层资格取得新增证据；固定开发顺序、各自身份口径及剩余门槛见[当前能力矩阵](m0-runtime-evidence-matrix.md)，所有失败继续留存。M0-04仍为IN_PROGRESS。

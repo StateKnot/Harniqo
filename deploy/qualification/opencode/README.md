@@ -101,7 +101,7 @@ docker run --detach --name harniqo-opencode-1195-qualification \
 
 上游 MIT 源码和 ripgrep 许可材料保留在 `/opt/harniqo/upstream/`。编译 binary、Python 基镜像和其 native/bundled 第三方组件仍需完整 SBOM、NOTICE 及许可证/源码提供义务检查；本私有准入产物不冒充已通过对外分发审查。SRI/asset checksum 保证本次字节匹配公开 pin，不证明从源码可复现同一 binary。真实模型、拒绝、取消、续聊、升级回退、VM 边界和正式支持地位均需独立记录证据。
 
-## 2026-10-29 实施结果与范围
+## 2026-10-29 首次实施结果与范围（历史）
 
 新镜像 `sha256:ef392b1148602b61ad4ea1e9dcca9b05337adc3c7ef9fc97434d632c69b8373c` 已在指定 Linux amd64 服务器完成禁网构建和 Docker archive 归档：499,582,464 bytes，archive SHA-256 `c50dd9d32477a4fc70a8e4ba0a985e6bb41688b633d77990869f7078e9e194bc`。运行清单实测 OpenCode1.19.5、ripgrep15.1.0（上游revision后缀保留）、Python3.14.10、所有动态库可用，并增加最终非root启动材料可读/配置目录不可写检查。
 
@@ -120,4 +120,43 @@ docker run --detach --name harniqo-opencode-1195-qualification \
 
 实际运行使用执行UID、只读根/secret挂载、128pids/4GiB/2CPU、cap-drop/no-new-privileges及临时/tmp；各容器均确认PID0后移除，私有home和证据保留。总计12项离线组件测试在本机与服务器通过，包括archive/完整性、模型配置、nongit worktree审批、完整工具路径/顺序和assistant终态字段。
 
-当前只确认上述原生子项。当时的session idle响应未保存，不能由abort后的状态倒推；SSE、重连/重启续聊、原生Run取消、拒绝后继续、第二模型、生产KVM隔离与完整第三方分发审查均未在此通过。M0-04继续IN_PROGRESS。
+该批次只确认上述原生子项。当时的session idle响应未保存，不能由abort后的状态倒推；SSE、重连/重启续聊、原生Run取消、拒绝后继续、第二模型、生产KVM隔离与完整第三方分发审查均未在该批次通过。M0-04继续IN_PROGRESS。
+
+## 2026-10-29 完整自动验收增量
+
+使用同一固定镜像，新增[限定操作者](../../../scripts/qualification/run_opencode_qualification.py)，在指定Linux服务器完成5个独立合成任务。每个任务提交一次明确的prompt，不重试未知提交结果；两模型工具任务、原生续聊、拒绝和流式生成取消分别留证。未改变原生OpenCode源码或既有镜像，早期失败报告不覆盖。
+
+| 新用例 | 实际结果 |
+| --- | --- |
+| DeepSeek工具闭环 | `deepseek-v4.1-flash`，健康/鉴权、精确once审批、固定路径read→write→read、随机输入与实际产物、原生stop/completed及idle均自动通过；原生报告15148 tokens |
+| Qwen工具闭环 | 独立home/workspace下的`qwen3.8-flash`完成相同自动门槛；原生报告16201 tokens |
+| Qwen重启与续聊 | 已确认原执行停止后，用相同home/workspace重建容器，再实际`docker restart`；两次完整历史均与原报告相等。一次新提示不包含旧随机值，原生会话正确回忆nonce/challenge；原历史前缀、文件不变，未调用工具，idle与stop/completed通过；本次新增回答报告5066 tokens |
+| Qwen拒绝 | 精确关联原生待审批的路径、工具callID，拒绝返回200；原生write转error、idle、无待执行工具/待审批且目标文件不存在；同一请求的迟到reject返回404。原生报告3677 tokens |
+| Qwen执行中取消 | 提交前订阅`/event`；收到对应session/message的真实文本delta，核对busy且assistant尚未完成后发abort。随后取得`MessageAbortedError`、completed及idle，且无待执行工具；0.016秒确认原生终态。取消用量未完整报告，记unknown |
+
+5个operator与原生用例均passed；每次确认容器宿主PID0、移除及完整限量私有日志，10012端口已释放。报告位于 `.private/qualification/opencode-admission/<case>/operator.json`；smoke的原生证据在`probe/`，其余模式在case下保存独立原生历史、状态、提交marker及审批/SSE材料。初始两次smoke另存`source-sha256.json`，后续operator内包含执行时的源文件SHA，便于区分仅改判据/记录方式的版本。
+
+新增[生命周期组件检查](../../../scripts/qualification/test_opencode_lifecycle.py)7项，与原12项输入/权限/终态检查分别在本机及服务器通过。组件测试验证流式内容与会话/消息身份关联、取消所需的原生错误/终态、活动工具拒绝、模型字段全量核对、限定挂载以及未知提交不重试；真实模型与进程恢复由上表的实际运行证明。
+
+流式判据依据固定[原生processor](https://github.com/anomalyco/opencode/blob/810c0eba1a7348036f8bdf61e6632d0c36c6876c/packages/opencode/src/session/processor.ts)：文本delta先发布，最终文本和assistant完成字段后持久化。取消前因此采集实际SSE，不把仅有busy或尚无文字的SQL历史当成模型已开始输出。这里的0.016秒是观测到原生终态的时间，不代表供应商计费停止延迟或所有外部副作用均已终止。
+
+### 重跑入口及凭据边界
+
+在指定Linux工作区，先读取`df`。每次选择全新的case，显式指定已批准endpoint ID；`--mode`一次只运行一个任务。下面示例中的image ID取本节固定provenance，不使用浮动标签。
+
+```bash
+df -h .
+python3 scripts/qualification/run_opencode_qualification.py \
+  --root "$PWD" --config "$PWD/.private/model-endpoints.json" \
+  --endpoint-id APPROVED_ENDPOINT_ID \
+  --provenance "$PWD/images/containers/opencode/1.19.5/sha256-ef392b1148602b61ad4ea1e9dcca9b05337adc3c7ef9fc97434d632c69b8373c.docker.tar.provenance.json" \
+  --case "$PWD/.private/qualification/opencode-admission/UNIQUE_CASE" --mode smoke
+```
+
+其他模式为`denial`、`cancellation`、`recovery`；后者另需`--recover-from`指向相同模型配置、已通过且确认移除容器的原smoke case。操作者复用该原生状态，创建独立报告和临时服务密码；不是复制历史到新会话。固定本机Docker daemon与10012环回端口，私有端口锁串行执行；仅已核对image/attempt/container ID的资源可停止。模型key通过原文件只读挂载，不复制到case或Docker环境参数；原生进程内的环境仍可含key，因此本操作者仅用于可信合成验收，不提供生产租户隔离。
+
+### 本次仍未证明的能力
+
+模型字段为原生实际会话中的配置元数据，两种真实任务均有产物证据；**尚未取得独立HTTP发送观察，实际传输目标/供应商served-model证明仍为unknown**。原生usage有值时保留其口径，native价格0不表示免费，报告tokens不代替账单。
+
+本次SSE只证明在线事件观察；没有durable游标重放承诺。恢复是已完成会话的原生续聊，不是执行中崩溃断点续跑。待审批跨重启、非合作/外部工具取消、拒绝后继续、模型路由切换后的原会话兼容性、版本升级回退、生产KVM与出口隔离、正式分发材料仍需独立验收。M0-04的多目标选择与完整比较由阶段清单继续跟踪。

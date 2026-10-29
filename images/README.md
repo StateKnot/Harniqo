@@ -12,7 +12,9 @@ images/
   vm/instances/                各工作区/Trial 独立 VM 写入层
 ```
 
-公开仓库只包含规范与格式示例。指定验收环境已保存并校验 Ubuntu KVM 基础镜像、Hermes 的两工具与四工具组合归档，以及 OpenCode1.19.5 修复前后两份运行包，实际清单共5项；归档与 provenance 位于本目录下的受控子目录，不进入 Git。构建、运行及验收状态分别见 [M0 证据索引](../docs/planning/M0-RESULTS.md)，构建时的 `qualification_passed:false` 不由后续用例覆盖，追加验收报告另行关联 image ID 与 recipe SHA。
+公开仓库只包含规范、构建配方、锁和脱敏来源记录。指定验收环境已保存并校验 Ubuntu KVM 基础镜像、Hermes 的两工具与四工具组合归档，以及 OpenCode1.19.5 修复前后两份运行包；本轮新增Octop Harness1.0.5归档。镜像二进制位于本目录下的受控子目录；来源证明按各配方保存在归档旁或私有构建报告中，不进入 Git。构建、运行及验收状态分别见 [M0 证据索引](../docs/planning/M0-RESULTS.md)，构建时的 `qualification_passed:false` 不由后续用例覆盖，追加验收报告另行关联 image ID 与 recipe SHA。
+
+Octop Harness实际image ID为`sha256:714e015d1c1281e1c91bd2ae67f39191b99c408eb7523b62a409831e912a73d5`，Docker archive位于`containers/octop/harness/`，496,659,456 bytes，SHA-256为`f5fa07a06006c9f1dca7471bb3135ba22834eb22a7914c1754731b9d2334c470`；93包固定锁与来源见 [配方](../deploy/qualification/octop/README.md)。Octop完整服务另有867,920,384 bytes归档，SHA-256 `1506f719e58af360203a113d51c11a2ccae9709fb62d1400efc1f94812547f70`；OpenClaw官方固定归档674,162,688 bytes，SHA-256 `adab4f92ac77655b55573eb1560eac9d77c99199e09a496d78148bdc91f23804`。三份新增归档均已再次核验并追加到私有清单，合计8项，原5项不改写。两轮NIC资格使用既有Ubuntu base，临时网络/VM写入层已回收，不产生可复用生产基础镜像。
 
 ## 命名与来源
 

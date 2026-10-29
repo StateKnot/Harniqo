@@ -12,6 +12,7 @@ dist/
 coverage/
 playwright-report/
 test-results/
+ci-evidence/
 .cache/
 .state/
 .venv/
@@ -20,5 +21,6 @@ __pycache__/
 
 # Image binaries and private runtime state
 images/containers/
+images/sources/
 images/vm/
 images/manifest.local.json
