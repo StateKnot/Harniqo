@@ -23,15 +23,32 @@ RUN ln -sf libsqlite3.so.3.53.4 /usr/local/lib/libsqlite3.so.0 && \
     python3 -c "import sqlite3; assert sqlite3.sqlite_version_info == (3,53,4); c=sqlite3.connect(':memory:'); c.execute(\"CREATE VIRTUAL TABLE docs USING fts5(content, tokenize='trigram')\"); c.execute(\"INSERT INTO docs VALUES ('hermes')\"); assert c.execute(\"SELECT count(*) FROM docs WHERE docs MATCH 'erm'\").fetchone()[0] == 1"
 COPY source/ /opt/hermes/
 WORKDIR /opt/hermes
+ARG HARNIQO_DEPENDENCY_MODE=online
 # sms is the upstream minimal extra containing only aiohttp, required by the
 # native API adapter. This does not enable SMS or install messaging/desktop extras.
 # No lock refresh, resolver fallback, sdist build, dev group or runtime installer.
 # This task-scoped BuildKit mount survives failed syncs but is not an image layer.
+# Offline installs the full frozen export, including upstream version overrides.
 RUN --mount=type=cache,id=harniqo-hermes-a382af23f4c067d23463b5781958684c2cda82bc-linuxamd64-uv0.13.5,target=/tmp/uv-cache,sharing=locked \
+    --mount=type=bind,source=wheelhouse,target=/opt/harniqo-wheelhouse,readonly \
     python3 -c 'import sys; assert sys.version_info[:2] == (3, 14)' && \
-    uv sync --frozen --all-packages --python /usr/local/bin/python3 \
-      --no-default-groups --no-install-project --no-install-package hermes-agent \
-      --no-editable --no-build --extra sms && \
+    case "$HARNIQO_DEPENDENCY_MODE" in \
+      online) \
+        uv sync --frozen --all-packages --python /usr/local/bin/python3 \
+          --no-default-groups --no-install-project --no-install-package hermes-agent \
+          --no-editable --no-build --extra sms ;; \
+      offline) \
+        uv export --frozen --offline --all-packages --no-default-groups --extra sms \
+          --no-emit-project --no-emit-package hermes-agent --format requirements-txt \
+          --output-file /tmp/harniqo-frozen-requirements.txt && \
+        uv venv --python /usr/local/bin/python3 .venv && \
+        UV_CONCURRENT_DOWNLOADS=4 UV_CONCURRENT_INSTALLS=4 \
+        uv pip sync --offline --require-hashes --no-index \
+          --find-links=/opt/harniqo-wheelhouse --only-binary=:all: \
+          --python=.venv/bin/python /tmp/harniqo-frozen-requirements.txt && \
+        rm /tmp/harniqo-frozen-requirements.txt ;; \
+      *) printf '%s\n' 'HARNIQO_DEPENDENCY_MODE must be online or offline' >&2; exit 2 ;; \
+    esac && \
     .venv/bin/python scripts/write_install_stamp.py --output install-stamp.json \
       --commit a382af23f4c067d23463b5781958684c2cda82bc --source commit-build \
       --display-version git.a382af23f4c0.harniqo-qualification --dirty \

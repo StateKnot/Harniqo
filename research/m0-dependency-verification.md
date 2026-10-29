@@ -1,6 +1,6 @@
 # M0 依赖许可与验收外部条件核验
 
-日期：2026-10-29。只使用上游 LICENSE、官方发行页及平台支持文档。本文是 [M0-06 清单](../docs/compliance/DEPENDENCIES.md) 与 [M0-07 基线](../docs/operations/ACCEPTANCE-BASELINE.md) 的来源记录，不是运行、签名或完整供应链认证报告。
+日期：2026-10-29。来源为上游LICENSE、固定源码、官方发行页及平台支持文档；后续Hermes部分另记受控真实命令实验。本文是 [M0-06 清单](../docs/compliance/DEPENDENCIES.md)、[M0-07 基线](../docs/operations/ACCEPTANCE-BASELINE.md)及依赖前置检查的来源记录，不是完整Harness运行、签名或供应链认证报告。
 
 ## 许可事实
 
@@ -51,3 +51,29 @@ QEMU官方明确其发行包含许可独立的固件，libvirt官方区分C库�
 ## 本轮开发更新
 
 同日后续已按指定服务器的实际隔离环境生成 `scripts/contracts/requirements.lock`：20 个精确包版本、434 个官方 PyPI SHA-256，并附 metadata 来源/hash；旧段落中“待补完整解析锁”是生成前状态。哈希解析与契约验证已运行，源码/镜像与后续发行仍须分别履约。Bootstrap pip 留在私有工具缓存，不随项目分发。
+
+## Hermes离线依赖输入与同锁实验
+
+本轮身份是固定源码 `a382af23f4c067d23463b5781958684c2cda82bc` 加受控工具组合。官方v0.22.5的annotated tag实际指向 `bf0203a794a07aac3ff764972ab9087baa4e4f4e`，故不把本组合称为v0.22.5原版；tag、源码归档和启动边界见 [Hermes准入说明](../deploy/qualification/hermes/README.md)。下述实验不启动Harness或模型，不改变代码、锁或包版本。
+
+| 输入/行为 | primary依据与本次记录 |
+| --- | --- |
+| 原始选择 | 固定 [pyproject.toml](https://github.com/NousResearch/hermes-agent/blob/a382af23f4c067d23463b5781958684c2cda82bc/pyproject.toml)、[uv.lock](https://github.com/NousResearch/hermes-agent/blob/a382af23f4c067d23463b5781958684c2cda82bc/uv.lock)：Python3.14，core+sms、no-default-groups，不安装根项目。原锁SHA `ae748e8063f636357ee3c5a623f95eeb1dab388b13a199f62c174388901f5a32` |
+| 安装器 | [pm/lock.json](https://github.com/NousResearch/hermes-agent/blob/a382af23f4c067d23463b5781958684c2cda82bc/pm/lock.json)固定uv0.13.5；独立显式选 [官方PyPI同版wheel](https://pypi.org/pypi/uv/0.13.5/json)，其SHA `fa8d26e08e34c29c0c4e820cf3181757086d547240b4f4d31ff1d8bd810ca946`，不冒用原release tar的hash |
+| 目标与闭包 | 官方Python3.14-trixie amd64 manifest digest `sha256:faf7953db05ee8e060aa9fda8a389e5779cdba26a22e1363379861023e910830`，实际Python3.14.10。在该容器取得完整markers及sys_tags，86条导出要求中12条不适用，选中74包；激活项无缺wheel/direct URL/Git漏项。[marker求值](https://packaging.pypa.io/en/stable/markers.html)、[兼容tags](https://packaging.pypa.io/en/stable/tags.html) |
+| 下载与来源 | 74个wheel共49,184,573bytes，URL全部来自原锁的官方files.pythonhosted.org；每个文件同时匹配原锁/导出hash，并核完整SHA。8段Range只是传输方式。wheelhouse manifest SHA `3a144732d405b1fe0387f4f9e2f22171db19ad6eeb7a79cf7eb6fbc174ea4977`，每项来源/文件名/大小/hash均另存 |
+| 导出与同步语义 | [uv0.13.5 export参数](https://github.com/astral-sh/uv/blob/0.13.5/crates/uv-cli/src/lib.rs#L4482)保留hash；[pip sync](https://github.com/astral-sh/uv/blob/0.13.5/crates/uv-cli/src/lib.rs#L795)接受完整闭包，不重新补传递依赖。requirements是位置参数。原registry锁缓存按index URL及wheel名匹配，[固定缓存实现](https://github.com/astral-sh/uv/blob/0.13.5/crates/uv-distribution/src/index/registry_wheel_index.rs#L53)不能被同hash本地目录自动替代 |
+| 上游override | `uv.lock`显式override Pillow13；browser-harness0.1.13的installed metadata仍声明Pillow12.3。[pm/pip_check.py](https://github.com/NousResearch/hermes-agent/blob/a382af23f4c067d23463b5781958684c2cda82bc/pm/pip_check.py)解释该差异，只豁免明确覆盖且安装版本等于锁版本的报告行。所用helper SHA `7ea3d7b15a7f051f95dd0a3baf68bfe2d8e092017feca90527d1e15f4729dce1` |
+
+真实反例及成功路径均保留，而非只记录成功：
+
+1. tiny six1.17.0案例用真实PyPI registry锁、已验本地wheel和空cache执行 `uv sync --frozen --offline --find-links`，仍因原URL缓存缺失而失败，锁前后未变。不能把“有同hash文件”推断成原registry sync能离线找到它。
+2. 真实Hermes冻结导出后 `uv pip install --require-hashes` 重新求解metadata，因Pillow12.3与上游override13冲突失败。tiny six的install成功不能泛化到该完整项目。
+3. 同一74包导出改用 `uv pip sync --offline --require-hashes --no-index --find-links <wheelhouse> --only-binary :all: --python <fresh-venv>/bin/python <frozen-requirements>`，在同base/Python3.14及容器禁网、fresh cache/venv下成功；74个实际分发版本逐一一致、原锁SHA未变，native API和本组合工具模块import成功，未调用启动入口。首个64pids/2GiB/默认并发实验90秒超时；独立重试使用128pids/4GiB/2CPU及安装/下载并发4成功，不断言哪个单一条件造成差异。
+4. 成功环境的原始 `uv pip check` 返回1，发现1项browser-harness/Pillow冲突；调用原上游 `unexpected_incompatibilities(raw_report, original_lock)` 得空列表、解析完整，unexpected=0。准确结论是“已知override冲突1、非预期0”，不是raw检查全过。不得豁免原锁未明确覆盖的其他冲突。
+
+对外操作入口是显式 `--wheelhouse /path/to/verified-hermes-wheelhouse --uv-source pypi-wheel`。builder先按原锁逐文件校验并记录输入，Dockerfile再冻结导出、hash-required pip sync；不传wheelhouse仍是在线分支，网络失败不静默切换。具体参数见 [受控组合配方](../deploy/qualification/hermes/README.md#显式离线依赖输入)；代码入口是 [builder](../scripts/qualification/build_hermes_image.py)与[Dockerfile](../deploy/qualification/hermes/Dockerfile)。
+
+provenance需区分uv安装器格式/hash、依赖wheel清单、原锁SHA、真实目标markers/tags、选择与安装版本。导出header会带命令/output-file路径：同内容更换路径可能改变原始文件SHA，因此保留原文件SHA，并用规范化requirement、marker、hash集合及目标wheel比较选择，不因header差异声称锁或版本变动。私有证据位于 `.private/qualification/hermes-offline-inputs/<closure-sha256>/`；实际主机路径和凭据不进入本文。
+
+边界：逐文件静态输入验证属于构建前置检查，不能替代完整镜像构建或M0-03原生用例。独立import实验使用base的SQLite3.46.1；正式Docker配方仍须实际构建并验证固定SQLite3.53.4。最终镜像、归档、原生会话、受控工具回执、流式/续传、取消、恢复及KVM隔离仍按各自真实证据判定。本轮未新增对整个74包、native wheel或系统库的完整分发许可/SBOM认证。

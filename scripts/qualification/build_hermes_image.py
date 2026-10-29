@@ -21,6 +21,7 @@ import subprocess
 import tarfile
 import tempfile
 import time
+import tomllib
 import urllib.parse
 import urllib.request
 import zipfile
@@ -130,6 +131,70 @@ def cached_download(url, path, expected, maximum):
         os.link(temporary, path)
     finally:
         temporary.unlink(missing_ok=True)
+
+
+def prepare_wheelhouse(source, provided, context):
+    """Copy only wheels whose bytes match the unchanged upstream lock.
+
+    The Docker recipe independently exports the frozen dependency closure and
+    requires its hashes during offline sync. A missing or wrong-platform wheel
+    therefore fails installation rather than silently changing the selection.
+    """
+    destination = context / "wheelhouse"
+    destination.mkdir()
+    if provided is None:
+        return {"mode": "online-frozen-sync", "wheel_count": 0}
+    provided = Path(os.path.abspath(provided))
+    if any(part.is_symlink() for part in (provided, *provided.parents)) or not provided.is_dir():
+        raise ValueError("Wheelhouse must be a real directory without symlink components")
+    locked = tomllib.loads((source / "uv.lock").read_text())
+    allowed = {}
+    for package in locked["package"]:
+        for wheel in package.get("wheels", []):
+            name = urllib.parse.unquote(urllib.parse.urlsplit(wheel["url"]).path.rsplit("/", 1)[-1])
+            expected = wheel["hash"]
+            if (Path(name).name != name or not name.endswith(".whl")
+                    or not re.fullmatch(r"sha256:[0-9a-f]{64}", expected)):
+                raise ValueError("Unexpected wheel identity in the pinned source lock")
+            value = {"sha256": expected.removeprefix("sha256:"), "bytes": wheel.get("size")}
+            if name in allowed and allowed[name] != value:
+                raise ValueError("Ambiguous wheel filename in the pinned source lock")
+            allowed[name] = value
+    candidates = sorted(provided.glob("*.whl"))
+    if not 1 <= len(candidates) <= 1000:
+        raise ValueError("Offline wheelhouse must contain a bounded nonempty wheel set")
+    total, records = 0, []
+    for path in candidates:
+        metadata = path.lstat()
+        expected = allowed.get(path.name)
+        if (not stat.S_ISREG(metadata.st_mode) or expected is None
+                or (expected["bytes"] is not None and metadata.st_size != expected["bytes"])
+                or not 0 < metadata.st_size <= 200 * 1024**2):
+            raise ValueError("Offline wheel is not a regular artifact from the pinned lock")
+        total += metadata.st_size
+        if total > 512 * 1024**2:
+            raise ValueError("Offline wheelhouse exceeds the build input size bound")
+        target = destination / path.name
+        descriptor = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_CLOEXEC)
+        with os.fdopen(descriptor, "rb") as incoming, target.open("xb") as outgoing:
+            opened = os.fstat(incoming.fileno())
+            if not stat.S_ISREG(opened.st_mode) or opened.st_size != metadata.st_size:
+                raise ValueError("Offline wheel changed before its bounded copy")
+            copied = 0
+            while copied <= metadata.st_size:
+                chunk = incoming.read(min(4 * 1024**2, metadata.st_size + 1 - copied))
+                if not chunk:
+                    break
+                outgoing.write(chunk)
+                copied += len(chunk)
+            outgoing.flush()
+            os.fsync(outgoing.fileno())
+        if copied != metadata.st_size or sha(target) != expected["sha256"]:
+            raise ValueError("Offline wheel content differs from the pinned source hash")
+        target.chmod(0o444)
+        records.append({"filename": path.name, "sha256": expected["sha256"], "bytes": copied})
+    return {"mode": "offline-frozen-export-pip-sync", "wheel_count": len(records),
+            "wheel_bytes": total, "source_lock_sha256": sha(source / "uv.lock"), "wheels": records}
 
 
 def extract_source(archive, destination):
@@ -369,6 +434,8 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", type=Path, default=Path.cwd())
     parser.add_argument("--prepare-only", action="store_true", help="verify/download inputs and resolve base; do not build")
+    parser.add_argument("--wheelhouse", type=Path,
+                        help="explicit offline dependency input; every wheel must match the original source lock")
     parser.add_argument("--uv-source", choices=("release-tar", "pypi-wheel"), default="release-tar",
                         help="explicit uv 0.13.5 artifact choice; no automatic format/source fallback")
     args = parser.parse_args()
@@ -418,6 +485,8 @@ def run_build(args, root, recipe, attempt):
         source.rename(context / "source")
         source = context / "source"
         locks = {name: sha(source / name) for name in ("pyproject.toml", "uv.lock", "pm/lock.json")}
+        attempt.update("wheelhouse_verify")
+        dependencies = prepare_wheelhouse(source, args.wheelhouse, context)
         manager = json.loads((source / "pm/lock.json").read_text())["packages"]["uv"]
         artifact = manager["artifacts"]["linux-x64"]
         if manager["version"] != "0.13.5" or artifact["sha256"] != "f68d291c75783122dad58ab77def0e13f3233f358731db5d6d7e8715603b928f":
@@ -457,6 +526,7 @@ def run_build(args, root, recipe, attempt):
                   "release_matches_commit": False,
                   "source_archive_sha256": SOURCE_SHA256, "locks_sha256": locks, "python_base": base,
                   "uv_bootstrap": uv_bootstrap,
+                  "dependency_installation": dependencies,
                   "sqlite": {"version": "3.53.4", "url": SQLITE_URL, "sha256": SQLITE_SHA256},
                   "recipe_sha256": {n: sha(context / n) for n in ("Dockerfile", "entrypoint.py")},
                   "dependency_selection": "upstream uv.lock core + sms (aiohttp only); no default groups; frozen; wheels only"}
@@ -470,6 +540,7 @@ def run_build(args, root, recipe, attempt):
         attempt.update("building")
         try:
             command(["docker", "build", "--platform", "linux/amd64", "--build-arg", "PYTHON_BASE=" + base["reference"],
+                     "--build-arg", "HARNIQO_DEPENDENCY_MODE=" + ("offline" if args.wheelhouse else "online"),
                      "--iidfile", str(iid_file), "--tag", "harniqo/hermes-qualification:" + VERSION,
                      str(context)], timeout=1800, attempt=attempt)
         finally:
@@ -477,17 +548,19 @@ def run_build(args, root, recipe, attempt):
             if iid_file.is_file() and iid_file.stat().st_size < 256:
                 recorded_id = iid_file.read_text().strip()
                 if DIGEST.fullmatch(recorded_id):
-                    attempt.update(attempt.value["stage"], image_id=recorded_id)
+                    attempt.update(attempt.value["stage"], build_result_id=recorded_id)
         image_id = iid_file.read_text().strip()
         if not DIGEST.fullmatch(image_id):
             raise ValueError("Docker build did not return an immutable image ID")
-        attempt.update("image_inspect", image_id=image_id)
+        build_result_id = image_id
+        attempt.update("image_inspect", build_result_id=build_result_id)
         inspect = json.loads(command(["docker", "image", "inspect", image_id], capture_output=True,
                                      text=True, timeout=30, attempt=attempt).stdout)[0]
         if inspect.get("Architecture") != "amd64" or inspect.get("Os") != "linux":
             raise ValueError("Built image platform mismatch")
         image_identity = observed_image_identity(inspect)
-        attempt.update("runtime_inventory", image_identity=image_identity)
+        image_id = image_identity["inspect_image_id"]
+        attempt.update("runtime_inventory", image_id=image_id, image_identity=image_identity)
         inventory_result = command(
             ["docker", "run", "--rm", "--read-only", "--network", "none", "--cap-drop", "ALL",
              "--security-opt", "no-new-privileges", "--memory", "256m", "--pids-limit", "32",
@@ -523,6 +596,7 @@ def run_build(args, root, recipe, attempt):
                    "version": VERSION, "platform": "linux/amd64", "format": "docker-archive",
                    "relative_path": str(output.relative_to(root / "images")), "sha256": archive_sha,
                    "image_id": image_id, "image_digest": image_id, "digest_kind": "docker-image-store-id",
+                   "build_result_id": build_result_id,
                    "image_config_digest": None, "registry_manifest_digest": None, **image_identity,
                    "inputs": inputs, "runtime_inventory": inventory,
                    "created_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),

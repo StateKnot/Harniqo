@@ -231,6 +231,24 @@ def decode_tool_json(value):
     return json_value(value) if isinstance(value, str) else value
 
 
+def validate_terminal(status, event, run_id, session_id):
+    """Canonical polling omits flags; the terminal SSE event carries them.
+
+    The pinned authority projection preserves status/output/usage and identity,
+    not completed/partial/interrupted. Direct legacy polling includes the flags.
+    Require the SSE flags in both cases and reject any conflicting poll fields.
+    """
+    require(isinstance(status, dict) and status.get("run_id") == run_id
+            and status.get("status") == "completed" and status.get("session_id") == session_id,
+            "native_run_status_mismatch")
+    require(isinstance(event, dict) and event.get("run_id") == run_id
+            and event.get("event") == "run.completed", "native_terminal_event_mismatch")
+    for key, expected in (("completed", True), ("partial", False), ("interrupted", False)):
+        require(event.get(key) is expected, "native_terminal_event_flags_mismatch")
+        if key in status:
+            require(status[key] is expected, "native_poll_terminal_flags_conflict")
+
+
 def validate_tools(messages, artifact_raw, nonce, content):
     artifact = json_value(artifact_raw)
     require(isinstance(artifact, dict) and set(artifact) == {"nonce", "content", "receipt"}
@@ -275,6 +293,39 @@ def validate_tools(messages, artifact_raw, nonce, content):
     return {"artifact_sha256": artifact_hash, "tool_calls": calls,
             "receipt_verified": True, "message_count": len(messages),
             "messages_sha256": digest(json.dumps(messages, sort_keys=True, ensure_ascii=False).encode())}
+
+
+def metadata_evidence(result, expected_model):
+    """Collect observations without treating requested model echo as served identity."""
+    runtime = result.get("runtime")
+    model = runtime.get("model") if isinstance(runtime, dict) else None
+    if model is None or model == "":
+        model_observation = {"status": "not_reported", "reported_model": None}
+    elif model == expected_model:
+        model_observation = {"status": "matched", "reported_model": model}
+    else:
+        # Unexpected free text may itself be sensitive: retain a hash, not a
+        # value that could be an endpoint or an incorrectly exposed secret.
+        model_observation = {"status": "mismatch", "reported_model": None,
+                             "reported_model_sha256": digest(json.dumps(model, sort_keys=True).encode())}
+    usage = result.get("usage")
+    keys = ("input_tokens", "output_tokens", "total_tokens", "cache_read_tokens", "cache_write_tokens")
+    safe_usage = ({key: value for key, value in usage.items()
+                   if key in keys and type(value) is int and value >= 0} if isinstance(usage, dict) else {})
+    return {"model_evidence": {"source": "native_run_runtime_model", **model_observation},
+            "usage": safe_usage, "usage_reported": isinstance(usage, dict),
+            "usage_source": "native_harness_provider_reported", "cost_cap_enforced": False}
+
+
+def validate_metadata(evidence):
+    """Strict admission gate, called only after independently verified evidence is saved."""
+    observation = evidence["model_evidence"]["status"]
+    require(observation != "not_reported", "native_effective_model_not_reported")
+    require(observation == "matched", "native_effective_model_mismatch")
+    require(evidence["usage_reported"], "native_usage_missing")
+    usage = evidence["usage"]
+    require(usage.get("total_tokens", usage.get("input_tokens", 0) + usage.get("output_tokens", 0)) > 0,
+            "native_token_usage_missing")
 
 
 def run_case(args, record):
@@ -342,20 +393,9 @@ def run_case(args, record):
           "last_seq": events[-1]["seq"], "real_disconnect": True, "retained_backlog_resume": True,
           "event_types": dict(Counter(e["event"] for e in events))})
     result = api.request("/v1/runs/" + run_id)
-    require(result.get("run_id") == run_id and result.get("status") == "completed"
-            and result.get("session_id") == session_id and result.get("completed") is True
-            and not result.get("partial") and not result.get("interrupted"), "native_run_status_mismatch")
-    runtime = result.get("runtime")
-    require(isinstance(runtime, dict) and runtime.get("model") == args.expected_model,
-            "native_effective_model_mismatch")
-    usage = result.get("usage")
-    keys = ("input_tokens", "output_tokens", "total_tokens", "cache_read_tokens", "cache_write_tokens")
-    require(isinstance(usage, dict), "native_usage_missing")
-    safe_usage = {key: value for key, value in usage.items() if key in keys and type(value) is int and value >= 0}
-    require(safe_usage.get("total_tokens", safe_usage.get("input_tokens", 0) + safe_usage.get("output_tokens", 0)) > 0,
-            "native_token_usage_missing")
-    stage("terminal_status", terminal_status="completed", effective_model=runtime["model"], usage=safe_usage,
-          usage_source="native_harness_provider_reported", cost_cap_enforced=False)
+    validate_terminal(result, events[-1], run_id, session_id)
+    metadata = metadata_evidence(result, args.expected_model)
+    stage("terminal_status", terminal_status="completed", terminal_flags_verified=True, **metadata)
     history = api.request("/api/sessions/" + session_id + "/messages?limit=100&order=oldest")
     require(history.get("session_id") == session_id and isinstance(history.get("data"), list)
             and len(history["data"]) < 100, "native_history_missing_or_truncated")
@@ -364,7 +404,12 @@ def run_case(args, record):
             "terminal_output_receipt_missing")
     after = inspect_container(args.container, image_id, args.port)
     require(after == before, "container_changed_during_case")
-    stage("completed", status="passed", complete=True, native_tools=tools,
+    stage("native_tools_verified", native_tools=tools, terminal_output_receipt_verified=True,
+          container_identity_unchanged=True)
+    # Missing model/usage metadata must not discard native tool, history, file,
+    # terminal, numeric usage or container observations already verified above.
+    validate_metadata(metadata)
+    stage("completed", status="passed", complete=True, effective_model=metadata["model_evidence"]["reported_model"],
           native_api_case_passed=True, milestone_complete=False)
 
 

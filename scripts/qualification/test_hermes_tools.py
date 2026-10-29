@@ -64,6 +64,31 @@ class SSEValidationTests(unittest.TestCase):
             with self.subTest(raw=raw), self.assertRaises(PROBE.Rejected):
                 PROBE.json_value(raw)
 
+    def test_canonical_poll_omits_flags_but_terminal_sse_proves_completion(self):
+        status = {"run_id": "run_test", "session_id": "session_test", "status": "completed",
+                  "output": "receipt", "usage": {"total_tokens": 100}}
+        event = {"run_id": "run_test", "event": "run.completed", "completed": True,
+                 "partial": False, "interrupted": False}
+        PROBE.validate_terminal(status, event, "run_test", "session_test")
+        PROBE.validate_terminal(dict(status, completed=True, partial=False, interrupted=False),
+                                event, "run_test", "session_test")
+
+    def test_terminal_sse_missing_or_failure_flags_and_conflicting_poll_rejected(self):
+        status = {"run_id": "run_test", "session_id": "session_test", "status": "completed"}
+        event = {"run_id": "run_test", "event": "run.completed", "completed": True,
+                 "partial": False, "interrupted": False}
+        for key, bad in [("completed", False), ("partial", True), ("interrupted", True)]:
+            for source in ("poll", "sse", "missing_sse"):
+                bad_status, bad_event = dict(status), dict(event)
+                if source == "poll":
+                    bad_status[key] = bad
+                elif source == "sse":
+                    bad_event[key] = bad
+                else:
+                    bad_event.pop(key)
+                with self.subTest(key=key, source=source), self.assertRaises(PROBE.Rejected):
+                    PROBE.validate_terminal(bad_status, bad_event, "run_test", "session_test")
+
 
 class ProfileToolTests(unittest.TestCase):
     def setUp(self):
@@ -145,6 +170,45 @@ class ProfileToolTests(unittest.TestCase):
         value = PROBE.validate_tools(self.messages(written, read), raw, self.nonce, self.content)
         self.assertTrue(value["receipt_verified"])
         self.assertEqual(value["artifact_sha256"], hashlib.sha256(raw).hexdigest())
+
+    def test_missing_model_gate_preserves_saved_tools_and_numeric_usage(self):
+        written, read, raw = self.loop()
+        tools = PROBE.validate_tools(self.messages(written, read), raw, self.nonce, self.content)
+        # This uses the canonical poll shape: model is only a request echo;
+        # empty runtime.model must never be filled from that echo or expected.
+        evidence = PROBE.metadata_evidence(
+            {"status": "completed", "model": "approved-model", "runtime": {"model": ""},
+             "usage": {"input_tokens": 12, "output_tokens": 5, "total_tokens": 17}}, "approved-model")
+        record = {"stage": "native_tools_verified", "native_tools": tools, "terminal_status": "completed",
+                  "native_api_case_passed": False, **evidence}
+        report = self.workspace / "saved-report.json"
+        PROBE.write_report(report, record)
+        with self.assertRaises(PROBE.Rejected) as caught:
+            PROBE.validate_metadata(evidence)
+        self.assertEqual(caught.exception.code, "native_effective_model_not_reported")
+        saved = json.loads(report.read_text())
+        self.assertEqual(saved["native_tools"], tools)
+        self.assertEqual(saved["usage"], {"input_tokens": 12, "output_tokens": 5, "total_tokens": 17})
+        self.assertEqual(saved["model_evidence"]["status"], "not_reported")
+        self.assertIsNone(saved["model_evidence"]["reported_model"])
+        self.assertFalse(saved["native_api_case_passed"])
+
+    def test_model_missing_mismatch_and_missing_usage_keep_distinct_failures(self):
+        for result, expected_code in [
+                ({"usage": {"total_tokens": 1}}, "native_effective_model_not_reported"),
+                ({"runtime": {"model": "different-model"}, "usage": {"total_tokens": 1}},
+                 "native_effective_model_mismatch"),
+                ({"runtime": {"model": "approved-model"}}, "native_usage_missing"),
+                ({"runtime": {"model": "approved-model"}, "usage": {"total_tokens": 0}},
+                 "native_token_usage_missing")]:
+            evidence = PROBE.metadata_evidence(result, "approved-model")
+            with self.subTest(expected=expected_code), self.assertRaises(PROBE.Rejected) as caught:
+                PROBE.validate_metadata(evidence)
+            self.assertEqual(caught.exception.code, expected_code)
+        valid = PROBE.metadata_evidence(
+            {"runtime": {"model": "approved-model"}, "usage": {"total_tokens": 17}}, "approved-model")
+        PROBE.validate_metadata(valid)
+        self.assertEqual(valid["model_evidence"]["reported_model"], "approved-model")
 
     def test_invented_receipt_tool_result_or_call_identity_cannot_pass(self):
         written, read, raw = self.loop()
