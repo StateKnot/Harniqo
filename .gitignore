@@ -1,0 +1,23 @@
+# Private deployment records and credentials
+.private/
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Generated artifacts
+node_modules/
+dist/
+coverage/
+playwright-report/
+test-results/
+.cache/
+.venv/
+__pycache__/
+.DS_Store
+
+# Image binaries and private runtime state
+images/containers/
+images/vm/
+images/manifest.local.json

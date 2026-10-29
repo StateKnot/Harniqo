@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "example_only": true,
+  "images": [],
+  "entry_fields": {
+    "kind": "container_archive | vm_base | vm_overlay",
+    "component": "component name",
+    "version": "pinned version",
+    "platform": "linux/amd64 or a verified target",
+    "relative_path": "path relative to images/",
+    "format": "oci-archive | docker-archive | qcow2 | raw",
+    "source": "upstream URL or registry reference without credentials",
+    "source_commit": "commit when built from source",
+    "image_digest": "container content digest when applicable",
+    "sha256": "actual file SHA-256",
+    "backing_sha256": "base image SHA-256 when applicable",
+    "owner_resource_id": "workspace/trial ID for private runtime records",
+    "created_at": "UTC timestamp",
+    "verification_report": "access-controlled report reference",
+    "retention_until": "retention policy timestamp or pinned reason"
+  }
+}
