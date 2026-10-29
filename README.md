@@ -10,6 +10,7 @@
 
 | 文档 | 用途 |
 | --- | --- |
+| [技术架构](docs/architecture/ARCHITECTURE.md) | 技术栈、七个业务 Module、数据与接口、执行隔离、双部署和关键决策 |
 | [开发方案与里程碑](docs/planning/ROADMAP.md) | 产品范围、架构、阶段依赖与发布门槛 |
 | [开发任务清单](docs/planning/BACKLOG.md) | 67 项任务，含交付物和验收条件 |
 | [验收与执行规则](docs/planning/ACCEPTANCE.md) | 真实环境验收、失败场景与证据要求 |

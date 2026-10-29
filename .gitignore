@@ -13,6 +13,7 @@ coverage/
 playwright-report/
 test-results/
 .cache/
+.state/
 .venv/
 __pycache__/
 .DS_Store

@@ -1,6 +1,6 @@
 # Harniqo 开发方案与里程碑
 
-版本：1.0 · 日期：2026-10-29 · 状态：开发计划已形成，应用尚未实现。正式仓库：[StateKnot/Harniqo](https://github.com/StateKnot/Harniqo)，MIT 许可证。
+版本：1.1 · 日期：2026-10-29 · 状态：技术架构与开发计划已形成，M0 契约设计进行中，应用尚未实现。正式仓库：[StateKnot/Harniqo](https://github.com/StateKnot/Harniqo)，MIT 许可证。
 
 本文与 [BACKLOG](BACKLOG.md)、[ACCEPTANCE](ACCEPTANCE.md)、[GLOSSARY](../../GLOSSARY.md) 共同构成后续开发基线。正式开发与服务端验收使用指定的服务器工作区；确切目录、机器连接、资源和端口实测记录保存在不进入开源仓库的 `.private/development-environment.md`。本地副本便于阅读，开发开始后以服务器工作区和对应 Git 提交中的计划为准。
 
@@ -28,16 +28,18 @@
 
 ## 2. 工程基线
 
+完整技术决策以 [ARCHITECTURE](../architecture/ARCHITECTURE.md) 为实现基线，包含七个业务 Module、数据约束、事务/事件、执行拓扑与三份 ADR。下表是里程碑级摘要；具体支持能力仍需真实准入。
+
 ### 技术选择与模块职责
 
 | 模块 | 基线方案 | 持有的职责与数据 |
 | --- | --- | --- |
 | Desktop | Electron + React + TypeScript | 远程工作台、登录、流式展示、文件选择与通知；OS 凭据存储；不依赖本地安装所有 Harness |
-| Control Plane | TypeScript 模块化单体，Node LTS；REST/OpenAPI + SSE | 身份授权、部署、会话、命令、审批、实验、计量、审计；事务与版本契约 |
-| PostgreSQL | 业务状态、事件索引、幂等记录、持久任务队列 | 使用 pg-boss 等成熟队列；至少一次交付下进行应用层幂等和对账 |
+| Control Plane | TypeScript 模块化单体，Node24 LTS + Fastify5；REST/OpenAPI + SSE | 身份授权、部署、会话、命令、审批、实验、计量、审计；事务与版本契约 |
+| PostgreSQL | PostgreSQL17 + Kysely，业务状态、事件索引、幂等记录与持久队列 | pg-boss12 同事务入队；至少一次交付下进行应用层幂等和对账 |
 | Object Storage | S3 兼容服务，私有部署可自带 | 输入快照、原始轨迹、产物、评分报告、备份；按组织授权访问 |
-| Runner | 独立部署的 Linux 常驻服务 | 拉取执行指令、资源租约、沙箱生命周期、保持原生连接、持久回传与故障核对 |
-| Harness Adapter | 按真实原生协议实现 | 探测能力、原生身份映射、会话、事件、审批、取消、文件和用量；不持有平台租户规则 |
+| Runner | Linux Supervisor + 本地受限 Resource Broker | 拉取执行指令、资源租约、VM 生命周期、持久回传与宿主真实状态核对；管理身份不进入 VM |
+| Execution Agent / Harness Adapter | VM 内执行代理按真实原生协议连接 Harness | 探测能力、原生身份映射、会话、事件、审批、取消、文件和用量；不持有平台管理身份 |
 | Evaluation Worker | 独立工作进程，允许 Python 实现 | 任务集导入、Trial 执行与独立 Verifier；通过版本化清单接入，不另建第二套业务调度器 |
 | Identity / Secrets | 成熟 OIDC 服务与 Secret/KMS 提供方 | 私有版可独立部署或接现有服务；生产禁用开发登录；平台仅保存凭据引用 |
 
@@ -45,7 +47,7 @@
 
 队列至少一次投递不等于外部副作用恰好一次。Run、Attempt、幂等命令、原生进程身份和资源租约分别记录；数据库事务内完成业务接受与任务登记，恢复时先查实际执行再决定接管或重试。[pg-boss](https://pgboss.io/introduction)。
 
-M0 锁定具体依赖版本、框架、迁移与构建工具并记录关键决策，M1 提交锁文件。已有研究无法替代真实接入验证；如验证推翻上述基线，先更新决策和相关任务，再继续下游实现。
+技术框架与关键取舍已在架构文档选定；M0 验证准入、冻结 Schema 与工具细节，M1 锁定受支持补丁并提交锁文件。已有研究无法替代真实接入验证；如验证推翻基线，先更新决策和相关任务，再继续下游实现。
 
 ```mermaid
 flowchart TB
@@ -53,9 +55,11 @@ flowchart TB
     C --> P[PostgreSQL 状态 事件 队列]
     C --> O[对象存储 输入 产物 轨迹]
     R[常驻 Runner] --> C
-    R --> A[原生协议 Adapter]
-    A --> H[独立隔离环境内的 Harness]
-    R --> X[已登记的外部 Harness 服务]
+    R --> B[受限 Resource Broker]
+    B --> G[独立 VM 内 Execution Agent]
+    G --> A[原生协议 Adapter]
+    A --> H[同一隔离环境内的 Harness]
+    R --> X[受限 Connector / 已登记外部服务]
     R --> V[独立评分环境]
     H --> O
     V --> O
@@ -77,6 +81,7 @@ flowchart TB
 apps/desktop/           桌面主进程、受限 preload、React UI
 apps/control-plane/     HTTP/SSE 接口、调度、领域模块与迁移
 apps/runner/            注册、租约、执行后端、对账、原生连接
+apps/execution-agent/   VM 内通道与原生 Harness 驱动
 packages/contracts/    API、事件、能力与版本清单 Schema
 packages/client/       平台 API 客户端与流式重连
 packages/adapters/     每类 Harness 的真实 Adapter 与契约测试
@@ -88,7 +93,7 @@ docs/                  方案、决策、运行与贡献文档
 
 ### M0 必须冻结的契约
 
-- 资源：Organization、Project、ExecutionTarget、HarnessRelease、Deployment、RunConfiguration、Session、NativeSession、Run、Attempt、Approval、Artifact、Dataset、Experiment、Trial、UsageRecord；标识与归属贯穿 API、事件、存储和日志。
+- 资源：Organization、Project、ExecutionTarget、HarnessRelease、Deployment、RuntimeInstance、Workspace、RunConfiguration、Session、NativeSession、Run、Attempt、Approval、Artifact、Dataset、Experiment、Trial、UsageRecord；标识与归属贯穿 API、事件、存储和日志。
 - 平台 API `/v1`：环境信息与版本握手、组织/项目、部署与能力、配置、会话与 Run、事件补取、审批响应、文件授权、任务集与实验、用量与审计。客户端不绕过控制面持有其他租户的运行时管理员凭据。
 - 命令：幂等键、请求内容摘要、提交者、作用范围与结果。同键同内容返回原结果；同键不同内容拒绝。
 - 事件：event ID、资源 ID、原生关联 ID、schema version、单 Run 顺序号、时间、类型、payload 与来源。持久化后发布；按游标补取，失效游标有完整重同步路径；客户端去重。
@@ -115,7 +120,7 @@ Octop 原生、Octop Harness、Octop 委派外部 Agent 是三个不同实验身
 
 ## 4. 九个里程碑
 
-所有阶段当前均未开始，任务详见 [67 项 BACKLOG](BACKLOG.md)。文档完成不表示 M0 已验收。
+M0-02 架构/契约设计进行中，其他任务尚未开始，详见 [67 项 BACKLOG](BACKLOG.md)。文档完成不表示 M0 已验收。
 
 | 阶段 | 需要开发与落实的内容 | 退出条件与用户可验收结果 | 依赖 |
 | --- | --- | --- | --- |
