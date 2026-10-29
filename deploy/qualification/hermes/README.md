@@ -20,7 +20,11 @@
 
 上游源树仅增加只读 `tools/harniqo_qualification.py`（内容与本目录 `entrypoint.py` 相同），并用上游 `scripts/write_install_stamp.py` 生成显式 commit、dirty、external-update 的组合身份。源码工具注册使用原生 `tools.registry.register`；不修改其发现器。每个原生 managed worker 都会重新 exec，因此只在父进程注册工具无效，模块必须随运行包可发现。配方、工具、原始锁 SHA、安装分发版本清单都进入镜像 provenance。
 
-原生 `file` toolset 的读操作并不提供此轮所需的固定工作区读取边界；即使设置 `HERMES_WRITE_SAFE_ROOT`，同 UID 的工具仍可能读取secret。故本轮只注册 `qualification_write_file(nonce, content)` 与 `qualification_read_file(nonce)`，不接收模型路径，不执行 shell；两者只读写 `/data/workspace/qualification-result.json`，内容最多2048UTF-8字节。写入后随机生成48hex receipt，读回核对 nonce、receipt 和 SHA。验收记录必须带该组合的 profile/工具 SHA，不能声称验证了原生通用 file、terminal 或审批能力。
+原生 `file` toolset 的读操作并不提供此轮所需的固定工作区读取边界；即使设置 `HERMES_WRITE_SAFE_ROOT`，同 UID 的工具仍可能读取secret。早期两工具组合仅注册 `qualification_write_file(nonce, content)` 与 `qualification_read_file(nonce)`，不接收模型路径，不执行 shell；两者只读写 `/data/workspace/qualification-result.json`，内容最多2048UTF-8字节。写入后随机生成48hex receipt，读回核对 nonce、receipt 和 SHA。验收记录必须带该组合的 profile/工具 SHA，不能声称验证了原生通用 file、terminal 或审批能力。
+
+后续四工具组合保留上述写读工具，并新增 `qualification_wait` 与 `qualification_approved_write`：前者最多等待45秒、检查上游线程中断标志并记录实际 PID/start_ticks；后者通过上游 `request_tool_approval` 人工闸门，只在明确批准后写固定合成文件。它们验证原生中断和审批协议，仍不代表通用 shell/file 工具策略已验收。新旧组合按 image ID、recipe SHA 分开，原始失败不覆盖。[生命周期探针](../../../scripts/qualification/HERMES-LIFECYCLE.md)
+
+四工具组合同时在每个原生 Gateway/Worker 的实际 httpx send 处安装只记录 hash 的传输观察器，保持原请求与主循环实现。模型锁接口、canonical 接口的差异以及实际 endpoint 证据见 [调查结论](../../../research/hermes-native-model-evidence.md)。`transport_audit.py` 与入口文件均记录在 recipe SHA 中；它属于明确版本化的 Harniqo 验收组合。完整启动、私有凭据挂载、进程截止、日志留证和归属核对后的回收使用 [验收操作者](../../../scripts/qualification/HERMES-OPERATOR.md)。
 
 ## 构建
 

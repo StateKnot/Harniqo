@@ -12,7 +12,7 @@ images/
   vm/instances/                各工作区/Trial 独立 VM 写入层
 ```
 
-公开仓库只包含规范与格式示例。指定验收环境已下载并验证 Ubuntu KVM 基础镜像；实际文件和后续运行包归档位于本目录下的受控子目录，不进入 Git。构建、运行及验收状态见 [M0 证据索引](../docs/planning/M0-RESULTS.md)。
+公开仓库只包含规范与格式示例。指定验收环境已保存并校验 Ubuntu KVM 基础镜像、Hermes 的两工具与四工具组合归档，以及 OpenCode1.19.5 修复前后两份运行包，实际清单共5项；归档与 provenance 位于本目录下的受控子目录，不进入 Git。构建、运行及验收状态分别见 [M0 证据索引](../docs/planning/M0-RESULTS.md)，构建时的 `qualification_passed:false` 不由后续用例覆盖，追加验收报告另行关联 image ID 与 recipe SHA。
 
 ## 命名与来源
 

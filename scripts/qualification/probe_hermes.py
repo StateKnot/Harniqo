@@ -42,6 +42,26 @@ def require(condition, code):
         raise Rejected(code)
 
 
+def worker_process_options():
+    """On Linux, a detached HTTP worker must die with its probe parent.
+
+    Qualification parents are single-threaded. The identity check closes the
+    fork/prctl race. This does not stop a remote Run or its model billing.
+    """
+    options = {"start_new_session": True}
+    if sys.platform == "linux":
+        import ctypes
+        parent = os.getpid()
+        libc = ctypes.CDLL(None, use_errno=True)
+
+        def arm():
+            if libc.prctl(1, signal.SIGKILL, 0, 0, 0) != 0 or os.getppid() != parent:
+                os._exit(125)
+
+        options["preexec_fn"] = arm
+    return options
+
+
 def digest(data):
     return hashlib.sha256(data).hexdigest()
 
@@ -471,7 +491,7 @@ def main():
     started = time.monotonic()
     with subprocess.Popen([sys.executable, str(Path(__file__).resolve()), *sys.argv[1:], "--worker"],
                           stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-                          start_new_session=True) as worker:
+                          **worker_process_options()) as worker:
         try:
             code = worker.wait(timeout=args.deadline)
         except (subprocess.TimeoutExpired, KeyboardInterrupt) as error:

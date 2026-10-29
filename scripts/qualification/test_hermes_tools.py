@@ -97,7 +97,9 @@ class ProfileToolTests(unittest.TestCase):
         self.registrations = []
         fake = types.ModuleType("tools.registry")
         fake.registry = types.SimpleNamespace(register=lambda **kwargs: self.registrations.append(kwargs))
-        with patch.dict("sys.modules", {"tools.registry": fake}):
+        audit = types.ModuleType("transport_audit")
+        audit.install = lambda: None
+        with patch.dict("sys.modules", {"tools.registry": fake, "transport_audit": audit}):
             self.tools = load("harniqo_component_tools", ROOT / "deploy/qualification/hermes/entrypoint.py")
         self.tools.WORKSPACE = self.workspace
         self.nonce = "a4e4e8dcee8fddbb"
@@ -113,7 +115,8 @@ class ProfileToolTests(unittest.TestCase):
         return written, read, raw
 
     def test_registration_and_real_write_read_receipt_hash(self):
-        self.assertEqual([r["name"] for r in self.registrations], list(PROBE.TOOLS))
+        self.assertEqual([r["name"] for r in self.registrations], list(PROBE.TOOLS) +
+                         ["qualification_wait", "qualification_approved_write"])
         written, read, raw = self.loop()
         self.assertTrue(written["ok"])
         self.assertRegex(written["receipt"], r"^[0-9a-f]{48}$")

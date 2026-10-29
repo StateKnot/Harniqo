@@ -507,7 +507,7 @@ def run_build(args, root, recipe, attempt):
         attempt.update("sqlite_download")
         cached_download(SQLITE_URL, sqlite_archive, SQLITE_SHA256, 32 * 1024**2)
         shutil.copyfile(sqlite_archive, context / "sqlite.tar.gz")
-        for name in ("Dockerfile", "entrypoint.py"):
+        for name in ("Dockerfile", "entrypoint.py", "transport_audit.py"):
             shutil.copyfile(recipe / name, context / name)
         # Context is generated exclusively from reviewed public inputs, never root/.private.
         base_path = state / "python-base-resolved.json"
@@ -528,7 +528,7 @@ def run_build(args, root, recipe, attempt):
                   "uv_bootstrap": uv_bootstrap,
                   "dependency_installation": dependencies,
                   "sqlite": {"version": "3.53.4", "url": SQLITE_URL, "sha256": SQLITE_SHA256},
-                  "recipe_sha256": {n: sha(context / n) for n in ("Dockerfile", "entrypoint.py")},
+                  "recipe_sha256": {n: sha(context / n) for n in ("Dockerfile", "entrypoint.py", "transport_audit.py")},
                   "dependency_selection": "upstream uv.lock core + sms (aiohttp only); no default groups; frozen; wheels only"}
         attempt.update("inputs_prepared", inputs=inputs)
         if args.prepare_only:
@@ -589,6 +589,7 @@ def run_build(args, root, recipe, attempt):
                 os.fsync(stream.fileno())
             archive_sha = sha(partial)
             os.link(partial, output)
+            output.chmod(0o444)
         finally:
             partial.unlink(missing_ok=True)
         attempt.update("archive_provenance", archive_sha256=archive_sha)

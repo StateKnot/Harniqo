@@ -59,6 +59,8 @@ RUN --mount=type=cache,id=harniqo-hermes-a382af23f4c067d23463b5781958684c2cda82b
     chown -R 10001:10001 /data && chmod 0700 /data/hermes /data/workspace && chmod -R a-w /opt/hermes && \
     rm /usr/local/bin/uv
 COPY --chmod=0444 entrypoint.py /opt/harniqo/entrypoint.py
+COPY --chmod=0444 transport_audit.py /opt/harniqo/transport_audit.py
+COPY --chmod=0444 transport_audit.py /opt/hermes/transport_audit.py
 # Each native managed worker discovers this reviewed builtin through the
 # upstream registry; parent-process registration would not survive worker exec.
 COPY --chmod=0444 entrypoint.py /opt/hermes/tools/harniqo_qualification.py

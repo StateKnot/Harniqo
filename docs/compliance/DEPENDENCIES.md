@@ -108,6 +108,12 @@ AGPL、非商业、附加 SaaS 条件、自定义地区/数据条款、缺失许
 
 模型 API 权限、个人订阅登录、工具 SaaS、浏览器/办公软件及数据许可也分别准入；本项目开源不能代替这些服务的使用授权。首版采用获准的 API 端点与用户/组织自有凭据，不内置共享商业模型账户。
 
+### M0 运行包的增量来源记录
+
+Hermes 固定源码 `a382af23f4c067d23463b5781958684c2cda82bc` 的四工具资格验证组合保留原有74包依赖锁，仅增加本项目工具与只记录 hash 的传输观察代码；按新 image ID 和 recipe SHA 区分旧组合。来源、改动和实际验收见 [配方](../../deploy/qualification/hermes/README.md) 与 [证据索引](../planning/M0-RESULTS.md)。
+
+OpenCode 准备固定 `1.19.5` / `810c0eba1a7348036f8bdf61e6632d0c36c6876c` 的官方 Linux x64 baseline 二进制；GitHub release SHA-256 和显式选择的同版官方 npm SHA-512 SRI 分别记录，不冒用彼此的归档身份。保留固定源码 MIT LICENSE、package.json 与 bun.lock；同时固定官方 ripgrep15.1.0 musl 二进制及其 MIT/Unlicense/COPYING 文件，避免运行时下载。完整输入、解包边界与当前结论见 [配方](../../deploy/qualification/opencode/README.md) 和 [候选核验](../../research/m0-harness-candidate-qualification.md)。这些材料用于受控准入；完整镜像系统包/Bun嵌入依赖 SBOM、正式二进制分发材料和真实功能仍须按后续门槛验收。
+
 ## 5. 版本、来源和 NOTICE 的执行规则
 
 1. **新增时登记。** 名称、用途、直接/传递、开发/运行、精确版本、源码 commit/tag、原始来源、许可表达式、实际许可文件、修改情况和是否随发行包交付。
