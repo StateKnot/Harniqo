@@ -1,0 +1,4155 @@
+{
+  "openapi": "3.1.0",
+  "jsonSchemaDialect": "https://json-schema.org/draft/2020-12/schema",
+  "info": {
+    "title": "Harniqo Platform API",
+    "version": "0.1.0",
+    "description": "M0 draft contract, not a running service. State/auth/lease enforcement requires real implementation and acceptance."
+  },
+  "servers": [
+    {
+      "url": "https://platform.example.invalid",
+      "description": "Reserved documentation placeholder; replace with configured TLS endpoint."
+    }
+  ],
+  "paths": {
+    "/v1/meta": {
+      "get": {
+        "operationId": "getPlatformMetadata",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlatformMetadata"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Typed failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "PlatformAccessToken": []
+          }
+        ]
+      }
+    },
+    "/v1/handshakes": {
+      "post": {
+        "operationId": "negotiateContract",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlatformMetadata"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Typed failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "PlatformAccessToken": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HandshakeRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/organizations/{organization_id}/projects/{project_id}/sessions/{session_id}/runs": {
+      "parameters": [
+        {
+          "name": "organization_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/Identifier"
+          }
+        },
+        {
+          "name": "project_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/Identifier"
+          }
+        },
+        {
+          "name": "session_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/Identifier"
+          }
+        }
+      ],
+      "post": {
+        "operationId": "submitRun",
+        "responses": {
+          "202": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcceptedRun"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Typed failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "PlatformAccessToken": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubmitRunRequest"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 16,
+              "maxLength": 128,
+              "pattern": "^[A-Za-z0-9._:-]+$"
+            }
+          }
+        ]
+      }
+    },
+    "/v1/organizations/{organization_id}/projects/{project_id}/runs/{run_id}": {
+      "parameters": [
+        {
+          "name": "organization_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/Identifier"
+          }
+        },
+        {
+          "name": "project_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/Identifier"
+          }
+        },
+        {
+          "name": "run_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/Identifier"
+          }
+        }
+      ],
+      "get": {
+        "operationId": "readRunSnapshot",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunSnapshot"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Typed failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "PlatformAccessToken": []
+          }
+        ]
+      }
+    },
+    "/v1/organizations/{organization_id}/projects/{project_id}/runs/{run_id}/events": {
+      "parameters": [
+        {
+          "name": "organization_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/Identifier"
+          }
+        },
+        {
+          "name": "project_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/Identifier"
+          }
+        },
+        {
+          "name": "run_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/Identifier"
+          }
+        }
+      ],
+      "get": {
+        "operationId": "readRunEvents",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventPage"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Typed failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "PlatformAccessToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "after",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991,
+              "default": 0
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 256,
+              "default": 100
+            }
+          }
+        ]
+      }
+    },
+    "/v1/organizations/{organization_id}/projects/{project_id}/runs/{run_id}/stop": {
+      "parameters": [
+        {
+          "name": "organization_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/Identifier"
+          }
+        },
+        {
+          "name": "project_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/Identifier"
+          }
+        },
+        {
+          "name": "run_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/Identifier"
+          }
+        }
+      ],
+      "post": {
+        "operationId": "requestStop",
+        "responses": {
+          "202": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StopReceipt"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Typed failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "PlatformAccessToken": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StopRequest"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 16,
+              "maxLength": 128,
+              "pattern": "^[A-Za-z0-9._:-]+$"
+            }
+          }
+        ]
+      }
+    },
+    "/v1/organizations/{organization_id}/projects/{project_id}/approvals/{approval_id}/responses": {
+      "parameters": [
+        {
+          "name": "organization_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/Identifier"
+          }
+        },
+        {
+          "name": "project_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/Identifier"
+          }
+        },
+        {
+          "name": "approval_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/Identifier"
+          }
+        }
+      ],
+      "post": {
+        "operationId": "respondApproval",
+        "responses": {
+          "202": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InteractionReceipt"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Typed failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "PlatformAccessToken": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApprovalResponse"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 16,
+              "maxLength": 128,
+              "pattern": "^[A-Za-z0-9._:-]+$"
+            }
+          }
+        ]
+      }
+    },
+    "/v1/organizations/{organization_id}/projects/{project_id}/input-requests/{input_request_id}/responses": {
+      "parameters": [
+        {
+          "name": "organization_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/Identifier"
+          }
+        },
+        {
+          "name": "project_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/Identifier"
+          }
+        },
+        {
+          "name": "input_request_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/Identifier"
+          }
+        }
+      ],
+      "post": {
+        "operationId": "respondInput",
+        "responses": {
+          "202": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InteractionReceipt"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Typed failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "PlatformAccessToken": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InputResponse"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 16,
+              "maxLength": 128,
+              "pattern": "^[A-Za-z0-9._:-]+$"
+            }
+          }
+        ]
+      }
+    },
+    "/v1/organizations/{organization_id}/projects/{project_id}/uploads": {
+      "parameters": [
+        {
+          "name": "organization_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/Identifier"
+          }
+        },
+        {
+          "name": "project_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/Identifier"
+          }
+        }
+      ],
+      "post": {
+        "operationId": "prepareUpload",
+        "responses": {
+          "201": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PreparedUpload"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Typed failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "PlatformAccessToken": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UploadRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/organizations/{organization_id}/projects/{project_id}/uploads/{upload_id}/complete": {
+      "parameters": [
+        {
+          "name": "organization_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/Identifier"
+          }
+        },
+        {
+          "name": "project_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/Identifier"
+          }
+        },
+        {
+          "name": "upload_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/Identifier"
+          }
+        }
+      ],
+      "post": {
+        "operationId": "completeUpload",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UploadCompleteResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Typed failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "PlatformAccessToken": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UploadCompleteRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/organizations/{organization_id}/projects/{project_id}/deployments/{deployment_id}/capabilities": {
+      "parameters": [
+        {
+          "name": "organization_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/Identifier"
+          }
+        },
+        {
+          "name": "project_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/Identifier"
+          }
+        },
+        {
+          "name": "deployment_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/Identifier"
+          }
+        }
+      ],
+      "get": {
+        "operationId": "readDeploymentCapabilities",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Capabilities"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Typed failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "PlatformAccessToken": []
+          }
+        ]
+      }
+    },
+    "/v1/organizations/{organization_id}/projects/{project_id}/trials/{trial_id}": {
+      "parameters": [
+        {
+          "name": "organization_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/Identifier"
+          }
+        },
+        {
+          "name": "project_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/Identifier"
+          }
+        },
+        {
+          "name": "trial_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/Identifier"
+          }
+        }
+      ],
+      "get": {
+        "operationId": "readTrial",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Trial"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Typed failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "PlatformAccessToken": []
+          }
+        ]
+      }
+    },
+    "/runner/v1/assignments:claim": {
+      "post": {
+        "operationId": "claimAssignment",
+        "security": [
+          {
+            "RunnerMTLS": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Assignment"
+                }
+              }
+            }
+          },
+          "204": {
+            "description": "No eligible assignment; long poll timed out"
+          },
+          "default": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/runner/v1/events:batch": {
+      "post": {
+        "operationId": "ingestSourceEvents",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventBatchReceipt"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Typed failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "RunnerMTLS": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EventBatch"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/organizations/{organization_id}/projects/{project_id}/runs/{run_id}/stream": {
+      "parameters": [
+        {
+          "name": "organization_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/Identifier"
+          }
+        },
+        {
+          "name": "project_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/Identifier"
+          }
+        },
+        {
+          "name": "run_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/Identifier"
+          }
+        }
+      ],
+      "get": {
+        "operationId": "streamRunEvents",
+        "security": [
+          {
+            "PlatformAccessToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "Last-Event-ID",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 20,
+              "pattern": "^(0|[1-9][0-9]*)$"
+            }
+          },
+          {
+            "name": "after",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "SSE frames: id is the persisted per-Run seq; data is an EventEnvelope JSON. Heartbeats carry no id. Last-Event-ID and after cannot conflict.",
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/organizations/{organization_id}/projects/{project_id}/artifacts/{artifact_id}/content": {
+      "parameters": [
+        {
+          "name": "organization_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/Identifier"
+          }
+        },
+        {
+          "name": "project_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/Identifier"
+          }
+        },
+        {
+          "name": "artifact_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/Identifier"
+          }
+        }
+      ],
+      "get": {
+        "operationId": "downloadArtifact",
+        "security": [
+          {
+            "PlatformAccessToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "Range",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^bytes=[0-9]*-[0-9]*$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Authorized complete content; recheck permission and revoke active stream within policy deadline.",
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "206": {
+            "description": "Authorized byte range.",
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/transfer/uploads/{upload_id}/content": {
+      "parameters": [
+        {
+          "name": "upload_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/Identifier"
+          }
+        }
+      ],
+      "put": {
+        "operationId": "transferUploadContent",
+        "security": [
+          {
+            "PlatformAccessToken": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/octet-stream": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Bytes received; completion and hash verification still required."
+          },
+          "default": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/auth/discovery": {
+      "get": {
+        "operationId": "getAuthenticationDiscovery",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Public, TLS-protected OIDC issuer/client discovery; the desktop must use PKCE and never an embedded login.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthenticationDiscovery"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "PlatformAccessToken": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "OIDC Access Token for the configured API audience; not an ID Token."
+      },
+      "RunnerMTLS": {
+        "type": "mutualTLS",
+        "description": "Enrolled, scoped Runner certificate; not a user or guest identity."
+      }
+    },
+    "schemas": {
+      "Identifier": {
+        "type": "string",
+        "minLength": 36,
+        "maxLength": 36,
+        "format": "uuid"
+      },
+      "Timestamp": {
+        "type": "string",
+        "minLength": 20,
+        "maxLength": 32,
+        "format": "date-time",
+        "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d{1,6})?Z$"
+      },
+      "Sha256": {
+        "type": "string",
+        "minLength": 64,
+        "maxLength": 64,
+        "pattern": "^[0-9a-f]{64}$"
+      },
+      "ImageDigest": {
+        "type": "string",
+        "minLength": 71,
+        "maxLength": 71,
+        "pattern": "^sha256:[0-9a-f]{64}$"
+      },
+      "ContractVersion": {
+        "const": "0.1.0",
+        "type": "string"
+      },
+      "ProjectScope": {
+        "type": "object",
+        "properties": {
+          "organization_id": {
+            "$ref": "#/components/schemas/Identifier"
+          },
+          "project_id": {
+            "$ref": "#/components/schemas/Identifier"
+          }
+        },
+        "required": [
+          "organization_id",
+          "project_id"
+        ],
+        "additionalProperties": false
+      },
+      "RunState": {
+        "type": "string",
+        "enum": [
+          "accepted",
+          "queued",
+          "provisioning",
+          "running",
+          "waiting_approval",
+          "waiting_input",
+          "stopping",
+          "reconciling",
+          "succeeded",
+          "failed",
+          "cancelled"
+        ]
+      },
+      "AttemptState": {
+        "type": "string",
+        "enum": [
+          "allocated",
+          "provisioning",
+          "running",
+          "waiting_approval",
+          "waiting_input",
+          "stopping",
+          "reconciling",
+          "succeeded",
+          "failed",
+          "cancelled"
+        ]
+      },
+      "RetryClass": {
+        "type": "string",
+        "enum": [
+          "never",
+          "idempotent_transport",
+          "after_reconciliation",
+          "explicit_new_attempt"
+        ]
+      },
+      "ErrorCode": {
+        "type": "string",
+        "enum": [
+          "UNAUTHENTICATED",
+          "FORBIDDEN",
+          "NOT_FOUND",
+          "VALIDATION_FAILED",
+          "CAPABILITY_UNSUPPORTED",
+          "VERSION_INCOMPATIBLE",
+          "IDEMPOTENCY_CONFLICT",
+          "BUDGET_EXCEEDED",
+          "QUOTA_EXCEEDED",
+          "CURSOR_EXPIRED",
+          "EXECUTION_UNCERTAIN",
+          "STALE_LEASE",
+          "INTERACTION_EXPIRED",
+          "ARTIFACT_NOT_READY",
+          "UPSTREAM_UNAVAILABLE",
+          "INTERNAL_ERROR"
+        ]
+      },
+      "Problem": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "$ref": "#/components/schemas/ErrorCode"
+          },
+          "request_id": {
+            "$ref": "#/components/schemas/Identifier"
+          },
+          "message": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1024
+          },
+          "retry_class": {
+            "$ref": "#/components/schemas/RetryClass"
+          },
+          "field_errors": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "path": {
+                  "type": "string",
+                  "minLength": 0,
+                  "maxLength": 256
+                },
+                "code": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 80
+                }
+              },
+              "required": [
+                "path",
+                "code"
+              ],
+              "additionalProperties": false
+            },
+            "minItems": 0,
+            "maxItems": 32
+          }
+        },
+        "required": [
+          "code",
+          "request_id",
+          "message",
+          "retry_class"
+        ],
+        "additionalProperties": false
+      },
+      "LeaseBinding": {
+        "type": "object",
+        "properties": {
+          "platform_epoch": {
+            "$ref": "#/components/schemas/Identifier"
+          },
+          "lease_generation": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "platform_epoch",
+          "lease_generation"
+        ],
+        "additionalProperties": false
+      },
+      "ExecutionOwner": {
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "const": "agent_attempt"
+              },
+              "run_id": {
+                "$ref": "#/components/schemas/Identifier"
+              },
+              "attempt_id": {
+                "$ref": "#/components/schemas/Identifier"
+              }
+            },
+            "required": [
+              "kind",
+              "run_id",
+              "attempt_id"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "const": "verification_attempt"
+              },
+              "trial_id": {
+                "$ref": "#/components/schemas/Identifier"
+              },
+              "verification_attempt_id": {
+                "$ref": "#/components/schemas/Identifier"
+              }
+            },
+            "required": [
+              "kind",
+              "trial_id",
+              "verification_attempt_id"
+            ],
+            "additionalProperties": false
+          }
+        ]
+      },
+      "ExecutionGrant": {
+        "type": "object",
+        "properties": {
+          "credential_id": {
+            "$ref": "#/components/schemas/Identifier"
+          },
+          "scope": {
+            "$ref": "#/components/schemas/ProjectScope"
+          },
+          "owner": {
+            "$ref": "#/components/schemas/ExecutionOwner"
+          },
+          "workspace_id": {
+            "$ref": "#/components/schemas/Identifier"
+          },
+          "runtime_instance_id": {
+            "$ref": "#/components/schemas/Identifier"
+          },
+          "binding": {
+            "$ref": "#/components/schemas/LeaseBinding"
+          },
+          "audience": {
+            "type": "string",
+            "enum": [
+              "harniqo-model-egress",
+              "harniqo-execution-files",
+              "harniqo-tool-broker"
+            ]
+          },
+          "permissions": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "model:invoke",
+                "input:read",
+                "artifact:write",
+                "tool:execute"
+              ]
+            },
+            "minItems": 1,
+            "maxItems": 4,
+            "uniqueItems": true
+          },
+          "issued_at": {
+            "$ref": "#/components/schemas/Timestamp"
+          },
+          "expires_at": {
+            "$ref": "#/components/schemas/Timestamp"
+          }
+        },
+        "required": [
+          "credential_id",
+          "scope",
+          "owner",
+          "workspace_id",
+          "runtime_instance_id",
+          "binding",
+          "audience",
+          "permissions",
+          "issued_at",
+          "expires_at"
+        ],
+        "additionalProperties": false,
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "audience": {
+                  "const": "harniqo-model-egress"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "permissions": {
+                  "items": {
+                    "enum": [
+                      "model:invoke"
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "audience": {
+                  "const": "harniqo-execution-files"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "permissions": {
+                  "items": {
+                    "enum": [
+                      "input:read",
+                      "artifact:write"
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "audience": {
+                  "const": "harniqo-tool-broker"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "permissions": {
+                  "items": {
+                    "enum": [
+                      "tool:execute"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        ]
+      },
+      "ResourceLimits": {
+        "type": "object",
+        "properties": {
+          "vcpus": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 128
+          },
+          "memory_mib": {
+            "type": "integer",
+            "minimum": 256,
+            "maximum": 1048576
+          },
+          "disk_mib": {
+            "type": "integer",
+            "minimum": 1024,
+            "maximum": 10485760
+          },
+          "wall_time_seconds": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 604800
+          },
+          "max_output_bytes": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1099511627776
+          }
+        },
+        "required": [
+          "vcpus",
+          "memory_mib",
+          "disk_mib",
+          "wall_time_seconds",
+          "max_output_bytes"
+        ],
+        "additionalProperties": false
+      },
+      "NetworkPolicy": {
+        "type": "object",
+        "properties": {
+          "policy_revision_id": {
+            "$ref": "#/components/schemas/Identifier"
+          },
+          "default_egress": {
+            "const": "deny"
+          },
+          "allowed_service_ids": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Identifier"
+            },
+            "minItems": 0,
+            "maxItems": 64,
+            "uniqueItems": true
+          },
+          "allow_guest_management_network": {
+            "const": false
+          }
+        },
+        "required": [
+          "policy_revision_id",
+          "default_egress",
+          "allowed_service_ids",
+          "allow_guest_management_network"
+        ],
+        "additionalProperties": false
+      },
+      "RuntimeInstance": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/Identifier"
+          },
+          "scope": {
+            "$ref": "#/components/schemas/ProjectScope"
+          },
+          "deployment_revision_id": {
+            "$ref": "#/components/schemas/Identifier"
+          },
+          "workspace_id": {
+            "$ref": "#/components/schemas/Identifier"
+          },
+          "backend": {
+            "type": "string",
+            "enum": [
+              "libvirt_kvm",
+              "external_service"
+            ]
+          },
+          "resource_identity": {
+            "$ref": "#/components/schemas/Identifier"
+          },
+          "generation": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "planned",
+              "provisioning",
+              "ready",
+              "draining",
+              "stopped",
+              "lost",
+              "deleted"
+            ]
+          },
+          "binding": {
+            "$ref": "#/components/schemas/LeaseBinding"
+          },
+          "created_at": {
+            "$ref": "#/components/schemas/Timestamp"
+          }
+        },
+        "required": [
+          "id",
+          "scope",
+          "deployment_revision_id",
+          "workspace_id",
+          "backend",
+          "resource_identity",
+          "generation",
+          "state",
+          "binding",
+          "created_at"
+        ],
+        "additionalProperties": false
+      },
+      "NativeSessionRef": {
+        "type": "object",
+        "properties": {
+          "harness_release_id": {
+            "$ref": "#/components/schemas/Identifier"
+          },
+          "workspace_id": {
+            "$ref": "#/components/schemas/Identifier"
+          },
+          "runtime_instance_id": {
+            "$ref": "#/components/schemas/Identifier"
+          },
+          "instance_generation": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "native_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512
+          },
+          "recovery_kind": {
+            "type": "string",
+            "enum": [
+              "new",
+              "connection_replay",
+              "native_resume",
+              "checkpoint_resume"
+            ]
+          }
+        },
+        "required": [
+          "harness_release_id",
+          "workspace_id",
+          "runtime_instance_id",
+          "instance_generation",
+          "native_id",
+          "recovery_kind"
+        ],
+        "additionalProperties": false
+      },
+      "Run": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/Identifier"
+          },
+          "scope": {
+            "$ref": "#/components/schemas/ProjectScope"
+          },
+          "purpose": {
+            "type": "string",
+            "enum": [
+              "interactive",
+              "evaluation"
+            ]
+          },
+          "session_id": {
+            "$ref": "#/components/schemas/Identifier"
+          },
+          "trial_id": {
+            "$ref": "#/components/schemas/Identifier"
+          },
+          "workspace_id": {
+            "$ref": "#/components/schemas/Identifier"
+          },
+          "configuration_revision_id": {
+            "$ref": "#/components/schemas/Identifier"
+          },
+          "input_snapshot_id": {
+            "$ref": "#/components/schemas/Identifier"
+          },
+          "state": {
+            "$ref": "#/components/schemas/RunState"
+          },
+          "revision": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "native_session": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/NativeSessionRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "active_attempt_id": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Identifier"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "accepted_at": {
+            "$ref": "#/components/schemas/Timestamp"
+          },
+          "started_at": {
+            "$ref": "#/components/schemas/Timestamp"
+          },
+          "ended_at": {
+            "$ref": "#/components/schemas/Timestamp"
+          }
+        },
+        "required": [
+          "id",
+          "scope",
+          "purpose",
+          "session_id",
+          "workspace_id",
+          "configuration_revision_id",
+          "input_snapshot_id",
+          "state",
+          "revision",
+          "native_session",
+          "active_attempt_id",
+          "accepted_at"
+        ],
+        "additionalProperties": false,
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "purpose": {
+                  "const": "evaluation"
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "trial_id"
+              ]
+            },
+            "else": {
+              "not": {
+                "required": [
+                  "trial_id"
+                ]
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "state": {
+                  "enum": [
+                    "succeeded",
+                    "failed",
+                    "cancelled"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "ended_at"
+              ]
+            },
+            "else": {
+              "not": {
+                "required": [
+                  "ended_at"
+                ]
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "state": {
+                  "enum": [
+                    "running",
+                    "waiting_approval",
+                    "waiting_input"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "started_at"
+              ],
+              "properties": {
+                "native_session": {
+                  "$ref": "#/components/schemas/NativeSessionRef"
+                },
+                "active_attempt_id": {
+                  "$ref": "#/components/schemas/Identifier"
+                }
+              }
+            }
+          }
+        ]
+      },
+      "Attempt": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/Identifier"
+          },
+          "run_id": {
+            "$ref": "#/components/schemas/Identifier"
+          },
+          "scope": {
+            "$ref": "#/components/schemas/ProjectScope"
+          },
+          "attempt_number": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "state": {
+            "$ref": "#/components/schemas/AttemptState"
+          },
+          "runtime_instance_id": {
+            "$ref": "#/components/schemas/Identifier"
+          },
+          "binding": {
+            "$ref": "#/components/schemas/LeaseBinding"
+          },
+          "created_at": {
+            "$ref": "#/components/schemas/Timestamp"
+          },
+          "ended_at": {
+            "$ref": "#/components/schemas/Timestamp"
+          },
+          "stop_evidence_id": {
+            "$ref": "#/components/schemas/Identifier"
+          }
+        },
+        "required": [
+          "id",
+          "run_id",
+          "scope",
+          "attempt_number",
+          "state",
+          "runtime_instance_id",
+          "binding",
+          "created_at"
+        ],
+        "additionalProperties": false,
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "state": {
+                  "enum": [
+                    "succeeded",
+                    "failed",
+                    "cancelled"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "ended_at"
+              ]
+            },
+            "else": {
+              "not": {
+                "required": [
+                  "ended_at"
+                ]
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "state": {
+                  "const": "cancelled"
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "stop_evidence_id"
+              ]
+            }
+          }
+        ]
+      },
+      "SubmitRunRequest": {
+        "type": "object",
+        "properties": {
+          "configuration_revision_id": {
+            "$ref": "#/components/schemas/Identifier"
+          },
+          "input_snapshot_id": {
+            "$ref": "#/components/schemas/Identifier"
+          },
+          "budget_policy_id": {
+            "$ref": "#/components/schemas/Identifier"
+          },
+          "prompt": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 65536
+          },
+          "required_capabilities": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "new_session",
+                "native_resume",
+                "tool_approval",
+                "clarification",
+                "files",
+                "strong_stop",
+                "usage"
+              ]
+            },
+            "minItems": 0,
+            "maxItems": 7,
+            "uniqueItems": true
+          }
+        },
+        "required": [
+          "configuration_revision_id",
+          "input_snapshot_id",
+          "budget_policy_id",
+          "prompt",
+          "required_capabilities"
+        ],
+        "additionalProperties": false
+      },
+      "AcceptedRun": {
+        "type": "object",
+        "properties": {
+          "run_id": {
+            "$ref": "#/components/schemas/Identifier"
+          },
+          "command_id": {
+            "$ref": "#/components/schemas/Identifier"
+          },
+          "initial_state": {
+            "const": "accepted"
+          },
+          "accepted_at": {
+            "$ref": "#/components/schemas/Timestamp"
+          }
+        },
+        "required": [
+          "run_id",
+          "command_id",
+          "initial_state",
+          "accepted_at"
+        ],
+        "additionalProperties": false
+      },
+      "Command": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/Identifier"
+          },
+          "scope": {
+            "$ref": "#/components/schemas/ProjectScope"
+          },
+          "principal_id": {
+            "$ref": "#/components/schemas/Identifier"
+          },
+          "operation": {
+            "type": "string",
+            "enum": [
+              "submit_run",
+              "request_stop",
+              "respond_approval",
+              "respond_input",
+              "create_experiment"
+            ]
+          },
+          "idempotency_key": {
+            "type": "string",
+            "minLength": 16,
+            "maxLength": 128,
+            "pattern": "^[A-Za-z0-9._:-]+$"
+          },
+          "canonical_request_sha256": {
+            "$ref": "#/components/schemas/Sha256"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "accepted",
+              "applied",
+              "rejected"
+            ]
+          },
+          "resource_id": {
+            "$ref": "#/components/schemas/Identifier"
+          },
+          "created_at": {
+            "$ref": "#/components/schemas/Timestamp"
+          }
+        },
+        "required": [
+          "id",
+          "scope",
+          "principal_id",
+          "operation",
+          "idempotency_key",
+          "canonical_request_sha256",
+          "state",
+          "resource_id",
+          "created_at"
+        ],
+        "additionalProperties": false
+      },
+      "StopRequest": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string",
+            "enum": [
+              "user_requested",
+              "administrator_requested",
+              "budget_limit",
+              "policy_violation"
+            ]
+          },
+          "expected_run_revision": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "reason",
+          "expected_run_revision"
+        ],
+        "additionalProperties": false
+      },
+      "StopReceipt": {
+        "type": "object",
+        "properties": {
+          "run_id": {
+            "$ref": "#/components/schemas/Identifier"
+          },
+          "command_id": {
+            "$ref": "#/components/schemas/Identifier"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "stopping",
+              "reconciling",
+              "succeeded",
+              "failed",
+              "cancelled"
+            ]
+          },
+          "stop_confirmed": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "run_id",
+          "command_id",
+          "state",
+          "stop_confirmed"
+        ],
+        "additionalProperties": false,
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "state": {
+                  "enum": [
+                    "stopping",
+                    "reconciling"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "stop_confirmed": {
+                  "const": false
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "state": {
+                  "const": "cancelled"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "stop_confirmed": {
+                  "const": true
+                }
+              }
+            }
+          }
+        ]
+      },
+      "Capability": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "supported",
+              "unsupported",
+              "unknown"
+            ]
+          },
+          "evidence_ids": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Identifier"
+            },
+            "minItems": 0,
+            "maxItems": 32,
+            "uniqueItems": true
+          },
+          "limitations": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1024
+            },
+            "minItems": 0,
+            "maxItems": 16
+          }
+        },
+        "required": [
+          "status",
+          "evidence_ids",
+          "limitations"
+        ],
+        "additionalProperties": false,
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "status": {
+                  "const": "supported"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "evidence_ids": {
+                  "minItems": 1
+                }
+              }
+            }
+          }
+        ]
+      },
+      "Capabilities": {
+        "type": "object",
+        "properties": {
+          "harness_release_id": {
+            "$ref": "#/components/schemas/Identifier"
+          },
+          "adapter_release_id": {
+            "$ref": "#/components/schemas/Identifier"
+          },
+          "integration_mode": {
+            "type": "string",
+            "enum": [
+              "managed_native",
+              "external_native",
+              "delegated_composition"
+            ]
+          },
+          "features": {
+            "type": "object",
+            "properties": {
+              "new_session": {
+                "$ref": "#/components/schemas/Capability"
+              },
+              "event_history": {
+                "$ref": "#/components/schemas/Capability"
+              },
+              "reliable_stop": {
+                "$ref": "#/components/schemas/Capability"
+              },
+              "artifacts": {
+                "$ref": "#/components/schemas/Capability"
+              },
+              "identity_attribution": {
+                "$ref": "#/components/schemas/Capability"
+              },
+              "native_resume": {
+                "$ref": "#/components/schemas/Capability"
+              },
+              "checkpoint_resume": {
+                "$ref": "#/components/schemas/Capability"
+              },
+              "tool_approval": {
+                "$ref": "#/components/schemas/Capability"
+              },
+              "clarification": {
+                "$ref": "#/components/schemas/Capability"
+              },
+              "files": {
+                "$ref": "#/components/schemas/Capability"
+              },
+              "branching": {
+                "$ref": "#/components/schemas/Capability"
+              },
+              "model_configuration": {
+                "$ref": "#/components/schemas/Capability"
+              },
+              "usage": {
+                "$ref": "#/components/schemas/Capability"
+              }
+            },
+            "required": [
+              "new_session",
+              "event_history",
+              "reliable_stop",
+              "artifacts",
+              "identity_attribution",
+              "native_resume",
+              "checkpoint_resume",
+              "tool_approval",
+              "clarification",
+              "files",
+              "branching",
+              "model_configuration",
+              "usage"
+            ],
+            "additionalProperties": false
+          },
+          "stop_guarantee": {
+            "type": "string",
+            "enum": [
+              "none",
+              "request_acknowledged",
+              "logical_turn",
+              "process_tree",
+              "workspace_vm"
+            ]
+          },
+          "verified_at": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Timestamp"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "harness_release_id",
+          "adapter_release_id",
+          "integration_mode",
+          "features",
+          "stop_guarantee",
+          "verified_at"
+        ],
+        "additionalProperties": false
+      },
+      "ApprovalRequest": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/Identifier"
+          },
+          "scope": {
+            "$ref": "#/components/schemas/ProjectScope"
+          },
+          "run_id": {
+            "$ref": "#/components/schemas/Identifier"
+          },
+          "attempt_id": {
+            "$ref": "#/components/schemas/Identifier"
+          },
+          "runtime_instance_id": {
+            "$ref": "#/components/schemas/Identifier"
+          },
+          "binding": {
+            "$ref": "#/components/schemas/LeaseBinding"
+          },
+          "revision": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "expires_at": {
+            "$ref": "#/components/schemas/Timestamp"
+          },
+          "tool_call_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "tool_name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "action_summary": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2048
+          },
+          "parameters_sha256": {
+            "$ref": "#/components/schemas/Sha256"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "allowed",
+              "denied",
+              "expired",
+              "superseded"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "scope",
+          "run_id",
+          "attempt_id",
+          "runtime_instance_id",
+          "binding",
+          "revision",
+          "expires_at",
+          "tool_call_id",
+          "tool_name",
+          "action_summary",
+          "parameters_sha256",
+          "state"
+        ],
+        "additionalProperties": false
+      },
+      "ApprovalResponse": {
+        "type": "object",
+        "properties": {
+          "attempt_id": {
+            "$ref": "#/components/schemas/Identifier"
+          },
+          "binding": {
+            "$ref": "#/components/schemas/LeaseBinding"
+          },
+          "expected_request_revision": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "parameters_sha256": {
+            "$ref": "#/components/schemas/Sha256"
+          },
+          "decision": {
+            "type": "string",
+            "enum": [
+              "allow",
+              "deny"
+            ]
+          }
+        },
+        "required": [
+          "attempt_id",
+          "binding",
+          "expected_request_revision",
+          "parameters_sha256",
+          "decision"
+        ],
+        "additionalProperties": false
+      },
+      "InputQuestion": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/Identifier"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "text",
+              "select",
+              "confirm"
+            ]
+          },
+          "prompt": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          },
+          "choices": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            "minItems": 2,
+            "maxItems": 64,
+            "uniqueItems": true
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "prompt"
+        ],
+        "additionalProperties": false,
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "kind": {
+                  "const": "select"
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "choices"
+              ]
+            },
+            "else": {
+              "not": {
+                "required": [
+                  "choices"
+                ]
+              }
+            }
+          }
+        ]
+      },
+      "InputRequest": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/Identifier"
+          },
+          "scope": {
+            "$ref": "#/components/schemas/ProjectScope"
+          },
+          "run_id": {
+            "$ref": "#/components/schemas/Identifier"
+          },
+          "attempt_id": {
+            "$ref": "#/components/schemas/Identifier"
+          },
+          "runtime_instance_id": {
+            "$ref": "#/components/schemas/Identifier"
+          },
+          "binding": {
+            "$ref": "#/components/schemas/LeaseBinding"
+          },
+          "revision": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "expires_at": {
+            "$ref": "#/components/schemas/Timestamp"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "answered",
+              "expired",
+              "superseded"
+            ]
+          },
+          "questions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/InputQuestion"
+            },
+            "minItems": 1,
+            "maxItems": 32
+          }
+        },
+        "required": [
+          "id",
+          "scope",
+          "run_id",
+          "attempt_id",
+          "runtime_instance_id",
+          "binding",
+          "revision",
+          "expires_at",
+          "state",
+          "questions"
+        ],
+        "additionalProperties": false
+      },
+      "InputResponse": {
+        "type": "object",
+        "properties": {
+          "attempt_id": {
+            "$ref": "#/components/schemas/Identifier"
+          },
+          "binding": {
+            "$ref": "#/components/schemas/LeaseBinding"
+          },
+          "expected_request_revision": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "answers": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "question_id": {
+                  "$ref": "#/components/schemas/Identifier"
+                },
+                "value": {
+                  "oneOf": [
+                    {
+                      "type": "string",
+                      "minLength": 0,
+                      "maxLength": 8192
+                    },
+                    {
+                      "type": "boolean"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "question_id",
+                "value"
+              ],
+              "additionalProperties": false
+            },
+            "minItems": 1,
+            "maxItems": 32
+          }
+        },
+        "required": [
+          "attempt_id",
+          "binding",
+          "expected_request_revision",
+          "answers"
+        ],
+        "additionalProperties": false
+      },
+      "FileDescriptor": {
+        "type": "object",
+        "properties": {
+          "file_object_id": {
+            "$ref": "#/components/schemas/Identifier"
+          },
+          "sha256": {
+            "$ref": "#/components/schemas/Sha256"
+          },
+          "size_bytes": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 1099511627776
+          },
+          "media_type": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 128,
+            "pattern": "^[A-Za-z0-9!#$&^_.+-]+/[A-Za-z0-9!#$&^_.+-]+$"
+          }
+        },
+        "required": [
+          "file_object_id",
+          "sha256",
+          "size_bytes",
+          "media_type"
+        ],
+        "additionalProperties": false
+      },
+      "UploadRequest": {
+        "type": "object",
+        "properties": {
+          "filename": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255,
+            "pattern": "^[^/\\\\\\u0000-\\u001f]+$",
+            "not": {
+              "enum": [
+                ".",
+                ".."
+              ]
+            }
+          },
+          "media_type": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 128,
+            "pattern": "^[A-Za-z0-9!#$&^_.+-]+/[A-Za-z0-9!#$&^_.+-]+$"
+          },
+          "size_bytes": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 1099511627776
+          },
+          "sha256": {
+            "$ref": "#/components/schemas/Sha256"
+          },
+          "purpose": {
+            "type": "string",
+            "enum": [
+              "input",
+              "artifact"
+            ]
+          },
+          "owner": {
+            "$ref": "#/components/schemas/ExecutionOwner"
+          }
+        },
+        "required": [
+          "filename",
+          "media_type",
+          "size_bytes",
+          "sha256",
+          "purpose"
+        ],
+        "additionalProperties": false,
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "purpose": {
+                  "const": "artifact"
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "owner"
+              ]
+            },
+            "else": {
+              "not": {
+                "required": [
+                  "owner"
+                ]
+              }
+            }
+          }
+        ]
+      },
+      "PreparedUpload": {
+        "type": "object",
+        "properties": {
+          "upload_id": {
+            "$ref": "#/components/schemas/Identifier"
+          },
+          "upload_path": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256,
+            "pattern": "^/v1/transfer/uploads/[0-9a-f-]{36}/content$"
+          },
+          "expires_at": {
+            "$ref": "#/components/schemas/Timestamp"
+          },
+          "maximum_size_bytes": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 1099511627776
+          }
+        },
+        "required": [
+          "upload_id",
+          "upload_path",
+          "expires_at",
+          "maximum_size_bytes"
+        ],
+        "additionalProperties": false
+      },
+      "UploadCompleteRequest": {
+        "type": "object",
+        "properties": {
+          "sha256": {
+            "$ref": "#/components/schemas/Sha256"
+          },
+          "size_bytes": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 1099511627776
+          }
+        },
+        "required": [
+          "sha256",
+          "size_bytes"
+        ],
+        "additionalProperties": false
+      },
+      "UploadCompleteResponse": {
+        "type": "object",
+        "properties": {
+          "upload_id": {
+            "$ref": "#/components/schemas/Identifier"
+          },
+          "state": {
+            "const": "ready"
+          },
+          "file": {
+            "$ref": "#/components/schemas/FileDescriptor"
+          },
+          "verified_at": {
+            "$ref": "#/components/schemas/Timestamp"
+          }
+        },
+        "required": [
+          "upload_id",
+          "state",
+          "file",
+          "verified_at"
+        ],
+        "additionalProperties": false
+      },
+      "Artifact": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/Identifier"
+          },
+          "scope": {
+            "$ref": "#/components/schemas/ProjectScope"
+          },
+          "owner": {
+            "$ref": "#/components/schemas/ExecutionOwner"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "uploading",
+              "ready",
+              "quarantined",
+              "deleted"
+            ]
+          },
+          "file": {
+            "$ref": "#/components/schemas/FileDescriptor"
+          },
+          "display_name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255
+          },
+          "published_at": {
+            "$ref": "#/components/schemas/Timestamp"
+          }
+        },
+        "required": [
+          "id",
+          "scope",
+          "owner",
+          "state",
+          "file",
+          "display_name"
+        ],
+        "additionalProperties": false,
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "state": {
+                  "const": "ready"
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "published_at"
+              ]
+            },
+            "else": {
+              "not": {
+                "required": [
+                  "published_at"
+                ]
+              }
+            }
+          }
+        ]
+      },
+      "Trial": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/Identifier"
+          },
+          "scope": {
+            "$ref": "#/components/schemas/ProjectScope"
+          },
+          "experiment_id": {
+            "$ref": "#/components/schemas/Identifier"
+          },
+          "task_id": {
+            "$ref": "#/components/schemas/Identifier"
+          },
+          "candidate_id": {
+            "$ref": "#/components/schemas/Identifier"
+          },
+          "repetition_index": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9999
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "planned",
+              "incompatible",
+              "queued",
+              "running",
+              "scoring",
+              "succeeded",
+              "failed",
+              "cancelled",
+              "reconciling"
+            ]
+          },
+          "agent_run_id": {
+            "$ref": "#/components/schemas/Identifier"
+          },
+          "incompatibility_code": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          }
+        },
+        "required": [
+          "id",
+          "scope",
+          "experiment_id",
+          "task_id",
+          "candidate_id",
+          "repetition_index",
+          "state"
+        ],
+        "additionalProperties": false,
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "state": {
+                  "enum": [
+                    "queued",
+                    "running",
+                    "scoring",
+                    "succeeded",
+                    "failed",
+                    "reconciling"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "agent_run_id"
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "state": {
+                  "const": "incompatible"
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "incompatibility_code"
+              ],
+              "not": {
+                "required": [
+                  "agent_run_id"
+                ]
+              }
+            },
+            "else": {
+              "not": {
+                "required": [
+                  "incompatibility_code"
+                ]
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "state": {
+                  "const": "planned"
+                }
+              }
+            },
+            "then": {
+              "not": {
+                "required": [
+                  "agent_run_id"
+                ]
+              }
+            }
+          }
+        ]
+      },
+      "VerificationResult": {
+        "type": "object",
+        "properties": {
+          "verification_attempt_id": {
+            "$ref": "#/components/schemas/Identifier"
+          },
+          "trial_id": {
+            "$ref": "#/components/schemas/Identifier"
+          },
+          "agent_attempt_id": {
+            "$ref": "#/components/schemas/Identifier"
+          },
+          "verifier_revision_id": {
+            "$ref": "#/components/schemas/Identifier"
+          },
+          "input_artifact_sha256s": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Sha256"
+            },
+            "minItems": 1,
+            "maxItems": 256,
+            "uniqueItems": true
+          },
+          "outcome": {
+            "type": "string",
+            "enum": [
+              "passed",
+              "failed",
+              "verifier_error"
+            ]
+          },
+          "score": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "evidence_file_ids": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Identifier"
+            },
+            "minItems": 0,
+            "maxItems": 256,
+            "uniqueItems": true
+          },
+          "error_code": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          }
+        },
+        "required": [
+          "verification_attempt_id",
+          "trial_id",
+          "agent_attempt_id",
+          "verifier_revision_id",
+          "input_artifact_sha256s",
+          "outcome",
+          "evidence_file_ids"
+        ],
+        "additionalProperties": false,
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "outcome": {
+                  "const": "verifier_error"
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "error_code"
+              ],
+              "not": {
+                "required": [
+                  "score"
+                ]
+              }
+            },
+            "else": {
+              "required": [
+                "score"
+              ],
+              "not": {
+                "required": [
+                  "error_code"
+                ]
+              }
+            }
+          }
+        ]
+      },
+      "Assignment": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/Identifier"
+          },
+          "scope": {
+            "$ref": "#/components/schemas/ProjectScope"
+          },
+          "owner": {
+            "$ref": "#/components/schemas/ExecutionOwner"
+          },
+          "workspace_id": {
+            "$ref": "#/components/schemas/Identifier"
+          },
+          "runtime_instance_id": {
+            "$ref": "#/components/schemas/Identifier"
+          },
+          "resource_identity": {
+            "$ref": "#/components/schemas/Identifier"
+          },
+          "configuration_revision_id": {
+            "$ref": "#/components/schemas/Identifier"
+          },
+          "configuration_sha256": {
+            "$ref": "#/components/schemas/Sha256"
+          },
+          "input_snapshot_id": {
+            "$ref": "#/components/schemas/Identifier"
+          },
+          "image_digest": {
+            "$ref": "#/components/schemas/ImageDigest"
+          },
+          "binding": {
+            "$ref": "#/components/schemas/LeaseBinding"
+          },
+          "lease_expires_at": {
+            "$ref": "#/components/schemas/Timestamp"
+          },
+          "limits": {
+            "$ref": "#/components/schemas/ResourceLimits"
+          },
+          "network_policy": {
+            "$ref": "#/components/schemas/NetworkPolicy"
+          },
+          "execution_grants": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ExecutionGrant"
+            },
+            "minItems": 1,
+            "maxItems": 8
+          }
+        },
+        "required": [
+          "id",
+          "scope",
+          "owner",
+          "workspace_id",
+          "runtime_instance_id",
+          "resource_identity",
+          "configuration_revision_id",
+          "configuration_sha256",
+          "input_snapshot_id",
+          "image_digest",
+          "binding",
+          "lease_expires_at",
+          "limits",
+          "network_policy",
+          "execution_grants"
+        ],
+        "additionalProperties": false
+      },
+      "RunStatusPayload": {
+        "type": "object",
+        "properties": {
+          "previous_state": {
+            "$ref": "#/components/schemas/RunState"
+          },
+          "state": {
+            "$ref": "#/components/schemas/RunState"
+          },
+          "run_revision": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512
+          }
+        },
+        "required": [
+          "previous_state",
+          "state",
+          "run_revision"
+        ],
+        "additionalProperties": false
+      },
+      "TextDeltaPayload": {
+        "type": "object",
+        "properties": {
+          "block_id": {
+            "$ref": "#/components/schemas/Identifier"
+          },
+          "text": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 65536
+          }
+        },
+        "required": [
+          "block_id",
+          "text"
+        ],
+        "additionalProperties": false
+      },
+      "ToolStartedPayload": {
+        "type": "object",
+        "properties": {
+          "tool_call_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "tool_name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "summary": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2048
+          },
+          "parameters_sha256": {
+            "$ref": "#/components/schemas/Sha256"
+          }
+        },
+        "required": [
+          "tool_call_id",
+          "tool_name",
+          "summary",
+          "parameters_sha256"
+        ],
+        "additionalProperties": false
+      },
+      "ToolCompletedPayload": {
+        "type": "object",
+        "properties": {
+          "tool_call_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "outcome": {
+            "type": "string",
+            "enum": [
+              "succeeded",
+              "failed",
+              "denied",
+              "cancelled"
+            ]
+          },
+          "elapsed_ms": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 604800000
+          },
+          "result_file_id": {
+            "$ref": "#/components/schemas/Identifier"
+          }
+        },
+        "required": [
+          "tool_call_id",
+          "outcome",
+          "elapsed_ms"
+        ],
+        "additionalProperties": false
+      },
+      "RawEventPointer": {
+        "type": "object",
+        "properties": {
+          "namespace": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 128,
+            "pattern": "^[a-z][a-z0-9.-]+$"
+          },
+          "native_type": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "file": {
+            "$ref": "#/components/schemas/FileDescriptor"
+          }
+        },
+        "required": [
+          "namespace",
+          "native_type",
+          "file"
+        ],
+        "additionalProperties": false
+      },
+      "UsagePayload": {
+        "type": "object",
+        "properties": {
+          "usage_id": {
+            "$ref": "#/components/schemas/Identifier"
+          },
+          "source_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "model",
+              "compute",
+              "storage",
+              "verifier"
+            ]
+          },
+          "precision": {
+            "type": "string",
+            "enum": [
+              "actual",
+              "estimated",
+              "unknown"
+            ]
+          },
+          "currency": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 3,
+            "pattern": "^[A-Z]{3}$"
+          },
+          "amount": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 48,
+            "pattern": "^(0|[1-9][0-9]{0,23})(\\.[0-9]{1,12})?$"
+          }
+        },
+        "required": [
+          "usage_id",
+          "source_id",
+          "category",
+          "precision",
+          "currency"
+        ],
+        "additionalProperties": false,
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "precision": {
+                  "const": "unknown"
+                }
+              }
+            },
+            "then": {
+              "not": {
+                "required": [
+                  "amount"
+                ]
+              }
+            },
+            "else": {
+              "required": [
+                "amount"
+              ]
+            }
+          }
+        ]
+      },
+      "SourceEvent": {
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "contract_version": {
+                "$ref": "#/components/schemas/ContractVersion"
+              },
+              "scope": {
+                "$ref": "#/components/schemas/ProjectScope"
+              },
+              "run_id": {
+                "$ref": "#/components/schemas/Identifier"
+              },
+              "attempt_id": {
+                "$ref": "#/components/schemas/Identifier"
+              },
+              "runtime_instance_id": {
+                "$ref": "#/components/schemas/Identifier"
+              },
+              "binding": {
+                "$ref": "#/components/schemas/LeaseBinding"
+              },
+              "stream_id": {
+                "$ref": "#/components/schemas/Identifier"
+              },
+              "source_seq": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9007199254740991
+              },
+              "observed_at": {
+                "$ref": "#/components/schemas/Timestamp"
+              },
+              "type": {
+                "const": "run.status_changed"
+              },
+              "payload": {
+                "$ref": "#/components/schemas/RunStatusPayload"
+              }
+            },
+            "required": [
+              "contract_version",
+              "scope",
+              "run_id",
+              "attempt_id",
+              "runtime_instance_id",
+              "binding",
+              "stream_id",
+              "source_seq",
+              "observed_at",
+              "type",
+              "payload"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "contract_version": {
+                "$ref": "#/components/schemas/ContractVersion"
+              },
+              "scope": {
+                "$ref": "#/components/schemas/ProjectScope"
+              },
+              "run_id": {
+                "$ref": "#/components/schemas/Identifier"
+              },
+              "attempt_id": {
+                "$ref": "#/components/schemas/Identifier"
+              },
+              "runtime_instance_id": {
+                "$ref": "#/components/schemas/Identifier"
+              },
+              "binding": {
+                "$ref": "#/components/schemas/LeaseBinding"
+              },
+              "stream_id": {
+                "$ref": "#/components/schemas/Identifier"
+              },
+              "source_seq": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9007199254740991
+              },
+              "observed_at": {
+                "$ref": "#/components/schemas/Timestamp"
+              },
+              "type": {
+                "const": "text.delta"
+              },
+              "payload": {
+                "$ref": "#/components/schemas/TextDeltaPayload"
+              }
+            },
+            "required": [
+              "contract_version",
+              "scope",
+              "run_id",
+              "attempt_id",
+              "runtime_instance_id",
+              "binding",
+              "stream_id",
+              "source_seq",
+              "observed_at",
+              "type",
+              "payload"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "contract_version": {
+                "$ref": "#/components/schemas/ContractVersion"
+              },
+              "scope": {
+                "$ref": "#/components/schemas/ProjectScope"
+              },
+              "run_id": {
+                "$ref": "#/components/schemas/Identifier"
+              },
+              "attempt_id": {
+                "$ref": "#/components/schemas/Identifier"
+              },
+              "runtime_instance_id": {
+                "$ref": "#/components/schemas/Identifier"
+              },
+              "binding": {
+                "$ref": "#/components/schemas/LeaseBinding"
+              },
+              "stream_id": {
+                "$ref": "#/components/schemas/Identifier"
+              },
+              "source_seq": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9007199254740991
+              },
+              "observed_at": {
+                "$ref": "#/components/schemas/Timestamp"
+              },
+              "type": {
+                "const": "tool.started"
+              },
+              "payload": {
+                "$ref": "#/components/schemas/ToolStartedPayload"
+              }
+            },
+            "required": [
+              "contract_version",
+              "scope",
+              "run_id",
+              "attempt_id",
+              "runtime_instance_id",
+              "binding",
+              "stream_id",
+              "source_seq",
+              "observed_at",
+              "type",
+              "payload"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "contract_version": {
+                "$ref": "#/components/schemas/ContractVersion"
+              },
+              "scope": {
+                "$ref": "#/components/schemas/ProjectScope"
+              },
+              "run_id": {
+                "$ref": "#/components/schemas/Identifier"
+              },
+              "attempt_id": {
+                "$ref": "#/components/schemas/Identifier"
+              },
+              "runtime_instance_id": {
+                "$ref": "#/components/schemas/Identifier"
+              },
+              "binding": {
+                "$ref": "#/components/schemas/LeaseBinding"
+              },
+              "stream_id": {
+                "$ref": "#/components/schemas/Identifier"
+              },
+              "source_seq": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9007199254740991
+              },
+              "observed_at": {
+                "$ref": "#/components/schemas/Timestamp"
+              },
+              "type": {
+                "const": "tool.completed"
+              },
+              "payload": {
+                "$ref": "#/components/schemas/ToolCompletedPayload"
+              }
+            },
+            "required": [
+              "contract_version",
+              "scope",
+              "run_id",
+              "attempt_id",
+              "runtime_instance_id",
+              "binding",
+              "stream_id",
+              "source_seq",
+              "observed_at",
+              "type",
+              "payload"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "contract_version": {
+                "$ref": "#/components/schemas/ContractVersion"
+              },
+              "scope": {
+                "$ref": "#/components/schemas/ProjectScope"
+              },
+              "run_id": {
+                "$ref": "#/components/schemas/Identifier"
+              },
+              "attempt_id": {
+                "$ref": "#/components/schemas/Identifier"
+              },
+              "runtime_instance_id": {
+                "$ref": "#/components/schemas/Identifier"
+              },
+              "binding": {
+                "$ref": "#/components/schemas/LeaseBinding"
+              },
+              "stream_id": {
+                "$ref": "#/components/schemas/Identifier"
+              },
+              "source_seq": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9007199254740991
+              },
+              "observed_at": {
+                "$ref": "#/components/schemas/Timestamp"
+              },
+              "type": {
+                "const": "approval.requested"
+              },
+              "payload": {
+                "$ref": "#/components/schemas/ApprovalRequest"
+              }
+            },
+            "required": [
+              "contract_version",
+              "scope",
+              "run_id",
+              "attempt_id",
+              "runtime_instance_id",
+              "binding",
+              "stream_id",
+              "source_seq",
+              "observed_at",
+              "type",
+              "payload"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "contract_version": {
+                "$ref": "#/components/schemas/ContractVersion"
+              },
+              "scope": {
+                "$ref": "#/components/schemas/ProjectScope"
+              },
+              "run_id": {
+                "$ref": "#/components/schemas/Identifier"
+              },
+              "attempt_id": {
+                "$ref": "#/components/schemas/Identifier"
+              },
+              "runtime_instance_id": {
+                "$ref": "#/components/schemas/Identifier"
+              },
+              "binding": {
+                "$ref": "#/components/schemas/LeaseBinding"
+              },
+              "stream_id": {
+                "$ref": "#/components/schemas/Identifier"
+              },
+              "source_seq": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9007199254740991
+              },
+              "observed_at": {
+                "$ref": "#/components/schemas/Timestamp"
+              },
+              "type": {
+                "const": "input.requested"
+              },
+              "payload": {
+                "$ref": "#/components/schemas/InputRequest"
+              }
+            },
+            "required": [
+              "contract_version",
+              "scope",
+              "run_id",
+              "attempt_id",
+              "runtime_instance_id",
+              "binding",
+              "stream_id",
+              "source_seq",
+              "observed_at",
+              "type",
+              "payload"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "contract_version": {
+                "$ref": "#/components/schemas/ContractVersion"
+              },
+              "scope": {
+                "$ref": "#/components/schemas/ProjectScope"
+              },
+              "run_id": {
+                "$ref": "#/components/schemas/Identifier"
+              },
+              "attempt_id": {
+                "$ref": "#/components/schemas/Identifier"
+              },
+              "runtime_instance_id": {
+                "$ref": "#/components/schemas/Identifier"
+              },
+              "binding": {
+                "$ref": "#/components/schemas/LeaseBinding"
+              },
+              "stream_id": {
+                "$ref": "#/components/schemas/Identifier"
+              },
+              "source_seq": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9007199254740991
+              },
+              "observed_at": {
+                "$ref": "#/components/schemas/Timestamp"
+              },
+              "type": {
+                "const": "artifact.ready"
+              },
+              "payload": {
+                "$ref": "#/components/schemas/Artifact"
+              }
+            },
+            "required": [
+              "contract_version",
+              "scope",
+              "run_id",
+              "attempt_id",
+              "runtime_instance_id",
+              "binding",
+              "stream_id",
+              "source_seq",
+              "observed_at",
+              "type",
+              "payload"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "contract_version": {
+                "$ref": "#/components/schemas/ContractVersion"
+              },
+              "scope": {
+                "$ref": "#/components/schemas/ProjectScope"
+              },
+              "run_id": {
+                "$ref": "#/components/schemas/Identifier"
+              },
+              "attempt_id": {
+                "$ref": "#/components/schemas/Identifier"
+              },
+              "runtime_instance_id": {
+                "$ref": "#/components/schemas/Identifier"
+              },
+              "binding": {
+                "$ref": "#/components/schemas/LeaseBinding"
+              },
+              "stream_id": {
+                "$ref": "#/components/schemas/Identifier"
+              },
+              "source_seq": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9007199254740991
+              },
+              "observed_at": {
+                "$ref": "#/components/schemas/Timestamp"
+              },
+              "type": {
+                "const": "native.observed"
+              },
+              "payload": {
+                "$ref": "#/components/schemas/RawEventPointer"
+              }
+            },
+            "required": [
+              "contract_version",
+              "scope",
+              "run_id",
+              "attempt_id",
+              "runtime_instance_id",
+              "binding",
+              "stream_id",
+              "source_seq",
+              "observed_at",
+              "type",
+              "payload"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "contract_version": {
+                "$ref": "#/components/schemas/ContractVersion"
+              },
+              "scope": {
+                "$ref": "#/components/schemas/ProjectScope"
+              },
+              "run_id": {
+                "$ref": "#/components/schemas/Identifier"
+              },
+              "attempt_id": {
+                "$ref": "#/components/schemas/Identifier"
+              },
+              "runtime_instance_id": {
+                "$ref": "#/components/schemas/Identifier"
+              },
+              "binding": {
+                "$ref": "#/components/schemas/LeaseBinding"
+              },
+              "stream_id": {
+                "$ref": "#/components/schemas/Identifier"
+              },
+              "source_seq": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9007199254740991
+              },
+              "observed_at": {
+                "$ref": "#/components/schemas/Timestamp"
+              },
+              "type": {
+                "const": "usage.recorded"
+              },
+              "payload": {
+                "$ref": "#/components/schemas/UsagePayload"
+              }
+            },
+            "required": [
+              "contract_version",
+              "scope",
+              "run_id",
+              "attempt_id",
+              "runtime_instance_id",
+              "binding",
+              "stream_id",
+              "source_seq",
+              "observed_at",
+              "type",
+              "payload"
+            ],
+            "additionalProperties": false
+          }
+        ]
+      },
+      "EventEnvelope": {
+        "type": "object",
+        "properties": {
+          "event_id": {
+            "$ref": "#/components/schemas/Identifier"
+          },
+          "run_id": {
+            "$ref": "#/components/schemas/Identifier"
+          },
+          "seq": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "persisted_at": {
+            "$ref": "#/components/schemas/Timestamp"
+          },
+          "source": {
+            "$ref": "#/components/schemas/SourceEvent"
+          }
+        },
+        "required": [
+          "event_id",
+          "run_id",
+          "seq",
+          "persisted_at",
+          "source"
+        ],
+        "additionalProperties": false
+      },
+      "RunSnapshot": {
+        "type": "object",
+        "properties": {
+          "run": {
+            "$ref": "#/components/schemas/Run"
+          },
+          "last_seq": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "snapshot_at": {
+            "$ref": "#/components/schemas/Timestamp"
+          }
+        },
+        "required": [
+          "run",
+          "last_seq",
+          "snapshot_at"
+        ],
+        "additionalProperties": false
+      },
+      "EventPage": {
+        "type": "object",
+        "properties": {
+          "run_id": {
+            "$ref": "#/components/schemas/Identifier"
+          },
+          "events": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EventEnvelope"
+            },
+            "minItems": 0,
+            "maxItems": 256
+          },
+          "next_after": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "has_more": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "run_id",
+          "events",
+          "next_after",
+          "has_more"
+        ],
+        "additionalProperties": false
+      },
+      "EventBatch": {
+        "type": "object",
+        "properties": {
+          "batch_id": {
+            "$ref": "#/components/schemas/Identifier"
+          },
+          "events": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SourceEvent"
+            },
+            "minItems": 1,
+            "maxItems": 256
+          }
+        },
+        "required": [
+          "batch_id",
+          "events"
+        ],
+        "additionalProperties": false
+      },
+      "CommittedAck": {
+        "type": "object",
+        "properties": {
+          "attempt_id": {
+            "$ref": "#/components/schemas/Identifier"
+          },
+          "stream_id": {
+            "$ref": "#/components/schemas/Identifier"
+          },
+          "binding": {
+            "$ref": "#/components/schemas/LeaseBinding"
+          },
+          "level": {
+            "const": "committed"
+          },
+          "committed_through": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "attempt_id",
+          "stream_id",
+          "binding",
+          "level",
+          "committed_through"
+        ],
+        "additionalProperties": false
+      },
+      "EventBatchReceipt": {
+        "type": "object",
+        "properties": {
+          "batch_id": {
+            "$ref": "#/components/schemas/Identifier"
+          },
+          "acks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CommittedAck"
+            },
+            "minItems": 0,
+            "maxItems": 256
+          },
+          "rejected_event_ids": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "attempt_id": {
+                  "$ref": "#/components/schemas/Identifier"
+                },
+                "stream_id": {
+                  "$ref": "#/components/schemas/Identifier"
+                },
+                "source_seq": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 9007199254740991
+                },
+                "code": {
+                  "$ref": "#/components/schemas/ErrorCode"
+                }
+              },
+              "required": [
+                "attempt_id",
+                "stream_id",
+                "source_seq",
+                "code"
+              ],
+              "additionalProperties": false
+            },
+            "minItems": 0,
+            "maxItems": 256
+          }
+        },
+        "required": [
+          "batch_id",
+          "acks",
+          "rejected_event_ids"
+        ],
+        "additionalProperties": false
+      },
+      "HandshakeRequest": {
+        "type": "object",
+        "properties": {
+          "component": {
+            "type": "string",
+            "enum": [
+              "desktop",
+              "runner",
+              "execution_agent",
+              "adapter"
+            ]
+          },
+          "build_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80,
+            "pattern": "^[A-Za-z0-9._-]+$"
+          },
+          "software_version": {
+            "$ref": "#/components/schemas/Version"
+          },
+          "supported_contract_versions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Version"
+            },
+            "minItems": 1,
+            "maxItems": 8,
+            "uniqueItems": true
+          }
+        },
+        "required": [
+          "component",
+          "build_id",
+          "software_version",
+          "supported_contract_versions"
+        ],
+        "additionalProperties": false
+      },
+      "PlatformMetadata": {
+        "type": "object",
+        "properties": {
+          "platform_id": {
+            "$ref": "#/components/schemas/Identifier"
+          },
+          "platform_epoch": {
+            "$ref": "#/components/schemas/Identifier"
+          },
+          "build_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "software_version": {
+            "$ref": "#/components/schemas/Version"
+          },
+          "selected_contract_version": {
+            "$ref": "#/components/schemas/ContractVersion"
+          },
+          "supported_contract_versions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Version"
+            },
+            "minItems": 1,
+            "maxItems": 8,
+            "uniqueItems": true
+          },
+          "minimum_component_versions": {
+            "type": "object",
+            "properties": {
+              "desktop": {
+                "$ref": "#/components/schemas/Version"
+              },
+              "runner": {
+                "$ref": "#/components/schemas/Version"
+              },
+              "execution_agent": {
+                "$ref": "#/components/schemas/Version"
+              }
+            },
+            "required": [
+              "desktop",
+              "runner",
+              "execution_agent"
+            ],
+            "additionalProperties": false
+          },
+          "feature_flags": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 80,
+              "pattern": "^[a-z][a-z0-9_.:-]+$"
+            },
+            "minItems": 0,
+            "maxItems": 128,
+            "uniqueItems": true
+          }
+        },
+        "required": [
+          "platform_id",
+          "platform_epoch",
+          "build_id",
+          "software_version",
+          "selected_contract_version",
+          "supported_contract_versions",
+          "minimum_component_versions",
+          "feature_flags"
+        ],
+        "additionalProperties": false
+      },
+      "Version": {
+        "type": "string",
+        "minLength": 5,
+        "maxLength": 64,
+        "pattern": "^(?:0|[1-9][0-9]*)\\.(?:0|[1-9][0-9]*)\\.(?:0|[1-9][0-9]*)(?:-(?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*)(?:\\.(?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*))*)?(?:\\+[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?$"
+      },
+      "HTTPSUri": {
+        "type": "string",
+        "minLength": 9,
+        "maxLength": 2048,
+        "format": "uri",
+        "pattern": "^https://[^/?#]+(?:[/?#].*)?$"
+      },
+      "AuthenticationDiscovery": {
+        "type": "object",
+        "properties": {
+          "issuer": {
+            "$ref": "#/components/schemas/HTTPSUri"
+          },
+          "client_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "required_scopes": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "minItems": 1,
+            "maxItems": 16,
+            "uniqueItems": true
+          },
+          "authorization_code_pkce_required": {
+            "const": true
+          }
+        },
+        "required": [
+          "issuer",
+          "client_id",
+          "required_scopes",
+          "authorization_code_pkce_required"
+        ],
+        "additionalProperties": false
+      },
+      "InteractionReceipt": {
+        "type": "object",
+        "properties": {
+          "interaction_id": {
+            "$ref": "#/components/schemas/Identifier"
+          },
+          "run_id": {
+            "$ref": "#/components/schemas/Identifier"
+          },
+          "command_id": {
+            "$ref": "#/components/schemas/Identifier"
+          },
+          "decision_status": {
+            "const": "accepted"
+          },
+          "accepted_at": {
+            "$ref": "#/components/schemas/Timestamp"
+          }
+        },
+        "required": [
+          "interaction_id",
+          "run_id",
+          "command_id",
+          "decision_status",
+          "accepted_at"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "x-harniqo-contract-status": "draft_pending_live_admission"
+}

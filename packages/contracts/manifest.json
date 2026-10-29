@@ -1,0 +1,10 @@
+{
+  "contract_version": "0.1.0",
+  "status": "draft_pending_live_admission",
+  "json_schema_dialect": "https://json-schema.org/draft/2020-12/schema",
+  "canonical_schema": "schemas/contract.schema.json",
+  "openapi_source": "openapi.routes.json",
+  "openapi_generated": "openapi.json",
+  "fixtures": "fixtures/cases.json",
+  "scope": "M0-02 contract shape and deterministic conformance; no live deployment support claim"
+}

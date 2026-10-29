@@ -1,0 +1,168 @@
+{
+  "contract_version": "0.1.0",
+  "initial_state": "accepted",
+  "terminal_states": [
+    "succeeded",
+    "failed",
+    "cancelled"
+  ],
+  "transitions": {
+    "accepted": [
+      "queued",
+      "stopping",
+      "cancelled",
+      "failed"
+    ],
+    "queued": [
+      "provisioning",
+      "stopping",
+      "reconciling",
+      "cancelled",
+      "failed"
+    ],
+    "provisioning": [
+      "running",
+      "stopping",
+      "reconciling",
+      "failed",
+      "cancelled"
+    ],
+    "running": [
+      "waiting_approval",
+      "waiting_input",
+      "stopping",
+      "reconciling",
+      "succeeded",
+      "failed"
+    ],
+    "waiting_approval": [
+      "running",
+      "waiting_input",
+      "stopping",
+      "reconciling",
+      "failed"
+    ],
+    "waiting_input": [
+      "running",
+      "waiting_approval",
+      "stopping",
+      "reconciling",
+      "failed"
+    ],
+    "stopping": [
+      "reconciling",
+      "cancelled",
+      "succeeded",
+      "failed"
+    ],
+    "reconciling": [
+      "queued",
+      "provisioning",
+      "running",
+      "waiting_approval",
+      "waiting_input",
+      "stopping",
+      "succeeded",
+      "failed",
+      "cancelled"
+    ],
+    "succeeded": [],
+    "failed": [],
+    "cancelled": []
+  },
+  "preconditions": {
+    "all": [
+      "Authorized actor and resource scope must be checked before any transition.",
+      "The state update and corresponding event/seq must commit atomically.",
+      "Guest event payloads are observations; they do not directly set platform lifecycle state."
+    ],
+    "to_cancelled": [
+      "No execution was started, or authoritative stop evidence matches the current owner/epoch/generation.",
+      "A guest ACK or expired lease alone is never sufficient evidence."
+    ],
+    "from_reconciling_to_queued": [
+      "The previous writer is confirmed stopped/absent and its credential is fenced.",
+      "A retry policy or explicit authorized retry has created a new Attempt; never replay uncertain external side effects blindly."
+    ],
+    "from_reconciling_to_running": [
+      "Inspection proves the same current execution can be reattached; do not start another writer."
+    ]
+  },
+  "transition_cases": [
+    {
+      "from": "accepted",
+      "to": "queued",
+      "valid": true
+    },
+    {
+      "from": "running",
+      "to": "waiting_approval",
+      "valid": true
+    },
+    {
+      "from": "waiting_approval",
+      "to": "running",
+      "valid": true
+    },
+    {
+      "from": "running",
+      "to": "stopping",
+      "valid": true
+    },
+    {
+      "from": "stopping",
+      "to": "cancelled",
+      "valid": true
+    },
+    {
+      "from": "stopping",
+      "to": "succeeded",
+      "valid": true
+    },
+    {
+      "from": "reconciling",
+      "to": "running",
+      "valid": true
+    },
+    {
+      "from": "reconciling",
+      "to": "queued",
+      "valid": true
+    },
+    {
+      "from": "succeeded",
+      "to": "running",
+      "valid": false
+    },
+    {
+      "from": "failed",
+      "to": "queued",
+      "valid": false
+    },
+    {
+      "from": "cancelled",
+      "to": "running",
+      "valid": false
+    },
+    {
+      "from": "running",
+      "to": "cancelled",
+      "valid": false
+    },
+    {
+      "from": "accepted",
+      "to": "running",
+      "valid": false
+    },
+    {
+      "from": "queued",
+      "to": "succeeded",
+      "valid": false
+    },
+    {
+      "from": "not-a-state",
+      "to": "queued",
+      "valid": false
+    }
+  ]
+}

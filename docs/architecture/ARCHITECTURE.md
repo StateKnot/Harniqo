@@ -13,7 +13,7 @@
 | 桌面 | Electron + React + TypeScript + Vite | 共享 Chromium 行为，便于三端流式工作台和受限预览；当前可选受支持的 Electron45，实施时重新核对支持窗口并固定版本 |
 | 客户端状态 | TanStack Query 管服务端缓存，局部 React 状态管界面 | 数据真值在控制面；不建立第二套可写业务状态，也不在本机运行一套云端 Harness |
 | 服务端 | Node.js24 LTS、TypeScript、Fastify5 | 成熟的同语言工程；Node24 当前在 Maintenance，支持至 2028-04-30，必须在 EOL 前验收升级；Electron 内置 Node 独立管理 |
-| 契约 | JSON Schema + Fastify 官方 type provider + OpenAPI | 一份 Schema 生成/校验客户端类型及文档；Python 执行器读取同一 JSON 格式，不要求共享 TypeScript 运行库 |
+| 契约 | JSON Schema draft2020-12 + Ajv2020 + 类型生成 + OpenAPI3.1 | 一份 Schema 校验/生成客户端类型及文档；Python 执行器读取同一格式，显式配置方言，不依赖 Fastify 默认 Draft7 |
 | 数据 | PostgreSQL17、Kysely + pg | 显式 SQL、事务、复合外键与 RLS；迁移与运行角色分开；不通过自动同步表结构部署 |
 | 队列 | pg-boss12，与业务同一 PostgreSQL | 业务接受和 job 登记使用官方事务 Adapter、同连接同事务；至少一次交付，通过状态核对和幂等执行处理重复 |
 | 对象 | S3 协议；私有默认 SeaweedFS 社区版，可接已验收客户 S3 | 输入、产物、大轨迹和报告；只依赖通过测试的协议子集，备份包括对象数据及元数据 |
@@ -316,7 +316,7 @@ Electron 主进程通过窄 preload Interface 提供登录、选择文件、启�
 
 刷新凭据由主进程的凭据 Module 统一保管，按 Electron 最终版本使用受支持 API 并确认真实安全 provider。Linux keyring 缺失/弱 fallback 时仅内存登录，不用固定密码或明文来实现记住登录。业务对话默认不持久缓存到本机；环境设置与游标按用户权限保存，离线编辑/离线执行不属首版。[safeStorage](https://www.electronjs.org/docs/latest/api/safe-storage)
 
-拟验收 OS 基线：macOS14+ arm64/x64、Windows11 x64、Ubuntu24.04 LTS x64。M0 核实 Electron/平台支持与可用原生设备后冻结；任何没真实验收的组合不能写正式支持。macOS 签名/公证、Windows 签名与 Linux 包管理分别实施；Linux 不依赖 Electron 内置 autoUpdater。[更新边界](https://www.electronjs.org/docs/latest/api/auto-updater/)
+首批验收 OS 白名单已在 [验收基线](../operations/ACCEPTANCE-BASELINE.md) 收窄为 macOS26 arm64、macOS15 x64、Windows11 25H2 x64、Ubuntu24.04 LTS x64；原 macOS14+ 是兼容设想，不作为首发安全支持声明。M0 核实可用原生设备，任何没真实验收的组合不能写正式支持。macOS 签名/公证、Windows 签名与 Linux 包管理分别实施；Linux 不依赖 Electron 内置 autoUpdater。[更新边界](https://www.electronjs.org/docs/latest/api/auto-updater/)
 
 客户端、平台、Runner、执行代理和 Adapter 各带 build ID/契约版本。新增字段保持兼容，未知非关键事件可保留并提示；状态语义或必选字段变化提升契约 major 并握手拒绝。新客户端保留受支持旧服务窗口。迁移采用先扩展再切换再收缩，收缩前确认旧版本不再使用；不可逆迁移回退恢复匹配数据备份。
 
@@ -338,6 +338,8 @@ docs/adr/                   关键决策与取舍
 ```
 
 contracts 不引用 UI、数据库或具体 Harness；客户端不导入 server 实现；Adapter 不导入 libvirt、平台管理和数据库模块。每个业务 Module 管自己的写入，必要的跨模块原子行为经显式应用事务协调。TypeScript/Python 的交界是版本化 JSON/产物，不能依赖彼此进程内对象。
+
+M0 契约采用 draft2020-12，Fastify 默认验证链不能自动承担该方言。M1 显式使用 Ajv2020 编译同一 canonical Schema；响应先做相同方言的 DTO 校验再用原生 JSON 序列化，未验证兼容性前不交给默认 Draft7 serializer。107 项契约 shape 样例和生命周期表须在 Python/Node 两端一致通过，禁止删除 `$schema` 或静默降级方言来让测试变绿。[Ajv 方言](https://ajv.js.org/json-schema.html)、[Fastify 验证与序列化](https://fastify.dev/docs/latest/Reference/Validation-and-Serialization/)
 
 CI 从 M1 就覆盖三个原生系统；模块逻辑、真实 PostgreSQL/S3/OIDC 集成、Adapter 契约、真实 VM 故障和核心原生流程分层验证。至少包含：连接池租户上下文、同事务 job 回滚、并发预算、低序号晚提交、旧租约回报、取消竞态、上传成功但数据库回滚、撤权后重放、恶意产物和评分隔离。
 

@@ -1,0 +1,5 @@
+# Direct validation-tool pins. A full resolved environment lock is recorded by
+# the acceptance environment; this file is not a transitive or hash lock.
+# Versions and licenses checked against primary PyPI pages on 2026-10-29.
+jsonschema==4.26.0
+openapi-spec-validator==0.9.0

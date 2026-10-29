@@ -97,7 +97,7 @@ session可保存和resume，支持树形分支；`--no-session`是临时运行�
 
 | Runtime | 最新正式 release | 读取到的 main SHA |
 |---|---|---|
-| Hermes Agent | v0.22.5，2026-10-23发布（notes写10-22） | `a382af23f4c067d23463b5781958684c2cda82bc` |
+| Hermes Agent | v0.22.5 的实际 tag commit 与研究源码快照分开，见下方实施复核 | release `bf0203a794a07aac3ff764972ab9087baa4e4f4e`；研究/本轮源码 `a382af23f4c067d23463b5781958684c2cda82bc` |
 | OpenClaw | v2026.10.7，2026-10-24发布 | `a218de7ac2355fa962833cc8720fbdbdb4d131d2` |
 | QwenPaw | v2.2.2.post1，2026-10-22发布 | `3d35ad12476da0b8f88b9b51cec121d4c0c52b3c` |
 | Letta Code | v0.34.24，2026-10-25发布 | `b995585d42313c9ddb8873986de05e01a595d52a` |
@@ -105,3 +105,9 @@ session可保存和resume，支持树形分支；`--no-session`是临时运行�
 | HKUDS OpenHarness | v0.1.9，2026-05-07发布 | `9b2efd795c6aa09f88b0c257d269a9e518da6ae7` |
 
 元数据通过官方GitHub connector读取。版本名中的日期不等同于publish时间；官网文档可能领先发行。首轮验收应固定镜像/CLI/adapter/model与permissions配置，覆盖：建session、流事件、工具拒绝与批准、请求取消、重连/重启、客户端关闭后继续、会话归属、产物与成本归因、从空白或快照开始批量实验。
+
+## 2026-10-29 实施复核：Hermes 版本身份修正
+
+前表曾把研究时读取的 `a382af23f4c067d23463b5781958684c2cda82bc` 与 `v0.22.5` 合并为同一身份。实际官方 [tag ref](https://api.github.com/repos/NousResearch/hermes-agent/git/ref/tags/v0.22.5) 指向 annotated tag `56b6a31fededdf7364e1a0a79548d144e7fd81a3`，[tag 对象](https://api.github.com/repos/NousResearch/hermes-agent/git/tags/56b6a31fededdf7364e1a0a79548d144e7fd81a3) peel 到 `bf0203a794a07aac3ff764972ab9087baa4e4f4e`。本轮构建继续固定已核验源码 `a382…`，只标识 `git-a382af23f4c0` 及受控工具组合，不把它当作上游 v0.22.5 原版或混用支持证据。
+
+构建输入、原生配置和身份边界见 [Hermes 准入配方](../deploy/qualification/hermes/README.md)。文档/源码存在仍不等于真实模型、审批、取消或恢复已通过。

@@ -6,13 +6,18 @@
 
 ## 项目状态
 
-目前处于开发规划阶段，尚无可安装应用或已认证的 Harness 集成。生产目标同时覆盖团队私有部署和多租户 SaaS；执行环境首版限定为 Linux，客户端覆盖三端。
+目前在执行 M0，8 项中 2 项已验收：产品规格与当前来源/依赖基线。机器契约已实现并经干净服务器验证；真实模型前置探针和封闭 KVM 基线已通过，原生 Hermes 构建验证进行中。M0 尚未完成，尚无可安装应用或已认证的 Harness 集成；生产选择性出网、租约和故障恢复仍待验证。结果、失败历史和证据边界见 [M0 执行证据索引](docs/planning/M0-RESULTS.md)。
+
+生产目标同时覆盖团队私有部署和多租户 SaaS；执行环境首版限定为 Linux，客户端覆盖三端。
 
 | 文档 | 用途 |
 | --- | --- |
+| [产品规格](docs/product/PRD.md) | 首版权限、导航、六条完整用户流程和验收口径 |
+| [机器契约](packages/contracts/README.md) | JSON Schema、OpenAPI、状态迁移和可复现验证 |
 | [技术架构](docs/architecture/ARCHITECTURE.md) | 技术栈、七个业务 Module、数据与接口、执行隔离、双部署和关键决策 |
 | [开发方案与里程碑](docs/planning/ROADMAP.md) | 产品范围、架构、阶段依赖与发布门槛 |
 | [开发任务清单](docs/planning/BACKLOG.md) | 67 项任务，含交付物和验收条件 |
+| [M0 执行证据索引](docs/planning/M0-RESULTS.md) | 已验收状态、真实验证摘要、失败历史和未覆盖边界 |
 | [验收与执行规则](docs/planning/ACCEPTANCE.md) | 真实环境验收、失败场景与证据要求 |
 | [领域术语](GLOSSARY.md) | 后续文档、API 与代码采用的统一概念 |
 | [预研报告](research/multi-harness-client-research.md) | 候选运行时、协议、复用边界和资料来源 |
