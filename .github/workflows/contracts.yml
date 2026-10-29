@@ -3,9 +3,9 @@ name: Contract verification
 on:
   push:
     branches: [main]
-    paths: ['packages/contracts/**', 'scripts/contracts/**', 'scripts/ci/**', '.github/workflows/contracts.yml']
+    paths: ['packages/contracts/**', 'scripts/contracts/**', 'scripts/ci/**', '.github/workflows/contracts.yml', '.gitattributes']
   pull_request:
-    paths: ['packages/contracts/**', 'scripts/contracts/**', 'scripts/ci/**', '.github/workflows/contracts.yml']
+    paths: ['packages/contracts/**', 'scripts/contracts/**', 'scripts/ci/**', '.github/workflows/contracts.yml', '.gitattributes']
   workflow_dispatch:
 
 permissions:
