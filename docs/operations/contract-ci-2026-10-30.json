@@ -1,0 +1,55 @@
+{
+  "scope": "contract_validation_only",
+  "date_local": "2026-10-30",
+  "timezone": "Asia/Shanghai",
+  "source_commit": "ead995ae80c6c4819acdf3f8678f6342ea2c28d2",
+  "run_url": "https://github.com/StateKnot/Harniqo/actions/runs/40908412252",
+  "conclusion": "success",
+  "platforms": [
+    {
+      "runner": "macos-15",
+      "python": "3.12.10",
+      "system": "Darwin",
+      "machine": "arm64",
+      "status": "passed",
+      "report_sha256": "e705ca702c619ce0a36d8636b62437a36982f8f5c3b30a02a2caca7fbaba2c91",
+      "environment_sha256": "0abbe67b13d9ca3a34812d09c442521efdffa9b319f7c964e65ef7e42d497078"
+    },
+    {
+      "runner": "ubuntu-24.04",
+      "python": "3.12.15",
+      "system": "Linux",
+      "machine": "x86_64",
+      "status": "passed",
+      "report_sha256": "e705ca702c619ce0a36d8636b62437a36982f8f5c3b30a02a2caca7fbaba2c91",
+      "environment_sha256": "be467c8654ffef7eaa4ab44f0d1bc84bb5d6c60ebebb25d079c6d56ce3ca03a5"
+    },
+    {
+      "runner": "windows-2025",
+      "python": "3.12.10",
+      "system": "Windows",
+      "machine": "AMD64",
+      "status": "passed",
+      "report_sha256": "24d8e22f016df7935ea1ff912277c66e30c2e80cdafed31d56d433cbc1df0aeb",
+      "environment_sha256": "23d2ab531613a19da8b9e3f08a239493e2e330aeb3fff1cef6dd47c867a291d7"
+    }
+  ],
+  "definitions": 60,
+  "paths": 18,
+  "fixture_count": 107,
+  "transition_cases": 15,
+  "requirements_sha256": "f33905bf22aa235bc117986a9f7b635c21fcac35d7aa525c88cc742db2e00546",
+  "source_sha256": {
+    "packages/contracts/fixtures/cases.json": "fbf166bbc93b05344fd58cd84504aa9ddbc918cce2b6a21aef3bc02d259736e9",
+    "packages/contracts/manifest.json": "8f5a12d1b5f46bc4d09c298b4094471eedd20c320f7a35baafea445079c75638",
+    "packages/contracts/openapi.json": "42e91acf7d8fc59bc7d62d9f6d896d988f05b44afd11d4d8d1794f12a21ad551",
+    "packages/contracts/openapi.routes.json": "4f5bd799b72bdf8a408a001783fce4115f18d94b098a19457a95aa4b812882cd",
+    "packages/contracts/run-lifecycle.json": "c51659fc737b52c9ee9a29f64465972d80e565423a1c181a3e9de91a53cb6ef9",
+    "packages/contracts/schemas/contract.schema.json": "c2ca50b69c78828c5ac7078e182ab26da01987eda92aedf7ba1b6cc2305988da"
+  },
+  "desktop_build_verified": false,
+  "gui_workflow_verified": false,
+  "native_harness_verified": false,
+  "original_failure_run": "https://github.com/StateKnot/Harniqo/actions/runs/40907696364",
+  "fix": "Canonical LF checkout using .gitattributes; strict generated-file byte comparison retained"
+}

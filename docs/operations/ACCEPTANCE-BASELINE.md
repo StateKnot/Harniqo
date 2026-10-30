@@ -92,8 +92,8 @@
 | Apple Developer 身份、Developer ID、notarization | 未提供本项目成功证据 | 有效身份/证书权限，签名、公证、staple及Gatekeeper验证产物；M8 |
 | Windows 代码签名身份/时间戳服务 | 未提供本项目成功证据 | 已核验的证书或签名服务账号与CI权限，校验签名与时间戳及失败恢复；M8 |
 | 发行包更新来源、TLS、域名与签名密钥 | 待验证 | 可用入口、签名完整性与版本兼容实测；M1/M7/M8 |
-| 两个模型端点与获准预算 | 两个获准模型的 Provider 两轮工具协议已通过；原生 Harness 准入待完成 | `deepseek-v4.1-flash`、`qwen3.8-flash` 的原生 Harness 工具、拒绝、取消和续聊报告；预算口径与在途请求边界；M0-03 |
-| KVM权限、libvirt、guest通道及隔离 | 2台无NIC真实KVM、两轮冷启动和安全回收基线已通过 | 选择性出网、生产身份/文件边界、资源耗尽、租约及原生Harness恢复仍须验证；M0-05；证据见 [M0索引](../planning/M0-RESULTS.md) |
+| 两个模型端点与获准预算 | 两个获准模型Provider协议及固定Hermes原生组合已通过；其他组合分别记录 | `deepseek-v4.1-flash`、`qwen3.8-flash` 的原生 Harness 工具、拒绝、取消和续聊报告；预算口径与在途请求边界；M0-03 |
+| KVM权限、libvirt、guest通道及隔离 | 封闭基线及两台真实VM的82项NIC检查通过，精确临时规则与资源已回收 | 选择性出网、生产身份/文件边界、资源耗尽、租约及原生Harness恢复仍须验证；M0-05；证据见 [M0索引](../planning/M0-RESULTS.md) |
 | 独立备份目的地和Secret恢复材料 | 待提供/验证 | 受控目的地、恢复权限、完整恢复报告；M0-07/M7 |
 | SaaS独立故障域、入口/数据依赖HA与N−1执行余量 | 待提供/验证 | 真实拓扑、节点故障与容量记录；M7/M8 |
 
@@ -101,7 +101,7 @@
 
 ## 7. M0-07 关闭条件
 
-已新增[三平台契约 CI](../../.github/workflows/contracts.yml)：Ubuntu24.04、Windows Server2025、macOS15上各用Python3.12和完整hash锁验证Schema/OpenAPI/样例/生命周期；Actions固定不可变提交、仓库权限只读、无业务凭据，报告保留14天。首次运行Linux/macOS通过，Windows因Git checkout换行转换触发canonical字节差异而失败；已新增LF仓库规范，重跑结果另行回填。此CI不构建Electron安装包，不证明Windows11/macOS桌面支持、签名或GUI流程通过。
+已新增[三平台契约 CI](../../.github/workflows/contracts.yml)：Ubuntu24.04、Windows Server2025、macOS15上各用Python3.12和完整hash锁验证Schema/OpenAPI/样例/生命周期；Actions固定不可变提交、仓库权限只读、无业务凭据，报告保留14天。首次运行Linux/macOS通过，Windows因Git checkout换行转换触发canonical字节差异而失败；新增LF仓库规范后[重跑三端全部通过](https://github.com/StateKnot/Harniqo/actions/runs/40908412252)，实际环境与相同源hash见[报告摘要](contract-ci-2026-10-30.json)。此CI不构建Electron安装包，不证明Windows11/macOS桌面支持、签名或GUI流程通过。
 
 本轮已固定初始 OS/架构、负载、SLO、资源、恢复数据规模、预算边界和测试方式。正式关闭任务还要求：逐项确认能用于验收的资源与权限、实际环境参数、独立备份位置，以及缺失项的受影响阶段和可执行解除方案；不能只写“以后准备”。真实签名发布、容量和恢复测量在相应阶段执行并回填证据。
 
