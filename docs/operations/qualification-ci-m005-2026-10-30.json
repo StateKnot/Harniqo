@@ -1,0 +1,31 @@
+{
+  "scope": "synthetic_qualification_components_only",
+  "date_local": "2026-10-30",
+  "timezone": "Asia/Shanghai",
+  "source_commit": "a0eae677a29033e1ba4e8bc1c4dd445b6836eda2",
+  "run_url": "https://github.com/StateKnot/Harniqo/actions/runs/41043954665",
+  "job_url": "https://github.com/StateKnot/Harniqo/actions/runs/41043954665/job/124023295612",
+  "conclusion": "success",
+  "runner": "ubuntu-24.04",
+  "python": "3.12.15",
+  "python_tests": 233,
+  "failures": 0,
+  "errors": 0,
+  "skipped": 0,
+  "expected_failures": 0,
+  "report_sha256": "8dc9507fe37b0de1d739cf5ca79e5c21d2ebd53c0ab13465c0853f10b124dc8e",
+  "node_checks": [
+    {
+      "step": "Run native protocol and private profile component checks",
+      "conclusion": "success"
+    },
+    {
+      "step": "Run transparent provider observer component checks",
+      "conclusion": "success"
+    }
+  ],
+  "real_model_calls": 0,
+  "native_harness_verified": false,
+  "vm_isolation_verified": false,
+  "desktop_build_verified": false
+}

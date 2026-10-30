@@ -105,6 +105,8 @@
 
 新增[资格组件CI](../../.github/workflows/qualification.yml)也已[实际通过](https://github.com/StateKnot/Harniqo/actions/runs/41020704213)：Linux/Python3.12的183项标准库组件、Node原生协议夹具及透明观察器检查，零模型调用；缺套件、失败或跳过不能通过。[合成摘要](qualification-ci-2026-10-30.json)记录source commit、run/job与报告hash。[首轮失败](https://github.com/StateKnot/Harniqo/actions/runs/41019478232)的/proc退出竞态保留，修正只识别ENOENT/ESRCH，其他异常及身份/僵尸判据保持。此CI没有启动Docker或VM，不替代真实Harness、隔离、桌面和签名验收。
 
+后续Resource Broker固定实例组子项已完成[真实KVM验证](resource-broker-kvm-2026-10-30.json)，其原生证据与合成组件分别登记。[本轮实际组件CI](https://github.com/StateKnot/Harniqo/actions/runs/41043954665)新增34项Broker及16项操作者回归，总计233项Python全部通过，两组Node检查通过；[新CI摘要](qualification-ci-m005-2026-10-30.json)与旧183项/失败记录分别保留。组件CI仍不调用模型或VM，完整M0-05与桌面原生构建等门槛保持独立。
+
 本轮已固定初始 OS/架构、负载、SLO、资源、恢复数据规模、预算边界和测试方式。正式关闭任务还要求：逐项确认能用于验收的资源与权限、实际环境参数、独立备份位置，以及缺失项的受影响阶段和可执行解除方案；不能只写“以后准备”。真实签名发布、容量和恢复测量在相应阶段执行并回填证据。
 
 当前资源表仍有未验证项，因此本任务未完成，后续按项目状态规则继续推进。所有支持声明以最终通过的组合和能力为准，未经验证的候选保留候选状态。
