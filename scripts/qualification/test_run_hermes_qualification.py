@@ -2,6 +2,7 @@
 """Operator error/ownership tests; no Docker, listeners or model requests."""
 from __future__ import annotations
 
+import errno
 import json
 import os
 from pathlib import Path
@@ -14,6 +15,54 @@ import unittest
 from unittest.mock import patch
 
 import run_hermes_qualification as operator
+
+
+def _worker_still_live(identity):
+    try:
+        fields = (Path("/proc") / str(identity["pid"]) / "stat").read_text().rsplit(")", 1)[1].split()
+        return int(fields[19]) == identity["start_ticks"] and fields[0] != "Z"
+    except OSError as error:
+        if error.errno in (errno.ENOENT, errno.ESRCH):
+            return False
+        raise
+
+
+class ProcessLivenessTests(unittest.TestCase):
+    identity = {"pid": 123, "start_ticks": 456}
+
+    def stat(self, state="R", start_ticks=456):
+        return "123 (worker) " + " ".join([state, *(["0"] * 18), str(start_ticks)])
+
+    def test_stat_esrch_means_worker_disappeared(self):
+        with patch.object(Path, "read_text", side_effect=ProcessLookupError(errno.ESRCH, "No such process")):
+            self.assertFalse(_worker_still_live(self.identity))
+
+    def test_stat_enoent_means_worker_disappeared(self):
+        with patch.object(Path, "read_text", side_effect=FileNotFoundError(errno.ENOENT, "No such file")):
+            self.assertFalse(_worker_still_live(self.identity))
+
+    def test_stat_permission_failure_is_not_absence(self):
+        with patch.object(Path, "read_text", side_effect=PermissionError(errno.EACCES, "Permission denied")):
+            with self.assertRaises(PermissionError):
+                _worker_still_live(self.identity)
+
+    def test_stat_other_io_failure_is_not_absence(self):
+        with patch.object(Path, "read_text", side_effect=OSError(errno.EIO, "Input/output error")):
+            with self.assertRaises(OSError):
+                _worker_still_live(self.identity)
+
+    def test_matching_live_identity_is_still_live(self):
+        with patch.object(Path, "read_text", autospec=True, return_value=self.stat()) as read:
+            self.assertTrue(_worker_still_live(self.identity))
+            self.assertEqual(read.call_args.args[0], Path("/proc/123/stat"))
+
+    def test_reused_pid_is_not_the_original_worker(self):
+        with patch.object(Path, "read_text", return_value=self.stat(start_ticks=457)):
+            self.assertFalse(_worker_still_live(self.identity))
+
+    def test_zombie_is_not_running(self):
+        with patch.object(Path, "read_text", return_value=self.stat(state="Z")):
+            self.assertFalse(_worker_still_live(self.identity))
 
 
 class OwnershipTests(unittest.TestCase):
@@ -146,19 +195,13 @@ class ParentDeathTests(unittest.TestCase):
                                 capture_output=True, text=True, timeout=10)
         self.assertEqual(result.returncode, 0)
         identity = json.loads(result.stdout)
-        def still_live():
-            try:
-                fields = (Path("/proc") / str(identity["pid"]) / "stat").read_text().rsplit(")", 1)[1].split()
-                return int(fields[19]) == identity["start_ticks"] and fields[0] != "Z"
-            except FileNotFoundError:
-                return False
         try:
             deadline = time.monotonic() + 3
-            while still_live() and time.monotonic() < deadline:
+            while _worker_still_live(identity) and time.monotonic() < deadline:
                 time.sleep(0.05)
-            self.assertFalse(still_live(), "probe worker survived its parent")
+            self.assertFalse(_worker_still_live(identity), "probe worker survived its parent")
         finally:
-            if still_live():
+            if _worker_still_live(identity):
                 os.kill(identity["pid"], signal.SIGKILL)
 
 if __name__ == "__main__":
