@@ -1,6 +1,6 @@
 # M0 执行证据索引
 
-日期：2026-10-29 · M0 状态：`IN_PROGRESS`，8 项中 **3 项已验收**。本索引记录已取得的证据及其范围，不表示 M0、应用功能或生产发布已完成。
+日期：2026-10-30 · M0 状态：`IN_PROGRESS`，8 项中 **4 项已验收**。本索引记录已取得的证据及其范围，不表示 M0、应用功能或生产发布已完成。
 
 任务定义见 [BACKLOG](BACKLOG.md)，阶段门槛见 [ROADMAP](ROADMAP.md)，验收规则见 [ACCEPTANCE](ACCEPTANCE.md)。这里只发布脱敏摘要；私有报告位置均为工作区相对路径模式，`<…>` 代表由受控环境记录映射的实际文件名。原始报告、日志、配置、凭据和镜像不随本索引公开。
 
@@ -11,7 +11,7 @@
 | M0-01 产品规格 | ✅ `ACCEPTED` | [PRD](../product/PRD.md) 固定两种部署操作者、权限矩阵、导航和六条输入/结果/失败流程；8 项文档验收检查通过 | 应用实现由后续里程碑交付 |
 | M0-02 机器契约 | `IMPLEMENTED` | 60 个 Schema 定义、18 条 OpenAPI 路径、107 个正反例、15 个生命周期案例通过验证；干净服务器按完整 hash 锁安装后复跑通过 | 结合真实原生 Harness 与生产隔离准入冻结契约 |
 | M0-03 首个 Harness | ✅ `ACCEPTED` · 已开发完成 | 固定四工具组合：两模型实际身份与 HTTP 目标、工具/文件/历史、原生取消、人工拒绝、重启后原生续聊均已验证 | 范围限于本次组合；locked-stream 的断线中断、重启后旧 Run 查询404按实声明，通用工具与生产隔离由后续任务验收 |
-| M0-04 多 Harness | `IN_PROGRESS` | OpenCode5个真实用例、OpenClaw两模型工具任务及取消通过；Octop Harness和完整服务分层验证；[能力矩阵](../../research/m0-runtime-evidence-matrix.md)固定三个正式开发目标与顺序 | 独立模型发送缺口、Octop ACP实际委派、DSH最小SDK及契约交叉核对；正式Adapter未实现 |
+| M0-04 多 Harness | ✅ `ACCEPTED` · 已开发完成 | 正式开发目标Hermes/OpenCode/OpenClaw均有运行证据；OpenCode实际发送、DSH SDK与Octop三身份试验补齐；原版失败、独立修改组合和preview均有具体结论 | 正式Adapter、完整能力套件、生产隔离及更多组合在后续阶段验收，不从技术准入推导已交付支持 |
 | M0-05 执行隔离 | `IN_PROGRESS` | 封闭KVM基线与第三轮真实NIC82项检查通过；临时规则、资源及原有效策略恢复均确认 | 生产Egress代理、专用身份、硬配额、lease/fencing、资源耗尽及故障恢复等完整准入 |
 | M0-06 来源与依赖基线 | ✅ `ACCEPTED` | 当前 MIT 自有范围、第三方来源及分发边界已清点；验证工具依赖已精确锁定和校验 | 新增依赖、原生运行包及镜像分发仍须继续核对来源、许可和材料 |
 | M0-07 验收与资源 | `IN_PROGRESS` | [验收基线](../operations/ACCEPTANCE-BASELINE.md) 已形成 | 原生三端 CI/签名、容量、备份和相关外部资源逐项验证 |
@@ -58,6 +58,14 @@
 | E35 | 独立审阅修复共享清理逻辑：日志归档不完整时仍停止并确认PID0，但保留已停止容器和身份供证据恢复，不再先rm丢日志。回归先红后绿，Linux服务器14项全通过；本机13项通过、Linux父进程死亡用例显式跳过，已由服务器补验 | [共享操作者](../../scripts/qualification/run_hermes_qualification.py)、[回归](../../scripts/qualification/test_run_hermes_qualification.py) | 本轮组件输出及源码；已有真实用例日志完整，原历史结果不改写 |
 | E36 | Octop完整服务201固定包及5个sdist完成禁网构建/pip check，归档867,920,384 bytes，SHA-256 `1506f719e58af360203a113d51c11a2ccae9709fb62d1400efc1f94812547f70`；image ID `sha256:8dbb51439f4ff7597352035e30e7d0099e3ba6e143fd538c9a2f4a4cd0f932c7`。原生SQLite/setup/admin201、缺失/错误认证401及已认证HTTP200通过；独立原生WS模型用例通过：1次实际Qwen HTTP200、40个原生事件、随机echo精确、REST历史2条/assistant1条，无工具/错误且turn inactive；操作者PASS、PID0/移除与清理0错误。此前零请求准备失败保留。与Harness SDK分开登记，ACP仍未验 | [服务固定锁](../../deploy/qualification/octop/service.requirements.lock)、[服务来源](../../deploy/qualification/octop/service.wheel-provenance.json)、[分层结果](../../research/octop-native-qualification.md) | `.private/qualification/octop/<service-build-or-native-case>/`；服务原始失败/成功分别保存 |
 | E37 | 三平台契约CI配置已实现：Ubuntu24.04、Windows Server2025、macOS15；Python3.12、完整hash锁、只读权限及固定Actions提交；首次run的Linux/macOS通过，Windows因checkout CRLF与canonical LF字节不同失败；保留[原run](https://github.com/StateKnot/Harniqo/actions/runs/40907696364)。新增.gitattributes固定LF后[重跑全部通过](https://github.com/StateKnot/Harniqo/actions/runs/40908412252)，三个job均验证60定义/18路径/107样例/15生命周期且JSON源hash相同，见[可复核摘要](../operations/contract-ci-2026-10-30.json)。此项不等同桌面构建、安装、签名或GUI验收 | [工作流](../../.github/workflows/contracts.yml)、[资源基线](../operations/ACCEPTANCE-BASELINE.md) | 实际GitHub run/job与公开合成报告在首次执行后关联 |
+| E38 | 固定OpenCode/Bun原镜像新增只读本地plugin，经上游config hook透明观察实际SDK发送。21项实际Bun禁网组件及3项报告判据通过，native bundled SDK无模型负向发送证明该seam实际生效。一个新Qwen任务通过：4次SDK fetch/4匹配HTTP200、实际URL/model hash、read/write/read、once审批和completed/idle，15864报告tokens；PID0、全日志、移除和端口释放。无第二次付费重复 | [独立发送证据](../../research/opencode-model-transport.md)、[插件](../../deploy/qualification/opencode/transport_plugin.mjs) | `.private/qualification/opencode-transport/<case>/operator.json`及私有observer/原生API材料；原红信号及修正记录保留 |
+| E39 | DSH固定0.2.2-alpha.2/f3803c9，官方npm包完整SRI；Harniqo冻结724解析/653安装的生产CLI组合，未冒充官方pnpm tree。845,569,536-byte归档SHA `114387849bc262119de2d8cf32a99357a77e4c5c8ebf6366393c3eb0c6614b94`；官方版本PyPI缺包及noexec预检失败保留，固定native-cache配置后SDK初始化通过。8项无网预算组件、审阅后22项操作者/admission边界回归通过，smoke前强制绑定同image/probe/observer/预算/配置的0HTTP自检报告 | [来源与边界](../../research/dsh-native-qualification.md)、[锁与摘要](../../deploy/qualification/dsh/qualification-results.json) | `images/containers/dsh/0.2.2-alpha.2/<image-id>.docker.tar`及原provenance；新admission与review原报告私有保存 |
+| E40 | DSH唯一真实Qwen任务通过：4次HTTP200、每次cap1024，native read→write→read、随机52-byte产物、成功turn/end、32事件；两个正常退出的native进程均exit0，重启后resume同ID，完整持久事件与原wire逐对象相等，无新prompt/HTTP。SDK serverInfo0.0.1与CLI包0.2.2-alpha.2分别登记；response served-model unknown，逐prompt cancel不支持，真实审批/崩溃续跑/后续prompt未验。DSH保持preview | [最小SDK资格](../../deploy/qualification/dsh/README.md)、[真实与限制](../../research/dsh-native-qualification.md) | `.private/qualification/dsh-smoke-<run>/`、`dsh-history-verified-<run>/`；公开索引只含计数、状态与文件hash，不嵌入原始报告 |
+| E41 | Octop ACP独立组合：原Harness1.0.5+[acp]固定extras与OpenCode1.19.5，真实stdio initialize/new/close通过。断线后的require_existing为具体ConnectionResetError，未重建child/session、无模型；不称持久恢复。源码/镜像/两层ID分别记录，补充HTTP只读内层history/status，不替代ACP提交 | [ACP固定配方](../../deploy/qualification/octop/acp-README.md)、[三身份与转换](../../research/octop-acp-qualification.md) | `.private/qualification/octop-acp/<bootstrap-or-build>/`；原版归档/原始失败保留 |
+| E42 | 原版ACP真实用例FAILED：outer2/inner2 HTTP200，inner已返回完整32字receipt，outer工具/最终回答仅98字摘要。无网真实trace回放16链路断言+8格式fixtures定位原acp_runner的body-or-final返回分支丢final；没有把失败改通过。最小MIT来源patch仅合并原工具摘要与final，wire/权限/Agent loop不变。独立修正版128输出任务仍FAILED：final已穿过ACP，outer128含114 reasoning而截断；各自reservation/原报告不变 | [原版失败与源码修正](../../research/octop-acp-qualification.md)、[最小补丁](../../deploy/qualification/octop/acp-final-text.patch) | 原版model与patched128 case、replay目录分别留证；补丁前后SHA及LICENSE在独立profile中 |
+| E43 | 独立patched-outer512组合真实PASS：只提高outer输出限额至512，outer/inner各2 HTTP200，身份/工具/转换/精确receipt/终态与停止回收全通过；inner仍4请求/1024，整体180秒；第三个且最后模型任务。原版与修正版128仍FAILED。原/改镜像分开，当前成功image为`sha256:2da776a4603d6cc979bb6fcd99dd5f07eec641c0c5810ba515299f0387f55eb0`；归档580,673,024 bytes，SHA `82f221fb84c9c4cb744a740e8eb6c3741395c2a71c5c90c5d2f92742f8343223` | [独立512配置](../../deploy/qualification/octop/acp-patched512-profile.json)、[实际分层结论](../../research/octop-acp-qualification.md) | `.private/qualification/octop-acp/<patched512-case>/`及独立reservation；两层usage/源SHA/实际请求/提示转换各自保存 |
+| E44 | 规范与需求二轴复核、[原生契约交叉核对](../../research/m0-native-contract-crosscheck.md)和[能力矩阵](../../research/m0-runtime-evidence-matrix.md)完成当前M0-04退出核对：三个正式开发目标有证据；Octop各层与修改组合分身份；DSH preview具体原因；HarnessRouter不作控制底座的复用成本与来源明确。正式选择验收不等于M4 Adapter或生产VM能力已实现 | [任务定义](BACKLOG.md)、[验收矩阵](ACCEPTANCE.md) | 独立source review快照与整改回归私有保存；M0-02/05/07状态不提前接受 |
+| E45 | 新增无模型资格组件CI，显式选择标准库/纯Node权限、预算、私有路径、归档及协议夹具；缺套件、失败、跳过/expected-failure均拒绝通过。服务器预跑通过，实际GitHub结果待回填；真实Model/Docker/VM准入单独记账 | [工作流](../../.github/workflows/qualification.yml)、[组件入口](../../scripts/ci/qualification_components.py) | CI实际run/job/合成报告另关联，不以组件数量冒充真实执行 |
 
 OpenCode 当前修复镜像的 image store ID 为 `sha256:ef392b1148602b61ad4ea1e9dcca9b05337adc3c7ef9fc97434d632c69b8373c`；归档499,582,464 bytes，SHA-256 `c50dd9d32477a4fc70a8e4ba0a985e6bb41688b633d77990869f7078e9e194bc`。构建新增非root用户的目录遍历、文件可读及配置目录不可写检查；原有只读根文件系统、非root用户和凭据权限要求保留。实际原生服务已启动，健康检查报告1.19.5，缺失及错误Basic认证均401，原生OpenAPI为3.1。该镜像与旧归档分别保存，功能测试结果独立记录。
 
@@ -69,9 +77,9 @@ E06 使用合成 Guest 和真实 UNIX socket，没有启动 VM、创建 TCP 端�
 
 E08/E09 及 E10 的输入复制测试是组件验证。E11/E13 来自真实原生执行，仅代表所列子项；早期 canonical 配置的有效模型未被该接口报告，E12 的原始失败保持不变；新增 locked-session 与传输观察证据另见 E17。上述 token 数均为相应 Provider/Harness 报告口径，不代表已对账费用；不同用例分别记账，不混成单次运行。
 
-E23–25补齐OpenCode本轮真实用例，不回填E22当时不存在的证据。模型身份仍限原生configured metadata；独立HTTP发送目标与供应商served-model未知。SSE仅证明在线事件观察，没有durable游标重放；已完成Session重启续聊不等于执行中崩溃断点续跑；0.016秒也不是供应商计费或任意外部副作用停止保证。
+E23–25补齐OpenCode本轮真实用例，不回填E22当时不存在的证据。该批模型身份限原生configured metadata；本轮Qwen独立实际发送证据新增于E38，供应商物理模型身份不从请求推断。SSE仅证明在线事件观察，没有durable游标重放；已完成Session重启续聊不等于执行中崩溃断点续跑；0.016秒也不是供应商计费或任意外部副作用停止保证。
 
-E26–28仅覆盖固定Octop Harness SDK组合。供应商返回model_name不独立证明后台权重；SDK重构后history一致不等于容器/进程重启后续聊；取消后的history停在tool_calls，不伪造assistant completed/Run终态。完整服务与ACP委派继续按E29分别记录。OpenClaw本轮结果见E32–34；DSH与HarnessRouter仍没有本项目实际运行资格。
+E26–28仅覆盖固定Octop Harness SDK组合。供应商返回model_name不独立证明后台权重；SDK重构后history一致不等于容器/进程重启后续聊；取消后的history停在tool_calls，不伪造assistant completed/Run终态。完整服务与ACP委派继续按E29分别记录。OpenClaw本轮结果见E32–34；DSH本轮最小SDK与限制另见E39–40；HarnessRouter仍仅作来源参考。
 
 OpenClaw配置首轮因已退役`logging.redactSensitive`被拒，按固定上游强制脱敏语义删除旧开关后通过；两次零模型握手在原生`startup-sidecars`未就绪状态失败，随后仅对该明确无提交状态进行有界等待，缺失/错误token门槛保持不变。所有旧报告保留，未在启动失败时消耗模型任务。
 
@@ -124,4 +132,4 @@ sudo tcpdump -nn -i "$HARNIQO_BRIDGE" -c 40 -s 96 \
 
 ## 下一步准入
 
-M0-03 的固定受控组合技术验证已完成；M2/M3仍须实现真正的 Adapter、通用工具与用户工作流，不能把准入实验当作已交付集成。继续 M0-04 的三目标实际比较、M0-05 的生产执行边界及 M0-07 的外部资源验证；M0-02 在完整准入后冻结，M0-08 汇总决定与排期。当前没有可安装桌面应用或已通过的生产 SaaS 隔离声明。
+M0-03 的固定受控组合技术验证已完成；M2/M3仍须实现真正的 Adapter、通用工具与用户工作流，不能把准入实验当作已交付集成。M0-04当前技术选择已完成，继续M0-05生产执行边界及M0-07外部资源验证；M0-02 在完整准入后冻结，M0-08 汇总决定与排期。当前没有可安装桌面应用或已通过的生产 SaaS 隔离声明。

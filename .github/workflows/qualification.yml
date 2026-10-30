@@ -1,0 +1,54 @@
+name: Qualification component regression
+
+on:
+  push:
+    branches: [main]
+    paths: ['scripts/qualification/**', 'deploy/qualification/**', 'scripts/ci/qualification_components.py', '.github/workflows/qualification.yml', '.gitattributes']
+  pull_request:
+    paths: ['scripts/qualification/**', 'deploy/qualification/**', 'scripts/ci/qualification_components.py', '.github/workflows/qualification.yml', '.gitattributes']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: qualification-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  components:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      PYTHONUTF8: "1"
+      PYTHONDONTWRITEBYTECODE: "1"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "24.22.1"
+      - name: Check disk and create private fixture directory
+        run: |
+          df -h .
+          umask 077
+          mkdir -p .private/validation
+          node --version
+      - name: Run standard-library permission, budget and cleanup regressions
+        run: python scripts/ci/qualification_components.py
+      - name: Run native protocol and private profile component checks
+        run: node --test scripts/qualification/test_openclaw_profile.mjs scripts/qualification/test_openclaw_probe.mjs
+      - name: Run transparent provider observer component checks
+        run: node scripts/qualification/test_opencode_transport.mjs
+      - name: Retain synthetic component summary
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: qualification-components-${{ github.sha }}
+          path: ci-evidence/qualification-python.json
+          if-no-files-found: warn
+          retention-days: 14

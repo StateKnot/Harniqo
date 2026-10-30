@@ -1,0 +1,15 @@
+{
+  "scope": "octop-harness-acp-delegated-patched",
+  "upstream_repository": "https://github.com/TencentCloud/octop-harness",
+  "upstream_commit": "76cd38d7b8ffc66c28ba24ad60bbab206a95d3ac",
+  "upstream_path": "src/octop_harness/builtin/tools/acp_runner.py",
+  "upstream_sha256": "fd03c837bca1aefb6629a094a0ee783b823af06832cc371633e55d11c41ecac9",
+  "patched_sha256": "5408b2c1485d681269955d7b29feaa9a2b8ce32302dbb3ae5d3fafad399a8b6a",
+  "patch_sha256": "80b00725949cd106ba4b76639ded4614dca1347829a5aedb3c40a2e38296a147",
+  "license": "MIT",
+  "purpose": "Preserve native tool callbacks and completion assistant text in acp_runner result; no Agent loop, permission, model or ACP wire change.",
+  "original_image_id": "sha256:59ecf44fd2fb4c968bf6227f9da79b30331172a4fa0bce4d99711c5356ffd4cd",
+  "patched_image_id": null,
+  "real_model_qualification": false,
+  "upstream_license_sha256": "5f2089cdcc57d00c6b70c0fb83368cbf3a86bb57839385fc6ac9086878d606e8"
+}

@@ -1,0 +1,21 @@
+--- a/src/octop_harness/builtin/tools/acp_runner.py
++++ b/src/octop_harness/builtin/tools/acp_runner.py
+@@ -304,8 +304,16 @@
+         permission_text = format_permission_required(suspended) if suspended is not None else ""
+         return "\n\n".join(part for part in (body, permission_text) if part) or "Permission required."
+ 
+-    return body or format_final_response(
++    result_event = result.get("event") if isinstance(result.get("event"), dict) else final_event
++    if body:
++        # ACPHostedClient returns assistant text at completion, after tool callbacks.
++        # Preserve those callbacks without dropping or repeating the final response.
++        final_text = render_event_text(result_event) if result_event is not None else None
++        if final_text and final_text not in chunks:
++            return f"{body}\n\n{final_text}"
++        return body
++    return format_final_response(
+         runner_name=runner_name,
+         execution_cwd=execution_cwd,
+-        final_event=result.get("event") if isinstance(result.get("event"), dict) else final_event,
++        final_event=result_event,
+     )

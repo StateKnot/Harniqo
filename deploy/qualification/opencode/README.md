@@ -157,6 +157,28 @@ python3 scripts/qualification/run_opencode_qualification.py \
 
 ### 本次仍未证明的能力
 
-模型字段为原生实际会话中的配置元数据，两种真实任务均有产物证据；**尚未取得独立HTTP发送观察，实际传输目标/供应商served-model证明仍为unknown**。原生usage有值时保留其口径，native价格0不表示免费，报告tokens不代替账单。
+2026-10-29 的模型字段仅为原生实际会话中的配置元数据，两种真实任务均有产物证据。当时独立HTTP发送观察为unknown；下面2026-10-30的新报告补齐Qwen组合的实际发送URL与请求模型字段，没有回写旧报告。供应商实际执行的权重身份仍无法由客户端请求证明。原生usage有值时保留其口径，native价格0不表示免费，报告tokens不代替账单。
 
 本次SSE只证明在线事件观察；没有durable游标重放承诺。恢复是已完成会话的原生续聊，不是执行中崩溃断点续跑。待审批跨重启、非合作/外部工具取消、拒绝后继续、模型路由切换后的原会话兼容性、版本升级回退、生产KVM与出口隔离、正式分发材料仍需独立验收。M0-04的多目标选择与完整比较由阶段清单继续跟踪。
+
+## 2026-10-30 实际模型发送验证
+
+保持原OpenCode镜像与二进制不变，通过官方本地plugin的`config` hook给指定provider的`options.fetch`安装透明观察器。原生SDK、TLS、认证、请求体、signal、timeout与返回Response继续由固定上游实现处理；新增配方只读挂载并单独记录SHA。详见[发送验证研究与证据](../../../research/opencode-model-transport.md)。
+
+固定镜像内Bun `1.4.4`的21项组件检查通过；禁网原生SDK负向发送也取得真实`POST /chat/completions`的URL/model摘要及配对网络错误，此项没有模型服务或响应。随后一次`qwen3.8-flash`真实任务通过read→write→read、精确once审批、stop/completed和idle；观察到4次SDK fetch发送、4个逐request_id配对的HTTP200，实际请求URL/model与批准配置一致，均无redirect或network_error。原生报告15864 tokens，任务12.547秒。原生PID0、日志完整、容器移除及10012释放均已核对。
+
+`transport_plugin.mjs`的Interface是本地plugin tuple，options仅接受`auditFile/providerId/expectedModel/maxRequests`；后者为1–6。只支持本资格组合的单provider、单model和`@ai-sdk/openai-compatible`。同配置hook重复初始化保持原wrapper与ready收据；变配置拒绝。每case需独立0700 evidence目录；`transport-ready.json`与0600 `transport.jsonl`同目录。检查ready收据后才能提交模型任务，因为上游可能记录并忽略plugin加载错误。
+
+观察器只统计匹配配置base的路径段内POST，不统计相似前缀或其他目标。每次SDK fetch尝试均计数，包括重试；达到限额后记录blocked且拒绝下一次发送。持久化HTTP401/403后拒绝后续匹配发送。这个上限属于**资格profile内的SDK fetch调用**，不表示所有外部网络、底层重传、重定向或供应商计费的硬封顶。真实报告拒绝未知body/model、不匹配URL、未配对请求、redirect、网络错误和blocked记录。
+
+在指定Linux服务器使用全新的case。离线两种模式拒绝真实配置参数、`--network=none`，不发布端口；smoke使用已批准secondary配置，110秒探针超时、原生4step/1024输出限额，并复用原权限与精确清理流程。
+
+```bash
+df -h .
+python3 scripts/qualification/run_opencode_transport.py \
+  --root "$PWD" --mode components \
+  --case "$PWD/.private/qualification/opencode-transport/UNIQUE_OFFLINE_CASE" \
+  --provenance "$PWD/images/containers/opencode/1.19.5/sha256-ef392b1148602b61ad4ea1e9dcca9b05337adc3c7ef9fc97434d632c69b8373c.docker.tar.provenance.json"
+```
+
+原生SDK禁网负向检查使用另一个新case和`--mode offline-send`。获准真实任务使用另一个新case、`--mode smoke --config "$PWD/.private/model-endpoints.json" --endpoint-id secondary`，不重新提交未知结果的prompt。原报告、home、工作区与失败日志保留；日志无法完整归档时保留已停止容器供恢复，不声称清理成功。公开代码没有模型凭据。

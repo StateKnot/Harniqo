@@ -138,3 +138,13 @@ OpenClaw2026.10.8固定commit `dc2523e5a5c7a309517fd7fa834add938231d526`的官�
 本轮完成：自有 MIT 范围、当前内容来源、已选择架构依赖与 Harness 候选的主许可核验、实际 M0 验证环境20包完整锁及其官方许可 metadata、分发与版本策略、关键 ADR 的引用关联。来源证据见 [核验笔记](../../research/m0-dependency-verification.md)、上述锁来源记录和 [架构 ADR](../adr/0001-modular-control-plane.md)。
 
 M0-06 的文档交付可以针对**当前基线**验收；它不宣称未来传递依赖、运行包、操作系统镜像或签名发行物已获完整分发认证。M1 依赖解析、M2 镜像与 M8 发行核对是持续门槛，新增未核验组件时必须先补清单，不能引用本次状态跳过。
+
+## 2026-10-30 多 Harness 增量
+
+OpenCode保持1.19.5及原镜像不变，新增只读本地plugin通过固定上游config hook注入`provider.options.fetch`观察器，记录源码SHA及21项实际Bun/3项判据测试；不引入npm依赖、不改变原生Agent loop。Qwen单任务的实际4次请求目标/模型已核验，语义与计数范围见[补证记录](../../research/opencode-model-transport.md)。
+
+DSH固定`dsh-v0.2.2-alpha.2`→`f3803c96974ad4a94195fb97e5c637e9c2a3afe3`。该版PyPI runtime-bin不存在，采用同版官方npm包及完整SRI；本次Harniqo冻结的npm lock有724个解析条目、653个实际安装包，Node24.22.1/npm12.2.1。它不是官方pnpm workspace依赖树，也未声称二进制可复现构建；原上游锁hash、实际组合锁、发行包与镜像SHA分别保留。见[来源与版本](../../deploy/qualification/dsh/runtime-inputs.json)、[组合锁](../../deploy/qualification/dsh/package-lock.json)、[研究与限制](../../research/dsh-native-qualification.md)。DSH顶层MIT不替代其所有传递组件许可，正式分发仍需完整SBOM/NOTICE。
+
+Octop出站ACP在原Harness1.0.5的固定上游锁中补`agent-client-protocol0.10.1`和`psutil7.2.2`，新组合携带原OpenCode二进制/许可证并单独归档，不改核心SDK与完整服务旧归档。外层工具最终文本的原版失败与最小源码修正组合分别登记；修正保留上游MIT/LICENSE、原/新源码与patch SHA，不能把修改后行为写成原版通过。见[来源](../../deploy/qualification/octop/acp-extra-provenance.json)和[分层记录](../../research/octop-acp-qualification.md)。
+
+无模型资格组件CI新增官方`actions/setup-node v7.1.0`固定提交`949feb2413d6458794dcd2491c4babbbce0c15c1`，Node24.22.1；其余Actions沿用上述不可变提交。CI只运行明确选择的标准库/纯Node夹具，不分发或启动真实Harness，不持有模型凭据。

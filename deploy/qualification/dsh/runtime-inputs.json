@@ -1,0 +1,23 @@
+{
+  "source_commit": "f3803c96974ad4a94195fb97e5c637e9c2a3afe3",
+  "version": "0.2.2-alpha.2",
+  "base_image": "sha256:eba17fa04b4ac5616496c2ce374a95afb6db6ff52d8bf73bf87dc8c7b8656cad",
+  "package_count": 724,
+  "lock_sha256": "4f68a7d7298b1403020195b1a4d2f46e84ae3a3b28cac4eb7ba63cb71b4083d4",
+  "lifecycle_scripts": "disabled",
+  "scope": "resolved_official_npm_runtime_closure",
+  "model_requests": 0,
+  "resolved_package_count": 724,
+  "installed_package_count": 653,
+  "node_version": "24.22.1",
+  "npm_version": "12.2.1",
+  "official_source_archive_sha256": "798cab9a2acbc886a40ad9f7916e52f9380fbd4b51b41f685f3ed681f77e0ccb",
+  "official_pnpm_lock_sha256": "349ecef16eae1c2166b74661fdff552b9825945894b89461b3a29f825daa6f76",
+  "dependency_tree_relation": "Harniqo frozen npm release combination; not the official pnpm workspace tree",
+  "image_id": "sha256:664991f530811b5390640625ea9fc585e2e279350170eb0101447aa56946c997",
+  "archive_sha256": "114387849bc262119de2d8cf32a99357a77e4c5c8ebf6366393c3eb0c6614b94",
+  "archive_bytes": 845569536,
+  "archive_relative_path": "images/containers/dsh/0.2.2-alpha.2/sha256-664991f530811b5390640625ea9fc585e2e279350170eb0101447aa56946c997.docker.tar",
+  "production_isolation_passed": false,
+  "qualification_passed": false
+}

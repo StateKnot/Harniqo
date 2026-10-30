@@ -1,0 +1,35 @@
+{
+  "scope": "octop-harness-acp-delegated-patched",
+  "outer": {
+    "release": "octop-harness",
+    "version": "1.0.5",
+    "commit": "76cd38d7b8ffc66c28ba24ad60bbab206a95d3ac",
+    "base_image_id": "sha256:714e015d1c1281e1c91bd2ae67f39191b99c408eb7523b62a409831e912a73d5"
+  },
+  "inner": {
+    "release": "OpenCode",
+    "version": "1.19.5",
+    "commit": "810c0eba1a7348036f8bdf61e6632d0c36c6876c",
+    "base_image_id": "sha256:ef392b1148602b61ad4ea1e9dcca9b05337adc3c7ef9fc97434d632c69b8373c"
+  },
+  "image_id": "sha256:2da776a4603d6cc979bb6fcd99dd5f07eec641c0c5810ba515299f0387f55eb0",
+  "helper_sha256": "abcf05412c9278dca206f9d160c2149b7134270f81f4e1c271423e544ee265a6",
+  "observers": {
+    "deploy/qualification/opencode/transport_plugin.mjs": "fd651e8674b50b4fd4da0b19ae96e79d74f542253a7c458cc454a93ea826b696",
+    "deploy/qualification/opencode/transport_audit.mjs": "ef3ccbc02853ee254534e7375dfc91ed3dba551850eee103a99e52b88ad069a7"
+  },
+  "model": "qwen3.8-flash",
+  "outer_max_requests": 4,
+  "inner_max_requests": 4,
+  "outer_max_output_tokens": 128,
+  "inner_max_output_tokens": 1024,
+  "runtime_limit_seconds": 180,
+  "production_isolation_qualified": false,
+  "patch": {
+    "upstream_sha256": "fd03c837bca1aefb6629a094a0ee783b823af06832cc371633e55d11c41ecac9",
+    "patched_sha256": "5408b2c1485d681269955d7b29feaa9a2b8ce32302dbb3ae5d3fafad399a8b6a",
+    "patch_sha256": "80b00725949cd106ba4b76639ded4614dca1347829a5aedb3c40a2e38296a147",
+    "original_image_id": "sha256:59ecf44fd2fb4c968bf6227f9da79b30331172a4fa0bce4d99711c5356ffd4cd"
+  },
+  "path_helper_sha256": "6317083c61ef334b3527dd34b1dfb38f3fdf6912efee5c4a5eae259d680e7d7c"
+}

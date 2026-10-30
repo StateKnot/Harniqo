@@ -1,0 +1,62 @@
+[
+  {
+    "repository": "TencentCloud/octop-harness",
+    "commit": "76cd38d7b8ffc66c28ba24ad60bbab206a95d3ac",
+    "path": "src/octop_harness/builtin/tools/acp_runner.py",
+    "sha256": "fd03c837bca1aefb6629a094a0ee783b823af06832cc371633e55d11c41ecac9"
+  },
+  {
+    "repository": "TencentCloud/octop-harness",
+    "commit": "76cd38d7b8ffc66c28ba24ad60bbab206a95d3ac",
+    "path": "src/octop_harness/acp/service.py",
+    "sha256": "448aeab9b75c77781278f3436d323ef60c18da33fc5c10b3ec8f234baac62a73"
+  },
+  {
+    "repository": "TencentCloud/octop-harness",
+    "commit": "76cd38d7b8ffc66c28ba24ad60bbab206a95d3ac",
+    "path": "src/octop_harness/acp/client.py",
+    "sha256": "a29ce164b4e46aab175a5962e825732d07f44545bd00ae06ca3a217882a467c0"
+  },
+  {
+    "repository": "TencentCloud/octop-harness",
+    "commit": "76cd38d7b8ffc66c28ba24ad60bbab206a95d3ac",
+    "path": "src/octop_harness/acp/models.py",
+    "sha256": "3094bd9025c0e9508a8bf730210be288bb061fbb63777e37f8caf89422d06624"
+  },
+  {
+    "repository": "TencentCloud/octop-harness",
+    "commit": "76cd38d7b8ffc66c28ba24ad60bbab206a95d3ac",
+    "path": "src/octop_harness/acp/tool_adapter.py",
+    "sha256": "e40e6f1bb9bd913f8033e32a5d2ce8db59a35cd51564c79793f887f39146e798"
+  },
+  {
+    "repository": "TencentCloud/octop-harness",
+    "commit": "76cd38d7b8ffc66c28ba24ad60bbab206a95d3ac",
+    "path": "src/octop_harness/acp/permissions.py",
+    "sha256": "12c34fd9d4fe918d45474792b3b79ac71b407a133146b1a9e9a982774b2bfb4a"
+  },
+  {
+    "repository": "anomalyco/opencode",
+    "commit": "810c0eba1a7348036f8bdf61e6632d0c36c6876c",
+    "path": "packages/opencode/src/cli/cmd/acp.ts",
+    "sha256": "104d1dfe498154fca38c5971deec8330be4793cedf122e36c5a38589089e1b23"
+  },
+  {
+    "repository": "anomalyco/opencode",
+    "commit": "810c0eba1a7348036f8bdf61e6632d0c36c6876c",
+    "path": "packages/opencode/src/acp/agent.ts",
+    "sha256": "3bf7c0a31bbf8c3dd5b3d06ddf38eff0c988858e5df6bb46d3abecc906f15a57"
+  },
+  {
+    "repository": "anomalyco/opencode",
+    "commit": "810c0eba1a7348036f8bdf61e6632d0c36c6876c",
+    "path": "packages/opencode/src/acp/service.ts",
+    "sha256": "238750d52e220080db7b7f4992432fbfc7fb7ec5a15a6175460f8f0832a2c8de"
+  },
+  {
+    "repository": "anomalyco/opencode",
+    "commit": "810c0eba1a7348036f8bdf61e6632d0c36c6876c",
+    "path": "packages/opencode/src/acp/session.ts",
+    "sha256": "cc73f70f7d7071fd6bf808871c65bcb87d9f737f9e292be5e279ee51f5c9507e"
+  }
+]

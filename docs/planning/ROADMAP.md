@@ -1,6 +1,6 @@
 # Harniqo 开发方案与里程碑
 
-版本：1.3 · 日期：2026-10-29 · 状态：M0 进行中（3/8 已验收）；机器契约已实现，固定 Hermes 组合已验证，OpenCode与Octop Harness新增原生子项证据；生产网络资格仍失败，应用尚未实现。正式仓库：[StateKnot/Harniqo](https://github.com/StateKnot/Harniqo)，MIT 许可证。
+版本：1.5 · 日期：2026-10-30 · 状态：M0 进行中（4/8 已验收）；三种目标Runtime已有真实运行证据，KVM固定canary的82项NIC检查和三平台契约CI通过；生产执行准入及应用实现继续推进。正式仓库：[StateKnot/Harniqo](https://github.com/StateKnot/Harniqo)，MIT 许可证。
 
 本文与 [BACKLOG](BACKLOG.md)、[ACCEPTANCE](ACCEPTANCE.md)、[GLOSSARY](../../GLOSSARY.md) 共同构成后续开发基线，当前结果与证据边界见 [M0 执行证据索引](M0-RESULTS.md)。正式开发与服务端验收使用指定的服务器工作区；确切目录、机器连接、资源和端口实测记录保存在不进入开源仓库的 `.private/development-environment.md`。本地副本便于阅读，开发开始后以服务器工作区和对应 Git 提交中的计划为准。
 
@@ -118,13 +118,13 @@ docs/                  方案、决策、运行与贡献文档
 
 研究来源见 [预研报告](../../research/multi-harness-client-research.md)。上述正式 Adapter 尚未实现；Hermes 的固定受控组合已取得两模型、原生工具、取消、拒绝与续聊技术证据，具体路径能力与限制分别记录，详见 [执行证据](M0-RESULTS.md)。M0 锁定 3 个正式集成及优先顺序；如首选未通过，先记录证据和替代决定。Octop 不从清单消失：完整服务连接须给出验收结论，若核心能力不满足则明确阻塞/预览范围，不以 iframe 或外链代替集成。
 
-本轮OpenCode固定1.19.5的两模型smoke、Qwen重启续聊/拒绝/取消共5真实用例通过，但独立传输目标/served-model仍未知。Octop Harness1.0.5固定93包组合取得原生allow/deny/合作式cancel和history重开证据；完整服务201包镜像及原生HTTP/认证已通过，ACP委派未执行。OpenClaw两个模型工具闭环与原生生成取消已通过，正式开发顺序固定为Hermes→OpenCode→OpenClaw；当前限制和未验范围见[能力矩阵](../../research/m0-runtime-evidence-matrix.md)。上述进展不提前接受M0-04，也不将三个Octop scope合并计数。
+M0-04 技术选择已完成，正式开发顺序固定为 Hermes→OpenCode→OpenClaw。OpenCode 1.19.5 在既有两模型、续聊、拒绝与取消用例之外，补齐一个 Qwen 任务的实际 SDK 发送目标和请求 model 证据；供应商物理模型身份仍未知。DSH 固定 SDK 组合的真实工具任务及持久历史恢复通过，因预览版本和缺少细粒度取消保持 preview。Octop 完整服务、Harness SDK 与 ACP 委派分别记录：ACP 原版丢失最终文本，独立修正版的 128-token 用例截断，修正版 512-token 配置通过。当前证据、限制与未验范围见[能力矩阵](../../research/m0-runtime-evidence-matrix.md)；这些技术准入结论不代表正式 Adapter 已交付。
 
 Octop 原生、Octop Harness、Octop 委派外部 Agent 是三个不同实验身份。后者必须记录外层 Agent、内层 Harness、额外调用、提示词转换和累计费用。
 
 ## 4. 九个里程碑
 
-M0 共 8 项，M0-01/03/06 已验收完成；M0-02 机器契约已实现，M0-04/05/07 开发验证中，M0-08 待执行，详见 [67 项 BACKLOG](BACKLOG.md) 与 [M0 结果](M0-RESULTS.md)。M0 尚未完成，后续阶段门槛没有因此自动解除。
+M0 共 8 项，M0-01/03/04/06 已验收完成；M0-02 机器契约已实现，M0-05/07 开发验证中，M0-08 待执行，详见 [67 项 BACKLOG](BACKLOG.md) 与 [M0 结果](M0-RESULTS.md)。M0 尚未完成，后续阶段门槛没有因此自动解除。
 
 | 阶段 | 需要开发与落实的内容 | 退出条件与用户可验收结果 | 依赖 |
 | --- | --- | --- | --- |

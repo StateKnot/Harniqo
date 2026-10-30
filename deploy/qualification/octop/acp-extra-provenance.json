@@ -1,0 +1,18 @@
+[
+  {
+    "name": "agent-client-protocol",
+    "version": "0.10.1",
+    "url": "https://files.pythonhosted.org/packages/7b/18/d8c7ff337cf621ea79a84006a7252ff057bfb5767549bb102cc6649f4ec2/agent_client_protocol-0.10.1-py3-none-any.whl",
+    "sha256": "a03d3198f4d772f2e0ec012c00ac1cce131b4710220a3dc9fae3c991d047c750",
+    "size": 65401,
+    "filename": "agent_client_protocol-0.10.1-py3-none-any.whl"
+  },
+  {
+    "name": "psutil",
+    "version": "7.2.2",
+    "url": "https://files.pythonhosted.org/packages/b5/70/5d8df3b09e25bce090399cf48e452d25c935ab72dad19406c77f4e828045/psutil-7.2.2-cp36-abi3-manylinux2010_x86_64.manylinux_2_12_x86_64.manylinux_2_28_x86_64.whl",
+    "sha256": "076a2d2f923fd4821644f5ba89f059523da90dc9014e85f8e45a5774ca5bc6f9",
+    "size": 155560,
+    "filename": "psutil-7.2.2-cp36-abi3-manylinux2010_x86_64.manylinux_2_12_x86_64.manylinux_2_28_x86_64.whl"
+  }
+]
