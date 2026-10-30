@@ -161,5 +161,6 @@
 | 2026-10-30 | M0-07 契约CI | VERIFIED（契约CI子项） | 三平台hash锁依赖、Schema/OpenAPI/107样例/15生命周期实际通过；首次Windows CRLF失败保留，固定LF后完整重跑通过。E37 | 只覆盖契约；桌面构建、签名和GUI设备验证独立验收 |
 | 2026-10-29 | M0-04 Octop完整服务 | VERIFIED（原生API固定用例）；M0-04仍IN_PROGRESS | 201包禁网镜像、原生SQLite/setup/认证通过；独立原生WS任务1HTTP200、40事件、REST历史2条及随机echo核对，turn inactive、PID0回收。E36 | 服务级HITL/取消/重启、ACP委派及生产隔离仍独立验收 |
 | 2026-10-30 | M0-04 最终准入 | ✅ ACCEPTED · 已开发完成 | OpenCode真实SDK发送补证、DSH实际SDK工具与32事件历史恢复、Octop原生/SDK/ACP分身份试验完成；ACP原版丢文本与修正版128截断保留失败，独立修正版512输出组合通过。规范/需求交叉复核、能力矩阵与来源/归档分别登记。E38–E44 | 正式开发顺序Hermes→OpenCode→OpenClaw；DSH及Octop组合按明确preview/修改版限制，正式Adapter与生产执行能力由后续阶段实现；不关闭M0-02/05/07 |
+| 2026-10-30 | M0-07 无模型组件CI | VERIFIED（组件）；M0-07仍IN_PROGRESS | [实际GitHub运行](https://github.com/StateKnot/Harniqo/actions/runs/41020704213)通过183项Python及两组Node检查；ESRCH观察竞态先红后绿，原失败run保留。E45及[合成报告](../operations/qualification-ci-2026-10-30.json) | 无模型/Docker/VM；不替代桌面构建、签名、生产隔离或仍缺少的外部资源 |
 
 后续每次追加：任务 ID、状态、源码提交、配置/版本、验收用例、报告位置、已知限制、阻塞解除条件。执行细节及敏感报告放受控存储，仓库只保留脱敏索引。

@@ -1,0 +1,33 @@
+{
+  "scope": "synthetic_qualification_components_only",
+  "date_local": "2026-10-30",
+  "timezone": "Asia/Shanghai",
+  "source_commit": "c71bcd6ea1e81a48c2fd07698d50bf917ae43da6",
+  "run_url": "https://github.com/StateKnot/Harniqo/actions/runs/41020704213",
+  "job_url": "https://github.com/StateKnot/Harniqo/actions/runs/41020704213/job/123947124982",
+  "conclusion": "success",
+  "runner": "ubuntu-24.04",
+  "python": "3.12.15",
+  "python_tests": 183,
+  "failures": 0,
+  "errors": 0,
+  "skipped": 0,
+  "expected_failures": 0,
+  "report_sha256": "6e7b4d60a0c31a2d7aa30dd886db5b96205f8a2b033d36c323c750771940efcb",
+  "node_checks": [
+    {
+      "step": "Run native protocol and private profile component checks",
+      "conclusion": "success"
+    },
+    {
+      "step": "Run transparent provider observer component checks",
+      "conclusion": "success"
+    }
+  ],
+  "real_model_calls": 0,
+  "native_harness_verified": false,
+  "vm_isolation_verified": false,
+  "desktop_build_verified": false,
+  "original_failure_run": "https://github.com/StateKnot/Harniqo/actions/runs/41019478232",
+  "fix": "Treat only ENOENT/ESRCH during /proc process identity observation as absent; retain identity/zombie checks and propagate other errors"
+}

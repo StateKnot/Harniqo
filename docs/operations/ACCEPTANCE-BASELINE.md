@@ -103,6 +103,8 @@
 
 已新增[三平台契约 CI](../../.github/workflows/contracts.yml)：Ubuntu24.04、Windows Server2025、macOS15上各用Python3.12和完整hash锁验证Schema/OpenAPI/样例/生命周期；Actions固定不可变提交、仓库权限只读、无业务凭据，报告保留14天。首次运行Linux/macOS通过，Windows因Git checkout换行转换触发canonical字节差异而失败；新增LF仓库规范后[重跑三端全部通过](https://github.com/StateKnot/Harniqo/actions/runs/40908412252)，实际环境与相同源hash见[报告摘要](contract-ci-2026-10-30.json)。此CI不构建Electron安装包，不证明Windows11/macOS桌面支持、签名或GUI流程通过。
 
+新增[资格组件CI](../../.github/workflows/qualification.yml)也已[实际通过](https://github.com/StateKnot/Harniqo/actions/runs/41020704213)：Linux/Python3.12的183项标准库组件、Node原生协议夹具及透明观察器检查，零模型调用；缺套件、失败或跳过不能通过。[合成摘要](qualification-ci-2026-10-30.json)记录source commit、run/job与报告hash。[首轮失败](https://github.com/StateKnot/Harniqo/actions/runs/41019478232)的/proc退出竞态保留，修正只识别ENOENT/ESRCH，其他异常及身份/僵尸判据保持。此CI没有启动Docker或VM，不替代真实Harness、隔离、桌面和签名验收。
+
 本轮已固定初始 OS/架构、负载、SLO、资源、恢复数据规模、预算边界和测试方式。正式关闭任务还要求：逐项确认能用于验收的资源与权限、实际环境参数、独立备份位置，以及缺失项的受影响阶段和可执行解除方案；不能只写“以后准备”。真实签名发布、容量和恢复测量在相应阶段执行并回填证据。
 
 当前资源表仍有未验证项，因此本任务未完成，后续按项目状态规则继续推进。所有支持声明以最终通过的组合和能力为准，未经验证的候选保留候选状态。
