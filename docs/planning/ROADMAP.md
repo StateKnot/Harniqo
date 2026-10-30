@@ -69,7 +69,7 @@ flowchart TB
 
 默认生产隔离单位为工作区所属的独立 Linux VM：同一获准 Workspace 的连续 Run 可以复用自己的 VM、文件和原生状态，保持单写者；不同组织、未授权工作区、不同 Trial 和并行候选必须隔离。每个 Trial 从干净 VM/等效强边界启动，文件与记忆独立。Harness 容器运行在执行 VM 内，控制面、Runner 管理身份、数据库与宿主 Docker socket 不对 Agent 暴露。基础镜像可复用只读层，写入层与凭据不能跨试验复用。
 
-开发环境已通过无 NIC 的封闭 KVM/libvirt 基线：两台 VM 各两次冷启动、44 项 Guest 检查、日志归档与临时资源回收通过，基础镜像和既有 domain 不变。该结果不涵盖生产选择性出网、租约、资源耗尽或故障恢复；完整 M0-05 仍须取得网络和执行策略的真实证据，主机实例及失败历史保存在私有环境记录。若环境不满足剩余条件，M0 必须落实可用的隔离执行资源后再关闭任务。首版只实现一个经过验证的执行后端，后续有实际需求再扩展云厂商后端。[KVM/libvirt](https://libvirt.org/)、[Docker 安全边界](https://docs.docker.com/engine/security/)。
+开发环境已通过无 NIC 的封闭 KVM/libvirt 基线：两台 VM 各两次冷启动、44 项 Guest 检查、日志归档与临时资源回收通过，基础镜像和既有 domain 不变。后续固定实例组本地Resource Broker已通过真实两进程SIGKILL、期限停止与从持久journal重建Broker恢复子项，见[M0证据E46–48](M0-RESULTS.md)。这些结果不涵盖生产选择性出网、控制面全局fencing、宿主资源耗尽或更广宿主故障；完整 M0-05 仍须取得网络和执行策略的真实证据，主机实例及失败历史保存在私有环境记录。若环境不满足剩余条件，M0 必须落实可用的隔离执行资源后再关闭任务。首版只实现一个经过验证的执行后端，后续有实际需求再扩展云厂商后端。[KVM/libvirt](https://libvirt.org/)、[Docker 安全边界](https://docs.docker.com/engine/security/)。
 
 后续两轮真实NIC资格均在Guest合法TLS路径超时，未进入负向探测；第二轮ARP正常且清理零错误。固定TLS canary不调用模型，也不是生产Egress。当前需要管理员核对宿主有效入站规则并确保专用入口可达；不能因观察到UFW默认DROP就指定唯一根因，或扩大整体策略继续验收。具体只读诊断、变更界限与解除条件见 [M0网络记录](M0-RESULTS.md#网络资格的管理员核对与解除条件) 和 [生产实现评审](../../research/m0-execution-network-review.md)。
 

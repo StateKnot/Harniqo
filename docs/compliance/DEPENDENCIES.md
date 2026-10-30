@@ -148,3 +148,7 @@ DSH固定`dsh-v0.2.2-alpha.2`→`f3803c96974ad4a94195fb97e5c637e9c2a3afe3`。该
 Octop出站ACP在原Harness1.0.5的固定上游锁中补`agent-client-protocol0.10.1`和`psutil7.2.2`，新组合携带原OpenCode二进制/许可证并单独归档，不改核心SDK与完整服务旧归档。外层工具最终文本的原版失败与最小源码修正组合分别登记；修正保留上游MIT/LICENSE、原/新源码与patch SHA，不能把修改后行为写成原版通过。见[来源](../../deploy/qualification/octop/acp-extra-provenance.json)和[分层记录](../../research/octop-acp-qualification.md)。
 
 无模型资格组件CI新增官方`actions/setup-node v7.1.0`固定提交`949feb2413d6458794dcd2491c4babbbce0c15c1`，Node24.22.1；其余Actions沿用上述不可变提交。CI只运行明确选择的标准库/纯Node夹具，不分发或启动真实Harness，不持有模型凭据。
+
+## 2026-10-30 Resource Broker 增量
+
+本地 Resource Broker 使用 Python3.12 标准库、系统 libvirt/virsh 与 QEMU，不新增 pip/npm 依赖或镜像来源。模板基于已有 Canonical 签名验证的 Ubuntu base，raw 写入层及 NoCloud seed 是本次运行资源，不作为新的上游基础发行包。HMAC 指派与续约签名是宿主私有授权格式，issuer key 不进入 Guest、镜像或公开报告。具体源版本、原始失败与准入范围见[本轮记录](../../research/m0-resource-broker-qualification.md)。

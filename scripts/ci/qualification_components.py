@@ -29,6 +29,8 @@ TESTS = (
     'test_opencode_transport_report.py',
     'test_octop_acp.py',
     'test_dsh_operator.py',
+    'test_resource_broker.py',
+    'test_resource_broker_operator.py',
 )
 
 

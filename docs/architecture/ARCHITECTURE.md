@@ -2,7 +2,7 @@
 
 版本：1.0 · 2026-10-29 · 适用：macOS/Windows/Linux 客户端、Linux 执行面、团队私有部署与多租户 SaaS。
 
-这是后续实现的架构基线，补充 [ROADMAP](../planning/ROADMAP.md)、[任务清单](../planning/BACKLOG.md) 和 [验收手册](../planning/ACCEPTANCE.md)。本次完成设计与官方资料核验；尚未安装依赖、运行 Harness、启动 VM 或证明性能目标。M0 的真实准入验证通过后冻结接口 Schema，M1 锁定补丁版本与依赖，不能把本文中的目标当成已测能力。
+这是后续实现的架构基线，补充 [ROADMAP](../planning/ROADMAP.md)、[任务清单](../planning/BACKLOG.md) 和 [验收手册](../planning/ACCEPTANCE.md)。本文记录设计形成时的架构基线；后续依赖、原生 Harness 与真实 VM 的实测进展见 [M0 证据索引](../planning/M0-RESULTS.md)，性能与生产能力按各自用例单独验收。M0 的真实准入验证通过后冻结接口 Schema，M1 锁定补丁版本与依赖，不能把本文中的目标当成已测能力。
 
 ## 1. 总体决策
 

@@ -1,0 +1,229 @@
+{
+  "qualification": "M0-05-resource-broker-lifecycle",
+  "run_id": "f30e1ba509be",
+  "passed": true,
+  "started_at": "2026-10-30T10:48:12Z",
+  "finished_at": "2026-10-30T10:50:42Z",
+  "checks": {
+    "workspace_busy": true,
+    "repeat_ensure_same_uuids": true,
+    "only_two_owned_domains": true,
+    "runtime_qemu_socket_observed": true,
+    "guest_checks": true,
+    "a_live_after_launcher_exit": true,
+    "a_watch_deadline_stop": true,
+    "independent_watch_survives_launcher": true,
+    "b_restart_deadline_stop": true,
+    "no_revival_or_replacement": true,
+    "disks_retained_until_host_stop": true
+  },
+  "wrong_signature": {
+    "rejected": true,
+    "code": "signature_invalid"
+  },
+  "stale_generation": {
+    "rejected": true,
+    "code": "generation_stale"
+  },
+  "expired_renew": {
+    "rejected": true,
+    "code": "lease_expired"
+  },
+  "stopped_old_assignment": {
+    "rejected": true,
+    "code": "generation_stale"
+  },
+  "workers_confirmed_exited": true,
+  "baseline_unchanged": true,
+  "base_unchanged": true,
+  "sources_unchanged": true,
+  "coordination_lock_unchanged": true,
+  "temporary_files_removed": true,
+  "milestone_complete": false,
+  "dedicated_service_identity_verified": false,
+  "production_egress_verified": false,
+  "global_fencing_verified": false,
+  "real_model_calls": 0,
+  "source_sha256": {
+    "scripts/qualification/qualify_resource_broker.py": "9e08308a7eea0f532581be8223ecb98f4e9f1bbabe577db426c3a7c6a513edee",
+    "scripts/qualification/qualify_kvm.py": "89d699f9054fc1fdfbd8f261cd431f052452bbf00b893763a7ea50881cc055c0",
+    "scripts/qualification/qualify_kvm_network.py": "00634de6710f39ee8d39362a6d4018d268346dffa7f63dc690031efc1849105d",
+    "scripts/qualification/kvm_host_policy.py": "e415cf611e49057e46d0469516635a24f196a5319190e9a7f9d0a0789e8407d3",
+    "apps/runner/resource_broker/__init__.py": "feae211210922048f0e88d453cf490fe8f7fd46278769b47163f4b7f002b0bb2"
+  },
+  "runtime_owner_classes": [
+    {
+      "disk": "qemu",
+      "seed": "qemu",
+      "channel": "qemu",
+      "console": "qemu"
+    },
+    {
+      "disk": "qemu",
+      "seed": "qemu",
+      "channel": "qemu",
+      "console": "qemu"
+    }
+  ],
+  "a_live_after_launcher_exit_at": 1793357426.3995948,
+  "a_absent_before_observe_at": 1793357434.8593976,
+  "b_live_before_broker_restart_at": 1793357441.0947702,
+  "launcher_kill": {
+    "signal": "SIGKILL",
+    "confirmed_exit": true,
+    "confirmed_exit_at": 1793357426.389579
+  },
+  "watch_kill": {
+    "signal": "SIGKILL",
+    "confirmed_exit": true,
+    "confirmed_exit_at": 1793357435.0741115
+  },
+  "report_sha256": "4639152cef3cce978c196cc14db705729e807079b9f5146f8a9791383a0b9a67",
+  "guest_reports": 2,
+  "guest_checks": 22,
+  "guest_check_details": [
+    {
+      "kvm_guest": true,
+      "one_vcpu": true,
+      "one_gib_visible": true,
+      "disk_capacity": true,
+      "no_nic": true,
+      "no_external_default_route": true,
+      "no_host_socket": true,
+      "no_shared_filesystem": true,
+      "no_host_workspace": true,
+      "canary_valid": true,
+      "other_canary_absent": true
+    },
+    {
+      "kvm_guest": true,
+      "one_vcpu": true,
+      "one_gib_visible": true,
+      "disk_capacity": true,
+      "no_nic": true,
+      "no_external_default_route": true,
+      "no_host_socket": true,
+      "no_shared_filesystem": true,
+      "no_host_workspace": true,
+      "canary_valid": true,
+      "other_canary_absent": true
+    }
+  ],
+  "console_logs": [
+    {
+      "connected": true,
+      "stream_closed": true,
+      "bytes_seen": 92327,
+      "bytes_saved": 92327,
+      "discarded_bytes": 0,
+      "truncated": false,
+      "saved": true,
+      "boot_attempted": true
+    },
+    {
+      "connected": true,
+      "stream_closed": true,
+      "bytes_seen": 92330,
+      "bytes_saved": 92330,
+      "discarded_bytes": 0,
+      "truncated": false,
+      "saved": true,
+      "boot_attempted": true
+    }
+  ],
+  "stops": {
+    "a_after_launcher_death": {
+      "state": "stopped",
+      "method": "libvirt_destroy_then_absent",
+      "confirmed_at": 1793357434.8476386
+    },
+    "b_after_broker_restart": {
+      "state": "stopped",
+      "method": "libvirt_destroy_then_absent",
+      "confirmed_at": 1793357441.515306
+    }
+  },
+  "errors": 0,
+  "cleanup_errors": 0,
+  "journal_archive": {
+    "private_file_metadata": {
+      "anchor.json": {
+        "bytes": 288,
+        "mode": "0600",
+        "sha256": "92080fbcc34abd32616caa53a3666512a3a1b69bc55522eae5feb6544496fc73"
+      },
+      "journal.json": {
+        "bytes": 3910,
+        "mode": "0600",
+        "sha256": "e3eb0a8a01e50d5d121177f9665917ffe4557e05ebde420ed2121d44178812b5"
+      },
+      "broker.lock": {
+        "bytes": 0,
+        "mode": "0600",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    "anchor_hmac_valid": true,
+    "journal_hmac_valid": true,
+    "bindings_match": true,
+    "terminal_records": {
+      "sealed-a": {
+        "state": "stopped",
+        "generation": 2,
+        "lease_expires_at": 1793357434.2018156,
+        "host_stop_confirmed_at": 1793357434.8476386,
+        "confirmation_not_before_expiry": true,
+        "stop_binding_matches": true,
+        "dispatch_confirmed": true,
+        "stop_dispatch_acknowledged": true,
+        "ownership_xml_hmac_valid": true,
+        "workspace_epoch_matches": true,
+        "ownership_xml_sha256": "b50b5cd84242661f3f943085af778f1dd8a51b680c13c4a1ec3e444c14c59494"
+      },
+      "sealed-b": {
+        "state": "stopped",
+        "generation": 3,
+        "lease_expires_at": 1793357439.9782882,
+        "host_stop_confirmed_at": 1793357441.515306,
+        "confirmation_not_before_expiry": true,
+        "stop_binding_matches": true,
+        "dispatch_confirmed": true,
+        "stop_dispatch_acknowledged": true,
+        "ownership_xml_hmac_valid": true,
+        "workspace_epoch_matches": true,
+        "ownership_xml_sha256": "8f2e2653427fa9495e71551e4a9af906bb5fc61990b84ac51b8fc98466892dee"
+      }
+    }
+  },
+  "scope": "fixed_prepared_instance_group_local_lifecycle_only",
+  "cloud_final_verified": false,
+  "host_hard_quotas_verified": false,
+  "desktop_build_verified": false,
+  "component_tests": {
+    "python": 233,
+    "broker": 34,
+    "operator": 16,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "scope": "synthetic_components_only"
+  },
+  "private_failed_runs_preserved": [
+    "83bb8b5ca8d9",
+    "01e311a8fe51",
+    "bdbdeb8d5073",
+    "28a00b28918f",
+    "e1623ca39230"
+  ],
+  "retained_unknown_dispatch_disk_bytes": 51539607552,
+  "previous_passed_run": {
+    "run_id": "34865c5acbb5",
+    "stronger_launcher_exit_then_a_live_gate_recorded": false,
+    "original_report_preserved": true
+  },
+  "previous_passed_run_with_stronger_gate": {
+    "run_id": "c9bff4e4a396",
+    "original_report_preserved": true,
+    "worker_log_io_failure_cleanup_fix_included": false
+  }
+}
