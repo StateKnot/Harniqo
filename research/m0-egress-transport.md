@@ -59,7 +59,7 @@ Node24.22.1 的 type stripping 已稳定，可直接执行 erasable-only TypeScr
 
 前两次记录保持原样：`ef745a7c5158`为FAILED，资格清理路径曾对`net.Server`调用HTTPS专用关闭方法，保留2个cleanup errors；`ccc8406f3326`按当时29门槛PASSED，未包含随后发现的端口0配置缺口。独立修正组增加constructor端口`1..65535`检查与端口0拒绝门槛后得到上述30门槛结果，原失败/原PASSED均未改写。测试客户端、server/socket/timer以及10020/10021监听已按本轮报告回收；CA/私钥、原始日志、配置和此前记录仍在私有证据目录。
 
-最终生产transport SHA-256为`ad4f85f3604debf89da5694cc683224c06e0c76f982f8731e93877cf7fa423f9`，完整7份源码/配置摘要见公开报告。14项Module回归与真实资格入口分别计量；实际GitHub CI由根任务按提交、run/job和下载artifact另行登记，本文不预填尚未核实的CI结论。
+最终生产transport SHA-256为`ad4f85f3604debf89da5694cc683224c06e0c76f982f8731e93877cf7fa423f9`，完整7份源码/配置摘要见公开报告。14项Module回归与真实资格入口分别计量；实际GitHub源码`ba836f2039cacf9f7bf1d7c8ac22c1e209c3d57c`的[传输CI](https://github.com/StateKnot/Harniqo/actions/runs/41170364383)已通过锁定Node24.22.1/TS6.0.3严格检查、14项Module与11项失败留证回归；下载artifact后核对source、step outcomes、完整锁及JUnit摘要，见[独立CI摘要](../docs/operations/egress-transport-ci-2026-10-31.json)。同源262项既有资格组件与三平台契约也通过，见[各自范围报告](../docs/operations/qualification-ci-egress-2026-10-31.json)。CI不启动VM或调用模型，也不替代上述真实TLS结果与完整Egress准入。
 
 ## 工具链与依赖来源
 

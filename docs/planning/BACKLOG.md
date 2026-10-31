@@ -167,5 +167,7 @@
 | 2026-10-31 | M0-05 固定宿主限额 | VERIFIED（v2 CPU/内存/swap与CPU压力子项）；M0-05仍IN_PROGRESS | 整域1核、记账RAM2GiB+额外swap2GiB，真实全线程/cgroup读取、A节流+B3新挑战、22Guest及双SIGKILL期限链通过；262组件，0模型。E50 | 显式新profile，v1不原位迁移；三FAILED保留、当前组完整回收，旧诊断共80GiB保留；OOM/磁盘spool/UID/Egress等仍需完成 |
 | 2026-10-31 | M0-05/07 限额组件CI | VERIFIED（组件CI子项） | [GitHub实际运行](https://github.com/StateKnot/Harniqo/actions/runs/41165398801)262项Python和两组Node全部成功，下载合成报告核验，source9292cc6f785f。E51 | 55核心+17操作者+7压力集成+183原套件；M0仍4/8，M0-05保持IN_PROGRESS |
 | 2026-10-31 | M0-05 内部HTTPS上游传输 | VERIFIED（内部transport子项）；M0-05仍IN_PROGRESS | 固定路由/DNS全量策略+IP固定、Host/SNI/TLS、凭据注入、背压/限额/期限/取消及receipt完成；指定服务器Node24.22.1严格tsc、14回归、30原生门槛通过，错误/清理错误0；0模型/VM/规则更改。E52–53 | 仅可信宿主内部Module；Guest入口、当前执行授权/撤销/预算、kernel出口与专用UID继续实现验收；原始失败与修正前通过分别保留，M0仍4/8 |
+| 2026-10-31 | M0-05/07 传输组件CI | VERIFIED（组件CI子项） | 源码`ba836f2039ca`的[实际传输CI](https://github.com/StateKnot/Harniqo/actions/runs/41170364383)严格tsc/14模块/11失败留证全部成功；既有262组件、三平台契约同源通过，下载artifact及源码/lock hash核验。E54 | 各自范围分别记录；0模型/VM，非完整Egress/桌面准入，M0仍4/8 |
+
 
 后续每次追加：任务 ID、状态、源码提交、配置/版本、验收用例、报告位置、已知限制、阻塞解除条件。执行细节及敏感报告放受控存储，仓库只保留脱敏索引。

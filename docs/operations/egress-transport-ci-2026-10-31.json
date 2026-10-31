@@ -1,0 +1,39 @@
+{
+  "scope": "transport_module_regressions_only",
+  "node": "v24.22.1",
+  "typescript": "6.0.3",
+  "typecheck_passed": true,
+  "tests": 14,
+  "failures": 0,
+  "errors": 0,
+  "skipped": 0,
+  "passed": true,
+  "source_commit": "ba836f2039cacf9f7bf1d7c8ac22c1e209c3d57c",
+  "step_outcomes": {
+    "install": "success",
+    "typecheck": "success",
+    "tests": "success"
+  },
+  "evidence_issues": [],
+  "junit_sha256": "8e810b50c46ff64b985e578034b1e9394a8ca7802556261d9cdfb77d6a550c67",
+  "package_lock_sha256": "ab45312ad661eb8b38b23e8f63b8fd67983f6a5526626838560a99eba366a4b5",
+  "real_model_calls": 0,
+  "vm_isolation_verified": false,
+  "production_egress_verified": false,
+  "execution_authorization_verified": false,
+  "budget_accounting_verified": false,
+  "kernel_egress_verified": false,
+  "date_local": "2026-10-31",
+  "timezone": "Asia/Shanghai",
+  "run_url": "https://github.com/StateKnot/Harniqo/actions/runs/41170364383",
+  "job_url": "https://github.com/StateKnot/Harniqo/actions/runs/41170364383/job/124446811355",
+  "conclusion": "success",
+  "runner": "ubuntu-24.04",
+  "report_sha256": "0b2c00818e738fc3e8caea5aae74abbcc96b0d9e5da4ad2247a6618d3ef34592",
+  "desktop_build_verified": false,
+  "failure_evidence_retention_regressions": {
+    "tests": 11,
+    "step": "Check failure evidence retention",
+    "conclusion": "success"
+  }
+}
