@@ -98,7 +98,7 @@ systemd255官方语义区分内核victim选择与service manager行为：`OOMPol
 
 ## 实际结果与后续门槛
 
-最终同源真实组与组件证据见下；实际GitHub CI按源码提交和下载artifact另行关联，不预填通过。原有CPU压力/内存限额报告与此前失败保持不变，不因本轮结果追补为当时已证明Guest耗尽。
+最终同源真实组与组件证据见下；实际GitHub源码`fbb975b5f7886c4f9cde1bf819493c80112f6ab9`的[资格CI](https://github.com/StateKnot/Harniqo/actions/runs/41177744267)通过309项Python及两组Node检查，零失败/错误/跳过；[三平台契约CI](https://github.com/StateKnot/Harniqo/actions/runs/41177744311)同源成功。下载artifact后按run/job/source/报告hash及契约源摘要核对，见[独立CI索引](../docs/operations/qualification-ci-guest-memory-2026-10-31.json)。这些组件无VM/模型，不能替代下列原生结果。原有CPU压力/内存限额报告与此前失败保持不变，不因本轮结果追补为当时已证明Guest耗尽。
 
 本子项通过也只确认固定v2受控 Guest 内存耗尽的隔离和外部终止后的本地持久处理。宿主QEMU OOM与宿主整体内存压力、任意Harness负载/设备/Guest组合、生产服务权限、网络/存储资源边界及完整M0-05仍须各自实现和验收。
 

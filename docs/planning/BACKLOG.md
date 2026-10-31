@@ -171,5 +171,7 @@
 
 | 2026-10-31 | M0-05 Guest耗尽/外部停止恢复 | VERIFIED（固定v2与显式Guest监督子项）；M0-05仍IN_PROGRESS | 已实现并验证：A真实触页736MiB/Guest OOM精确归因、同boot健康与B三阶段/事后响应；外部精确终止后正式停止证据/重建/旧授权双拒绝，B watch故障期限链通过。2KVM/22Guest/21门槛、服务器126组件，错误/清理0。E55 | 3组FAILED各自保留；生产Broker/profile未改，0模型；Host QEMU OOM、磁盘/spool/专用UID及完整Guest出口/控制面授权预算仍待完成，M0仍4/8 |
 
+| 2026-10-31 | M0-05/07 内存故障组件CI | VERIFIED（组件CI子项） | 源码`fbb975b5f788`的[实际CI](https://github.com/StateKnot/Harniqo/actions/runs/41177744267)309项Python和两组Node通过、零失败/错误/跳过；同源三平台契约通过，下载artifact/source校验后独立记录。E56 | 组件/契约与E55真实21门槛分别计量，0模型/VM，不扩大HostOOM/生产或桌面支持，M0仍4/8 |
+
 
 后续每次追加：任务 ID、状态、源码提交、配置/版本、验收用例、报告位置、已知限制、阻塞解除条件。执行细节及敏感报告放受控存储，仓库只保留脱敏索引。
