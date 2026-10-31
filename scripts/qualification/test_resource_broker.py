@@ -104,8 +104,110 @@ class BrokerInterfaceTests(unittest.TestCase):
         self.broker=self.new_broker()
 
     def new_broker(self):
-        return ResourceBroker(state_dir=self.root/'state',templates=self.templates,issuer_key_file=self.key_file,
+        return ResourceBroker(state_dir=self.root/getattr(self, 'state_name', 'state'),templates=self.templates,issuer_key_file=self.key_file,
             images_root=self.images,channel_root=self.channels,max_lease_seconds=300)
+
+    def limited_broker(self):
+        self.templates[0] = replace(self.templates[0], resource_profile=native.LIMITED_PROFILE)
+        self.state_name = 'limited-state'
+        self.broker = self.new_broker()
+
+    def test_legacy_profile_does_not_claim_or_read_kernel_resource_limits(self):
+        a=self.assignment();self.broker.ensure(a)
+        with patch.object(native, '_read_resource_limits') as reader:
+            with self.assertRaisesRegex(BrokerError, 'resource_limits_profile_unsupported'):
+                self.broker.resource_limits(a.resource_id)
+            reader.assert_not_called()
+        xml=ET.fromstring(self.libvirt.domains[a.resource_id])
+        self.assertIsNone(xml.find('cputune'));self.assertIsNone(xml.find('memtune'))
+
+    def test_limited_profile_binds_fixed_cpu_and_memory_policy_and_survives_restart(self):
+        legacy_hash=self.templates[0].configuration_sha256
+        self.limited_broker();self.assertNotEqual(self.templates[0].configuration_sha256,legacy_hash)
+        sample={'cpu_period_usec':100000,'cpu_quota_usec':100000,'memory_max_bytes':2147483648,
+                'swap_max_bytes':2147483648,'cpu_stat':{'usage_usec':1000000,'nr_throttled':4,'throttled_usec':1200}}
+        with patch.object(native, '_read_resource_limits', return_value=sample):
+            with self.assertRaisesRegex(BrokerError,'configuration_changed'):
+                self.broker.ensure(self.assignment(configuration_sha256=legacy_hash))
+            a=self.assignment();self.assertEqual(self.broker.ensure(a).state,'running')
+            self.assertEqual(self.new_broker().resource_limits(a.resource_id),sample)
+        xml=ET.fromstring(self.libvirt.domains[a.resource_id])
+        self.assertEqual(xml.findtext('./cputune/global_period'),'100000')
+        self.assertEqual(xml.findtext('./cputune/global_quota'),'100000')
+        self.assertEqual(xml.findtext('./memtune/hard_limit'),'2097152')
+        self.assertEqual(xml.findtext('./memtune/swap_hard_limit'),'2097152')
+
+    def test_unverifiable_limits_stop_the_owned_vm_without_accepting_running(self):
+        self.limited_broker();a=self.assignment()
+        with patch.object(native, '_read_resource_limits', side_effect=BrokerError('resource_limits_cpu_mismatch')):
+            result=self.broker.ensure(a)
+        self.assertEqual(result.state,'stopped')
+        self.assertEqual(result.stop_evidence.method,'libvirt_destroy_then_absent')
+        self.assertEqual(self.libvirt.creates,1);self.assertEqual(self.libvirt.destroys,1)
+
+    def test_initial_limits_failure_cannot_be_cleared_by_a_second_successful_read(self):
+        self.limited_broker();a=self.assignment()
+        with patch.object(native, '_read_resource_limits', side_effect=[BrokerError('resource_limits_cpu_mismatch'), {}]) as reader:
+            result=self.broker.ensure(a)
+        self.assertEqual(result.state,'stopped');self.assertEqual(self.libvirt.destroys,1)
+        self.assertEqual(reader.call_count,1);self.assertEqual(result.stop_cause,'resource_limits_cpu_mismatch')
+
+    def test_terminal_limits_failure_preserves_only_safe_cause_and_phase_after_restart(self):
+        self.limited_broker();a=self.assignment()
+        failure=native.resources.LimitReadError('resource_limits_observation_unavailable','pidfile')
+        with patch.object(native.resources, 'read_limits', side_effect=failure):result=self.broker.ensure(a)
+        expected={'code':'resource_limits_observation_unavailable','phase':'pidfile'}
+        self.assertEqual(result.state,'stopped');self.assertIsNone(result.error_code)
+        self.assertEqual(result.stop_cause,'resource_limits_observation_unavailable')
+        self.assertEqual(result.limits_error,expected);self.assertEqual(self.broker.last_limits_error,expected)
+        result.limits_error['phase']='caller-mutation'
+        snapshot=self.broker.last_limits_error;snapshot['phase']='caller-mutation'
+        restored=self.new_broker().observe(a.resource_id)
+        self.assertEqual(restored.stop_cause,'resource_limits_observation_unavailable')
+        self.assertEqual(restored.limits_error,expected);self.assertEqual(self.broker.last_limits_error,expected)
+
+    def test_limits_loss_during_renew_stops_before_accepting_new_generation(self):
+        self.limited_broker();a=self.assignment()
+        with patch.object(native, '_read_resource_limits', return_value={}):self.broker.ensure(a)
+        with patch.object(native, '_read_resource_limits', side_effect=BrokerError('resource_limits_observation_unavailable')):
+            with self.assertRaisesRegex(BrokerError,'resource_not_running'):
+                self.broker.renew(sign_grant(self.key,**self.claims(generation=2)))
+        result=self.broker.observe(a.resource_id)
+        self.assertEqual(result.state,'stopped');self.assertEqual(result.generation,1)
+
+    def test_changed_limits_do_not_prevent_stop_or_bypass_signed_ownership(self):
+        self.limited_broker();a=self.assignment()
+        with patch.object(native, '_read_resource_limits', return_value={}):self.broker.ensure(a)
+        xml=ET.fromstring(self.libvirt.domains[a.resource_id]);xml.find('./cputune/global_quota').text='200000'
+        self.libvirt.domains[a.resource_id]=ET.tostring(xml,encoding='unicode')
+        self.assertEqual(self.broker.observe(a.resource_id).state,'stopped')
+        self.assertEqual(self.libvirt.destroys,1)
+        a=self.assignment(generation=2)
+        with patch.object(native, '_read_resource_limits', return_value={}):self.broker.ensure(a)
+        xml=ET.fromstring(self.libvirt.domains[a.resource_id]);xml.find('./cputune/global_quota').text='200000'
+        xml.find('./metadata')[0].set('signature','0'*64)
+        self.libvirt.domains[a.resource_id]=ET.tostring(xml,encoding='unicode')
+        result=self.broker.revoke(a.resource_id,'cancelled')
+        self.assertEqual(result.state,'reconciling');self.assertEqual(result.error_code,'resource_ownership_mismatch')
+        self.assertEqual(self.libvirt.destroys,1)
+
+    def test_resource_sample_cannot_outlive_lease_during_proc_reads(self):
+        self.limited_broker();a=self.assignment(expires_at=1005.0)
+        with patch.object(native, '_read_resource_limits', return_value={}):self.broker.ensure(a)
+        calls=0
+        def delayed(template):
+            nonlocal calls
+            calls+=1
+            if calls==2:self.advance(6)
+            return {}
+        with patch.object(native, '_read_resource_limits', side_effect=delayed):
+            with self.assertRaisesRegex(BrokerError,'lease_expired'):self.broker.resource_limits(a.resource_id)
+        self.assertEqual(self.broker.observe(a.resource_id).state,'stopped')
+
+    def test_resource_profile_rejects_non_string_and_unknown_values(self):
+        for profile in ([], {}, None, 'arbitrary-quota'):
+            with self.subTest(profile=profile),self.assertRaisesRegex(BrokerError,'resource_profile_invalid'):
+                _=replace(self.templates[0],resource_profile=profile).configuration_sha256
 
     def claims(self,index=0,**changes):
         t=self.templates[index]
@@ -478,6 +580,182 @@ class BrokerInterfaceTests(unittest.TestCase):
         self.assertEqual(self.broker.last_configuration_error['role'],'channel')
         self.assertIn('owner_uid',self.broker.last_configuration_error['failed_fields'])
         self.assertNotIn(a.resource_id,self.libvirt.domains)
+
+
+class ResourceLimitsFilesystemTests(unittest.TestCase):
+    """Synthetic proc/cgroup filesystem at the host observation Module Interface."""
+    def setUp(self):
+        self.temporary=tempfile.TemporaryDirectory(prefix='hrl-',dir=Path('/private/tmp' if sys.platform=='darwin' else '/tmp').resolve())
+        self.addCleanup(self.temporary.cleanup);self.root=Path(self.temporary.name)
+        self.pid_root=self.root/'pids';self.proc=self.root/'proc';self.cgroups=self.root/'cgroup'
+        self.identity='00000000-0000-4000-8000-000000000001'
+        self.member='/machine.slice/machine-qemu-owned.scope/libvirt/emulator'
+        self.scope=self.cgroups/'machine.slice/machine-qemu-owned.scope'
+        self.files={
+            self.pid_root/'owned-a.pid':b'100\n',
+            self.proc/'100/stat':('100 (fake-qemu) '+' '.join(['S']+['0']*18+['10'])+'\n').encode(),
+            self.proc/'100/cmdline':b'/usr/bin/qemu-system-x86_64\0-uuid\0'+self.identity.encode()+b'\0',
+            self.proc/'100/cgroup':('0::'+self.member+'\n').encode(),
+            self.proc/'100/task/100/cgroup':('0::'+self.member+'\n').encode(),
+            self.proc/'100/task/101/cgroup':b'0::/machine.slice/machine-qemu-owned.scope/libvirt/vcpu0\n',
+            self.scope/'cpu.max':b'100000 100000\n',
+            self.scope/'memory.max':b'2147483648\n',
+            self.scope/'memory.swap.max':b'2147483648\n',
+            self.scope/'memory.current':b'268435456\n',
+            self.scope/'memory.peak':b'536870912\n',
+            self.scope/'cpu.stat':b'usage_usec 1000000\nnr_periods 50\nnr_throttled 4\nthrottled_usec 1200\n',
+            self.scope/'memory.events':b'low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\n',
+            self.scope/'libvirt/emulator/cpu.max':b'max 100000\n',
+        }
+        for path,value in self.files.items():path.parent.mkdir(parents=True,exist_ok=True);path.write_bytes(value);path.chmod(0o600)
+        self.resources=native.resources
+        for field,value in [('PID_ROOT',self.pid_root),('PROC_ROOT',self.proc),('CGROUP_ROOT',self.cgroups)]:
+            patcher=patch.object(self.resources,field,value);patcher.start();self.addCleanup(patcher.stop)
+        original_fstat=os.fstat;original_stat=Path.stat
+        def kernel_file_owner(fd):
+            values=list(original_fstat(fd));values[4]=0;return os.stat_result(values)
+        def process_owner(path,*args,**kwargs):
+            result=original_stat(path,*args,**kwargs)
+            if path==self.proc/'100':
+                values=list(result);values[4]=64055;return os.stat_result(values)
+            return result
+        for patcher in (patch.object(self.resources.os,'fstat',side_effect=kernel_file_owner),
+                        patch.object(Path,'stat',process_owner),
+                        patch.object(self.resources.pwd,'getpwnam',return_value=SimpleNamespace(pw_uid=64055))):
+            patcher.start();self.addCleanup(patcher.stop)
+
+    def sample(self):
+        return self.resources.read_limits(name='owned-a',resource_id=self.identity)
+
+    def test_global_scope_limits_cover_emulator_and_vcpu_thread_leaves(self):
+        sample=self.sample()
+        self.assertEqual(sample['pid'],100);self.assertEqual(sample['process_start_time'],10)
+        self.assertEqual(sample['cgroup_path'],str(self.scope));self.assertEqual(sample['thread_ids'],[100,101])
+        self.assertEqual(sample['cpu_stat']['nr_throttled'],4)
+        self.assertEqual(sample['memory_max_bytes'],2147483648);self.assertEqual(sample['swap_max_bytes'],2147483648)
+        self.assertEqual(sample['memory_current_bytes'],268435456);self.assertEqual(sample['memory_peak_bytes'],536870912)
+        self.assertEqual(sample['memory_events_local'],{'state':'missing','value':None})
+        (self.scope/'memory.events.local').write_bytes(b'low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\n')
+        self.assertEqual(self.sample()['memory_events_local'],{'state':'observed','value':'low 0\nhigh 0\nmax 0\noom 0\noom_kill 0'})
+
+    def test_a_thread_in_another_domain_cannot_be_hidden_by_leader_membership(self):
+        (self.proc/'100/task/101/cgroup').write_bytes(b'0::/machine.slice/machine-qemu-other.scope/libvirt/vcpu0\n')
+        with self.assertRaisesRegex(self.resources.LimitReadError,'resource_limits_thread_escaped'):self.sample()
+
+    def test_missing_unbounded_or_writable_kernel_limits_are_rejected(self):
+        target=self.scope/'cpu.max'
+        target.unlink()
+        with self.assertRaisesRegex(self.resources.LimitReadError,'resource_limits_cpu_mismatch'):self.sample()
+        target.write_bytes(b'max 100000\n');target.chmod(0o600)
+        with self.assertRaisesRegex(self.resources.LimitReadError,'resource_limits_cpu_mismatch'):self.sample()
+        target.write_bytes(b'100000 100000\n');target.chmod(0o666)
+        with self.assertRaisesRegex(self.resources.LimitReadError,'resource_limits_file_writable'):self.sample()
+
+    def child_controller(self, role):
+        child=self.scope/'libvirt';child.mkdir(exist_ok=True)
+        names={'cpu':['cpu.max','cpu.stat'], 'memory':['memory.max','memory.current','memory.peak','memory.events'],
+               'swap':['memory.swap.max']}
+        for name in names[role]:
+            target=child/name;target.write_bytes(self.files[self.scope/name]);target.chmod(0o600)
+        control=names[role][0]
+        (self.scope/control).write_bytes(b'max 100000\n' if role=='cpu' else b'max\n')
+        return child
+
+    def test_all_libvirt_parent_controllers_cover_all_qemu_threads(self):
+        child=self.child_controller('cpu');self.child_controller('memory');self.child_controller('swap')
+        (child/'memory.current').write_bytes(b'33554432\n')
+        sample=self.sample()
+        self.assertEqual(sample['cgroup_path'],str(child))
+        self.assertEqual(sample['memory_cgroup_path'],str(child));self.assertEqual(sample['swap_cgroup_path'],str(child))
+        self.assertEqual(sample['memory_current_bytes'],33554432)
+        self.assertEqual(len(sample['ancestors']),3)
+
+    def test_cpu_child_and_memory_parent_are_sampled_at_their_respective_caps(self):
+        child=self.child_controller('cpu')
+        (child/'cpu.stat').write_bytes(b'usage_usec 42000000\nnr_throttled 42\nthrottled_usec 4200\n')
+        sample=self.sample()
+        self.assertEqual(sample['cgroup_path'],str(child));self.assertEqual(sample['cpu_stat']['usage_usec'],42000000)
+        self.assertEqual(sample['memory_cgroup_path'],str(self.scope))
+        self.assertEqual(sample['swap_cgroup_path'],str(self.scope))
+        self.assertEqual(sample['memory_current_bytes'],268435456)
+
+    def test_per_thread_leaf_quota_cannot_establish_a_whole_domain_cap(self):
+        (self.scope/'cpu.max').write_bytes(b'max 100000\n')
+        (self.scope/'libvirt/emulator/cpu.max').write_bytes(b'100000 100000\n')
+        with self.assertRaisesRegex(self.resources.LimitReadError,'resource_limits_cpu_mismatch'):self.sample()
+
+    def test_every_thread_must_be_below_every_selected_controller(self):
+        self.child_controller('cpu')
+        (self.proc/'100/task/101/cgroup').write_bytes(b'0::/machine.slice/machine-qemu-owned.scope/outside-libvirt\n')
+        with self.assertRaisesRegex(self.resources.LimitReadError,'resource_limits_thread_escaped'):self.sample()
+
+    def test_a_replaced_controller_inode_is_not_accepted_during_sample(self):
+        original_read=os.read;cpu_stats=self.files[self.scope/'cpu.stat'];changed=False
+        def replace_control(fd,size):
+            nonlocal changed
+            result=original_read(fd,size)
+            if result==cpu_stats and not changed:
+                changed=True;replacement=self.scope/'new-cpu.max'
+                replacement.write_bytes(b'100000 100000\n');replacement.chmod(0o600);replacement.replace(self.scope/'cpu.max')
+            return result
+        with patch.object(self.resources.os,'read',side_effect=replace_control):
+            with self.assertRaisesRegex(self.resources.LimitReadError,'resource_limits_controller_changed'):self.sample()
+
+    def test_pidfile_and_process_uuid_must_match_the_admitted_resource(self):
+        (self.proc/'100/cmdline').write_bytes(b'/usr/bin/qemu-system-x86_64\0-uuid\0other-uuid\0')
+        with self.assertRaisesRegex(self.resources.LimitReadError,'resource_limits_process_binding_invalid'):self.sample()
+        (self.proc/'100/cmdline').write_bytes(self.files[self.proc/'100/cmdline'])
+        pidfile=self.pid_root/'owned-a.pid';pidfile.unlink();pidfile.symlink_to(self.scope/'memory.current')
+        with self.assertRaisesRegex(self.resources.LimitReadError,'resource_limits_path_untrusted'):self.sample()
+
+    def test_pid_reuse_during_read_is_not_accepted_as_the_same_qemu(self):
+        original_read=os.read;counter=0;before=self.files[self.proc/'100/stat']
+        def changing_stat(fd,size):
+            nonlocal counter
+            result=original_read(fd,size)
+            if result==before:
+                counter+=1
+                if counter==1:(self.proc/'100/stat').write_bytes(before.replace(b' 10\n',b' 11\n'))
+            return result
+        with patch.object(self.resources.os,'read',side_effect=changing_stat):
+            with self.assertRaisesRegex(self.resources.LimitReadError,'resource_limits_process_changed'):self.sample()
+
+    def test_final_membership_and_caps_are_rechecked_after_statistics_reads(self):
+        original_read=os.read;cpu_stats=self.files[self.scope/'cpu.stat']
+        def escape_after_metrics(fd,size):
+            result=original_read(fd,size)
+            if result==cpu_stats:(self.proc/'100/task/101/cgroup').write_bytes(b'0::/machine.slice/machine-qemu-other.scope/libvirt/vcpu0\n')
+            return result
+        with patch.object(self.resources.os,'read',side_effect=escape_after_metrics):
+            with self.assertRaises(self.resources.LimitReadError) as failure:self.sample()
+        self.assertEqual(failure.exception.code,'resource_limits_thread_escaped')
+        self.assertEqual(failure.exception.phase,'final_threads')
+        (self.proc/'100/task/101/cgroup').write_bytes(self.files[self.proc/'100/task/101/cgroup'])
+        def remove_limit_after_metrics(fd,size):
+            result=original_read(fd,size)
+            if result==cpu_stats:(self.scope/'cpu.max').write_bytes(b'max 100000\n')
+            return result
+        with patch.object(self.resources.os,'read',side_effect=remove_limit_after_metrics):
+            with self.assertRaises(self.resources.LimitReadError) as failure:self.sample()
+        self.assertEqual(failure.exception.code,'resource_limits_cpu_mismatch')
+        self.assertEqual(failure.exception.phase,'final_control_values')
+
+    def test_thread_creation_retries_the_complete_sample_and_labels_optional_absence(self):
+        original_read=os.read;cpu_stats=self.files[self.scope/'cpu.stat'];reads=0
+        def add_thread(fd,size):
+            nonlocal reads
+            result=original_read(fd,size)
+            if result==cpu_stats:
+                reads+=1
+                if reads==1:
+                    path=self.proc/'100/task/102/cgroup';path.parent.mkdir();path.write_bytes(('0::'+self.member+'\n').encode())
+            return result
+        with patch.object(self.resources.os,'read',side_effect=add_thread):sample=self.sample()
+        self.assertEqual(reads,2);self.assertEqual(sample['thread_ids'],[100,101,102])
+        self.assertGreater(sample['cpu_stat_monotonic'],0)
+        self.assertEqual(sample['swap_current_bytes'],{'state':'missing','value':None})
+        self.assertEqual(sample['cgroup_procs'],{'state':'missing','value':None})
+        self.assertEqual(len(sample['ancestors']),2)
 
 
 if __name__ == "__main__":

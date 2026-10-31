@@ -90,6 +90,86 @@ catalog migration, global target-level writer coordination and image preparation
 are separate M2 integration responsibilities. This Module is the group's reusable
 local guard, not a complete production Runner allocator.
 
+## Opt-in host resource profile
+
+The existing `sealed-raw8g-q35-v1` profile remains the default, with the same
+configuration description and domain XML. It makes no claim about host CPU or
+memory caps. New catalogs may explicitly choose
+`Template(..., resource_profile="sealed-raw8g-q35-limited-v2")`. The v2 profile
+adds immutable, administrator-selected policy to the configuration hash:
+
+- Whole-domain CPU CFS quota 100,000 microseconds per 100,000-microsecond period,
+  covering vCPU, emulator and I/O threads under the domain scope.
+- QEMU `memory.max=2,147,483,648` bytes, leaving overhead beyond the 1 GiB Guest
+  RAM; this fixed profile still requires real workload qualification.
+- An additional finite `memory.swap.max=2,147,483,648` bytes. The fixed libvirt-10
+  cgroup-v2 backend maps `swap_hard_limit` directly to that kernel file; this is
+  **not** a zero-swap policy or a combined 2 GiB memory-plus-swap limit.
+
+Arbitrary profile strings and caller-supplied quotas are rejected. A different
+profile changes `configuration_sha256`; an existing catalog/journal cannot be
+upgraded in place, and old signed claims cannot authorize a different profile.
+
+For v2, `ensure`, running observation, renewal and reconciliation verify the
+domain XML and actual cgroup-v2 files. The host reader obtains the PID only from
+the root-owned libvirt PID file for the admitted name, binds it to the QEMU UID,
+command-line UUID and `/proc` start time, and locates the machine domain scope.
+Each controller must have its exact fixed value at that scope or its immediate
+`libvirt` child. The scope is preferred when both candidates match. Every
+observed QEMU thread must remain below all three selected controller groups.
+Selected control files must be readable, root-owned and not group/other
+writable. A per-thread emulator/vCPU cap and a broader `machine.slice` cap never
+qualify as the whole-domain policy. Missing, malformed, unstable or mismatched
+evidence fails closed. This bounded placement check does not write cgroup files
+or accept an unlimited value as the configured cap.
+
+`broker.resource_limits(resource_id)` returns a fresh verified host-private dict
+with PID/start time, selected CPU path (`cgroup_path`), memory/swap paths
+(`memory_cgroup_path`/`swap_cgroup_path`), observed thread IDs, CPU period/quota,
+`cpu_stat` and its adjacent monotonic sample time (`cpu_stat_monotonic`),
+memory/swap caps, current/peak memory and `memory_events`. It takes no
+PID, filesystem path or arbitrary command. The caller must sanitize host
+identities before publishing evidence. Legacy v1 sampling is explicitly
+unsupported. A sample that crosses the lease deadline is rejected and triggers
+the same ownership-checked stopping path.
+
+CPU statistics come from the selected CPU group; memory and swap statistics
+come from their respective selected groups. The reader rechecks every observed
+thread against all selected groups, their selected paths, controller values and
+directory/control-file inode identities after gathering statistics. Transient
+thread creation retries the entire
+sample at most three times; an escaped thread or missing/mismatched cap is never
+accepted through a retry. Auxiliary local memory events (`memory.events.local`),
+swap-current/events, cgroup type/procs and
+up to three ancestors' cap files have explicit observed/missing/permission-denied/
+unsupported states. Unavailable auxiliary evidence carries `value=None`, not a
+fabricated zero. A threaded hierarchy may legitimately expose an empty or
+unsupported parent `cgroup.procs`; the reader records it without substituting
+that file for per-thread membership checks.
+
+When v2 limits become unverifiable, the Broker persists stop intent and attempts
+to stop its authenticated fixed UUID. Stopping does not require the failed
+limits check to pass, but still requires signed ownership and the fixed device
+topology; it cannot use a policy mismatch to destroy a foreign domain. Unknown
+stop outcomes retain `reconciling` and the workspace writer as before.
+
+The first failed post-create limits observation irrevocably requests stop; a
+second successful read cannot change that execution back to running. Its safe
+`stop_cause` and bounded `limits_error={code, phase}` persist in the journal and
+terminal Observation after the transient `error_code` is cleared. Phases identify
+PID file, process identity/command, cgroup location, threads, controls,
+statistics and final rechecks without exposing paths, PID, native errors or
+actual values. `broker.last_limits_error` returns a defensive copy of the last
+local diagnostic; persisted observations remain available across construction of
+a fresh Broker. Unrecognized caller-supplied revoke labels become the safe
+`requested_revoke` stop cause.
+
+Reading cgroup limits and CPU throttling establishes only that measured resource
+profile. It does not establish QEMU OOM behavior, Guest memory exhaustion, host
+storage/log/spool quotas, I/O bandwidth limits, capacity guarantees, dedicated
+service identities, production egress or full M0-05 acceptance. Component tests
+use a synthetic proc/cgroup filesystem and do not establish real kernel limits.
+
 ## Signed local envelopes
 
 These `Assignment` and `Grant` objects are **private Resource Broker envelopes**.

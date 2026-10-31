@@ -27,6 +27,27 @@ class GuestBootstrapTests(unittest.TestCase):
             self.assertIs(config[field], False)
 
 
+    def test_limited_guest_fixture_keeps_sealed_checks_and_separates_load_from_heartbeat(self):
+        instance = {'uuid': 'instance-a', 'nonce': 'nonce-a'}
+        other = {'uuid': 'instance-b'}
+        root = Path('/qualification/workspace')
+        original = json.loads(operator.kvm.guest_config(instance, other, root, operator.DISK_BYTES).split('\n', 1)[1])['write_files'][0]['content']
+        programs = []
+        for pressure in (True, False):
+            config = json.loads(operator.sealed_guest_config(instance, other, root,
+                resource_profile='sealed-raw8g-q35-limited-v2', pressure=pressure).split('\n', 1)[1])
+            program = config['bootcmd'][0][2]
+            self.assertTrue(program.startswith(original))
+            compile(program, '<sealed-resource-guest>', 'exec')
+            self.assertNotIn('runcmd', config)
+            programs.append(program[len(original):])
+        self.assertIn('while time.monotonic()<until: pass', programs[0])
+        self.assertNotIn('HARNIQO-HEARTBEAT', programs[0])
+        self.assertIn('HARNIQO-HEARTBEAT', programs[1])
+        self.assertIn("re.fullmatch(b'[0-9a-f]{40}',line)", programs[1])
+        self.assertIn('select.select', programs[1])
+
+
 class WorkerLogCleanupTests(unittest.TestCase):
     def test_sync_failure_is_reported_without_skipping_other_log_closure(self):
         logs = [tempfile.TemporaryFile(mode='w+'), tempfile.TemporaryFile(mode='w+')]

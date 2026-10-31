@@ -324,9 +324,11 @@ def listener_at(path: Path) -> socket.socket:
 class GuestStreams:
     """Collect JSON reports and bounded serial bytes through separate host-owned sockets."""
 
-    def __init__(self, instances: list[dict], work: Path, round_index: int, logs: list[dict]):
+    def __init__(self, instances: list[dict], work: Path, round_index: int, logs: list[dict], *, retain_report_channels: bool = False):
         self.instances = instances
         self.received: dict[str, dict] = {}
+        self.retain_report_channels = retain_report_channels
+        self.report_channels: dict[str, socket.socket] = {}
         self.logs: dict[str, dict] = {}
         self.connections: set[socket.socket] = set()
         self.buffers: dict[socket.socket, bytearray] = {}
@@ -410,7 +412,12 @@ class GuestStreams:
                 if instance["uuid"] in self.received:
                     raise RuntimeError("Duplicate guest report")
                 self.received[instance["uuid"]] = report
-                self._disconnect(connection)
+                if self.retain_report_channels:
+                    self.selector.unregister(connection)
+                    self.buffers.pop(connection, None)
+                    self.report_channels[instance["uuid"]] = connection
+                else:
+                    self._disconnect(connection)
 
     def collect(self, timeout: int) -> dict[str, dict]:
         deadline = time.monotonic() + timeout
@@ -443,6 +450,7 @@ class GuestStreams:
         for connection in self.connections:
             connection.close()
         self.connections.clear()
+        self.report_channels.clear()
         self.selector.close()
         self.closed = True
 

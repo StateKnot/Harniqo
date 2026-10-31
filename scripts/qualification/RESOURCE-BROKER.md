@@ -60,3 +60,14 @@ SIGKILL主操作者/宿主断电不靠finally自动恢复；按私有 ownership�
 sealed Guest fixture沿用完整原探针程序，但由cloud-init `bootcmd` 直接执行，移除晚期 `write_files/runcmd`，避免无NIC环境的Final阶段依赖导致探针未启动，也避免重复执行。报告只说明检查发生时的Guest状态，不作为OS全部服务ready的证据；缺失或失败报告仍拒绝。默认120秒、`--timeout 150`是Guest报告窗口，生产租约/故障停止判据独立。
 
 日志flush/fsync/close失败按stream记录有限错误后继续宿主revoke，不允许提前中断物理停止尝试；任何清理错误都会阻止删除本轮文件。确认停止后，持久journal目录必须完整归档成功才可释放临时目录，缺失或归档失败保留文件并判失败。
+
+
+## 显式宿主限额 profile（M0-05 子项）
+
+默认 `sealed-raw8g-q35-v1` 保持原固定组配置摘要与恢复语义；只有新建实例组显式使用 `--resource-profile sealed-raw8g-q35-limited-v2` 才采用新策略。已登记组不能原位切换 profile。v2 的签名配置绑定 QEMU 整个 domain 每100ms/100ms CPU带宽、2GiB计费内存及2GiB swap上限；Guest仍为1vCPU/1GiB。
+
+正式 Module通过 `resource_limits(resource_id)` 和运行观察核对固定PID文件、QEMU UUID、进程starttime、所有线程与实际父cgroup；调用方不能传入PID、任意路径或配额。内核读回不符或不可确认会停止已认证归属的资源，不能继续作为正常running续约。停止核对只跳过已坏的资源限额检查，保留签名归属、文件身份和拓扑保护。
+
+资格Guest先完成原11项报告，随后A执行45秒有期限CPU pulse、B仅对宿主在采样窗口新生成的随机挑战输出绑定nonce的应答。宿主只读采样6秒，要求A真实节流计数增长、CPU用量按同份cpu.stat的单调采样时间差落在有负载及周期容差范围内，B至少3次匹配窗口内新挑战的应答、两台正常内存峰值低于硬上限且无OOM事件。原两个SIGKILL、期限停止、拒绝复活、完整console及精确回收判据全部保留；缺少任何v2门槛即失败。
+
+此子项不制造宿主OOM或swap耗尽，不证明磁盘/spool/块I/O等完整硬配额；`host_hard_quotas_verified=false`、`memory_exhaustion_verified=false`。2GiB余量只用于本sealed模板，非任意Harness通用参数。libvirt10/v2 swap映射和官方依据见[宿主资源限额研究](../../research/m0-host-resource-limits.md)。

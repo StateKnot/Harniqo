@@ -34,13 +34,96 @@ DISK_BYTES = 8 * 1024**3
 MAX_CONFIG_BYTES = 256 * 1024
 
 
-def sealed_guest_config(instance: dict, other: dict, root: Path) -> str:
+def sealed_guest_config(instance: dict, other: dict, root: Path, *, resource_profile: str = "sealed-raw8g-q35-v1", pressure: bool = False) -> str:
     """Run the unchanged sealed probe before unrelated final-stage services."""
     config = json.loads(kvm.guest_config(instance, other, root, DISK_BYTES).split("\n", 1)[1])
     program = config.pop("write_files")[0]["content"]
     config.pop("runcmd")
+    if resource_profile == "sealed-raw8g-q35-limited-v2":
+        # Qualification fixture only: report the unchanged eleven checks first.
+        # CPU pressure and the independent control heartbeat stay in the Guest.
+        if pressure:
+            program += "\nprint('HARNIQO-RESOURCE-START ' + C['nonce'], flush=True)\nuntil=time.monotonic()+45\nwhile time.monotonic()<until: pass\n"
+        else:
+            program += r"""
+import select,re
+fd=os.open('/dev/virtio-ports/org.harniqo.m0', os.O_RDWR|os.O_NONBLOCK)
+print('HARNIQO-RESOURCE-START ' + C['nonce'], flush=True)
+until=time.monotonic()+45
+pending=b''
+while time.monotonic()<until:
+    if not select.select([fd],[],[],0.25)[0]: continue
+    chunk=os.read(fd,1024)
+    if not chunk: continue
+    pending+=chunk
+    if len(pending)>4096: raise RuntimeError('health challenge bound')
+    while b'\n' in pending:
+        line,pending=pending.split(b'\n',1)
+        if re.fullmatch(b'[0-9a-f]{40}',line):
+            print('HARNIQO-HEARTBEAT '+C['nonce']+' '+line.decode('ascii'),flush=True)
+os.close(fd)
+"""
+        program += "print('HARNIQO-RESOURCE-END ' + C['nonce'], flush=True)\n"
     config["bootcmd"] = [["/usr/bin/python3", "-c", program]]
     return "#cloud-config\n" + json.dumps(config) + "\n"
+
+
+def resource_pressure(broker, instances, streams, result: dict) -> None:
+    """Measure the production Interface while A is busy and B reports liveness."""
+    def console(instance):
+        log = streams.logs[instance["uuid"]]
+        return os.pread(log["fd"], log["bytes_saved"], 0).decode("utf-8", errors="replace")
+
+    markers = ["HARNIQO-RESOURCE-START " + i["nonce"] for i in instances]
+    deadline = time.monotonic() + 10
+    while not all(marker in console(i) for marker, i in zip(markers, instances)):
+        if time.monotonic() >= deadline:
+            raise RuntimeError("Resource pressure fixture did not start")
+        streams._poll(.1)
+    before = [broker.resource_limits(i["uuid"]) for i in instances]
+    channel = streams.report_channels.get(instances[1]["uuid"])
+    if channel is None:
+        raise RuntimeError("Control Guest report channel unavailable")
+    challenges = []
+    start = time.monotonic()
+    while time.monotonic() - start < 6:
+        if len(challenges) < 3 and time.monotonic() - start >= 2 * len(challenges):
+            value = uuid.uuid4().hex + uuid.uuid4().hex[:8]
+            channel.sendall((value + "\n").encode("ascii"))
+            challenges.append(value)
+        streams._poll(.1)
+    challenge_elapsed = time.monotonic() - start
+    after = [broker.resource_limits(i["uuid"]) for i in instances]
+    identity = lambda item: (item["pid"], item["process_start_time"], item["cgroup_path"])
+    result["checks"]["resource_pressure_identity_stable"] = all(
+        identity(x) == identity(y) for x, y in zip(before, after))
+    if not result["checks"]["resource_pressure_identity_stable"]:
+        raise RuntimeError("QEMU identity changed across pressure samples")
+    elapsed = after[0]["cpu_stat_monotonic"] - before[0]["cpu_stat_monotonic"]
+    heartbeats = sum(("HARNIQO-HEARTBEAT " + instances[1]["nonce"] + " " + value)
+                     in console(instances[1]) for value in challenges)
+    if any("HARNIQO-RESOURCE-END " + i["nonce"] in console(i) for i in instances):
+        raise RuntimeError("Resource fixture ended before measurement")
+    # These samples come from the same production kernel observation used by
+    # ensure/observe. The qualifier does not enforce or write any cgroup value.
+    cpu_before, cpu_after = before[0]["cpu_stat"], after[0]["cpu_stat"]
+    usage = cpu_after["usage_usec"] - cpu_before["usage_usec"]
+    throttled = cpu_after["nr_throttled"] - cpu_before["nr_throttled"]
+    throttled_usec = cpu_after["throttled_usec"] - cpu_before["throttled_usec"]
+    result["resource_pressure"] = {"seconds": elapsed, "challenge_window_seconds": challenge_elapsed, "challenge_count": len(challenges), "before": before, "after": after,
+        "a_cpu_usage_usec_delta": usage, "a_nr_throttled_delta": throttled,
+        "a_throttled_usec_delta": throttled_usec, "b_heartbeats_delta": heartbeats}
+    result["checks"]["qemu_cpu_throttled"] = (throttled > 0 and throttled_usec > 0
+        and .5 * elapsed * 1e6 <= usage <= 1.2 * elapsed * 1e6)
+    result["checks"]["b_heartbeat_during_pressure"] = len(challenges) == heartbeats == 3
+    result["checks"]["host_limits_verified"] = True  # All four production reads succeeded.
+    result["checks"]["normal_memory_within_cap"] = all(
+        0 < sample["memory_current_bytes"] <= sample["memory_peak_bytes"] < sample["memory_max_bytes"]
+        and sample["memory_events"]["oom"] == sample["memory_events"]["oom_kill"] == 0
+        for sample in before + after)
+    if not all(result["checks"][name] for name in
+               ("qemu_cpu_throttled", "b_heartbeat_during_pressure", "host_limits_verified", "normal_memory_within_cap", "resource_pressure_identity_stable")):
+        raise RuntimeError("Host resource or control liveness predicate failed")
 
 
 def close_worker_logs(descriptors) -> list[dict]:
@@ -421,7 +504,7 @@ def execute(args) -> int:
     work = parent / ("rb-" + rid); private_directory(work, create=True)
     images = root / "images/vm/instances" / ("rb-" + rid); private_directory(images, create=True)
     directories = {p: (p.stat().st_dev, p.stat().st_ino) for p in (work, images)}
-    ownership = {"qualification": "M0-05-resource-broker-lifecycle", "run_id": rid}
+    ownership = {"qualification": "M0-05-resource-limits-lifecycle" if args.resource_profile == "sealed-raw8g-q35-limited-v2" else "M0-05-resource-broker-lifecycle", "run_id": rid}
     for p in (work, images): save(p / ".harniqo-m0-owner.json", ownership)
     baseline = inventory(); save(reports / "baseline.json", baseline)
     key_file = reports / "issuer-key"; key = os.urandom(32)
@@ -433,7 +516,8 @@ def execute(args) -> int:
     streams = None; broker = None; config = None
     acl = kvm.TemporaryACL("libvirt-qemu")
     result = {"schema_version": 1, "qualification": ownership["qualification"], "run_id": rid,
-              "started_at": kvm.now(), "base_sha256": base.stem, "checks": {}, "observations": {},
+              "started_at": kvm.now(), "base_sha256": base.stem, "resource_profile": args.resource_profile,
+              "host_hard_quotas_verified": False, "memory_exhaustion_verified": False, "checks": {}, "observations": {},
               "errors": [], "cleanup_errors": [], "milestone_complete": False,
               "dedicated_service_identity_verified": False, "production_egress_verified": False,
               "global_fencing_verified": False, "real_model_calls": 0}
@@ -462,7 +546,7 @@ def execute(args) -> int:
                     "bytes": metadata.st_size, "allocated_bytes": metadata.st_blocks * 512}
             finally: os.close(disk_fd)
             user, meta, net = [work / (i["template_id"] + "-" + n) for n in ("user", "meta", "network")]
-            kvm.write(user, sealed_guest_config(i, other, root))
+            kvm.write(user, sealed_guest_config(i, other, root, resource_profile=args.resource_profile, pressure=i is instances[0]))
             save(meta, {"instance-id": i["uuid"], "local-hostname": i["name"]})
             save(net, {"version": 2, "ethernets": {}})
             kvm.run(["cloud-localds", "--network-config", str(net), str(i["seed"]), str(user), str(meta)])
@@ -477,7 +561,7 @@ def execute(args) -> int:
         templates = [{"template_id": i["template_id"], "resource_id": i["uuid"], "name": i["name"],
                       "disk": str(i["overlay"]), "seed": str(i["seed"]),
                       "channel": str(i["socket"]), "console": str(i["console_socket"]),
-                      "source_base_sha256": base.stem} for i in instances]
+                      "source_base_sha256": base.stem, "resource_profile": args.resource_profile} for i in instances]
         Template = api()[0]
         template_hashes = {item["template_id"]: Template(**{
             k: Path(v) if k in {"disk", "seed", "channel", "console"} else v
@@ -506,7 +590,8 @@ def execute(args) -> int:
         broker = broker_from(config)
         watch = spawn_worker(root, config_path, "watch", children, descriptors)
         wait_ready(watch, reports / "watch-ready.json", 10)
-        streams = kvm.GuestStreams(instances, work, 1, console_logs)
+        streams = kvm.GuestStreams(instances, work, 1, console_logs,
+                                   retain_report_channels=args.resource_profile == "sealed-raw8g-q35-limited-v2")
         for i in instances: streams.mark_start(i)
         launcher = spawn_worker(root, config_path, "launcher", children, descriptors)
         readiness = wait_ready(launcher, reports / "launcher-ready.json", min(args.timeout, 90))
@@ -533,6 +618,8 @@ def execute(args) -> int:
         result["checks"]["guest_checks"] = len(received) == 2 and all(len(x["checks"]) == 11 and all(x["checks"].values()) for x in received.values())
         if watch.poll() is not None:
             raise RuntimeError("Independent watch exited during Guest boot")
+        if args.resource_profile == "sealed-raw8g-q35-limited-v2":
+            resource_pressure(broker, instances, streams, result)
         a2, b2 = claim(claims[0], 2, 8), claim(claims[1], 2, 120)
         result["observations"]["renewed"] = [asdict(broker.renew(sign_grant(key, **c))) for c in (a2, b2)]
         stale = claim(claims[0], 1, 60)
@@ -645,7 +732,10 @@ def execute(args) -> int:
         expected = {"workspace_busy", "repeat_ensure_same_uuids", "only_two_owned_domains", "guest_checks", "runtime_qemu_socket_observed",
                     "independent_watch_survives_launcher", "no_revival_or_replacement", "disks_retained_until_host_stop",
                     "a_live_after_launcher_exit", "a_watch_deadline_stop", "b_restart_deadline_stop"}
+        if args.resource_profile == "sealed-raw8g-q35-limited-v2":
+            expected |= {"qemu_cpu_throttled", "b_heartbeat_during_pressure", "host_limits_verified", "normal_memory_within_cap", "resource_pressure_identity_stable"}
         result["passed"] = not result["errors"] and not result["cleanup_errors"] and all(result["checks"].get(c) is True for c in expected)
+        result["host_cpu_memory_limits_verified"] = result["passed"] and args.resource_profile == "sealed-raw8g-q35-limited-v2"
         save(reports / "report.json", result)
         print(json.dumps({"qualification": result["qualification"], "passed": result["passed"],
                           "milestone_complete": False, "errors": len(result["errors"]),
@@ -660,6 +750,7 @@ def main() -> int:
     parser.add_argument("--root", type=Path, default=Path.cwd())
     parser.add_argument("--base-image", type=Path)
     parser.add_argument("--timeout", type=int, default=120)
+    parser.add_argument("--resource-profile", choices=("sealed-raw8g-q35-v1", "sealed-raw8g-q35-limited-v2"), default="sealed-raw8g-q35-v1")
     parser.add_argument("--worker", choices=("launcher", "watch"))
     parser.add_argument("--config", type=Path)
     args = parser.parse_args()

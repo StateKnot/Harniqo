@@ -152,3 +152,5 @@ Octop出站ACP在原Harness1.0.5的固定上游锁中补`agent-client-protocol0.
 ## 2026-10-30 Resource Broker 增量
 
 本地 Resource Broker 使用 Python3.12 标准库、系统 libvirt/virsh 与 QEMU，不新增 pip/npm 依赖或镜像来源。模板基于已有 Canonical 签名验证的 Ubuntu base，raw 写入层及 NoCloud seed 是本次运行资源，不作为新的上游基础发行包。HMAC 指派与续约签名是宿主私有授权格式，issuer key 不进入 Guest、镜像或公开报告。具体源版本、原始失败与准入范围见[本轮记录](../../research/m0-resource-broker-qualification.md)。
+
+2026-10-31固定limited-v2增加Linux cgroup v2实际读回，仍仅Python标准库/libvirt/QEMU，无新增pip/npm依赖。明确核验libvirt10的GetNested及swap direct映射；1GiB Guest使用QEMU记账内存2GiB+额外swap2GiB只是本sealed模板验证值，不是任意Harness通用余量。[结果与primary来源](../../research/m0-host-resource-limits.md)。

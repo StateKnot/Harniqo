@@ -369,3 +369,5 @@ CI 从 M1 就覆盖三个原生系统；模块逻辑、真实 PostgreSQL/S3/OIDC
 | M7–M8 | 双部署、真实 DR/隔离/容量、三端签名升级、许可证/来源与生产发布 |
 
 关键取舍记录于 [ADR-0001](../adr/0001-modular-control-plane.md)、[ADR-0002](../adr/0002-isolated-execution.md)、[ADR-0003](../adr/0003-native-harness-adapters.md)。这些决定约束后续实现；具体版本、模型权限、原生签名资源与真实隔离验证仍按里程碑关闭。
+
+固定本地Resource Broker现已提供显式 `sealed-raw8g-q35-limited-v2`：固定CPU/内存/swap进入签名配置，在 `ensure/observe/renew` 核验真实QEMU身份、全线程与有限控制组；`resource_limits(resource_id)`仅提供宿主私有读样本，不能选择PID/路径或任意配额。v1保留恢复兼容，已登记实例组不能原位换profile。[同源真实结果与范围](../../research/m0-host-resource-limits.md)仅覆盖sealed1GiB模板与CPU压力对照，M0-05整体仍未验收。

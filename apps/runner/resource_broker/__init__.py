@@ -28,6 +28,7 @@ import time
 from typing import Sequence
 import uuid
 import xml.etree.ElementTree as ET
+from . import resources
 
 CHANNEL = 'org.harniqo.m0'
 NAMESPACE = 'urn:harniqo:resource-broker:1'
@@ -36,6 +37,12 @@ MAX_JOURNAL = 4 * 1024**2
 MAX_OUTPUT = 2 * 1024**2
 VIRSH = '/usr/bin/virsh'
 CONNECTION = 'qemu:///system'
+LEGACY_PROFILE = 'sealed-raw8g-q35-v1'
+LIMITED_PROFILE = 'sealed-raw8g-q35-limited-v2'
+STOP_CAUSES = frozenset({'cancelled', 'qualification_cleanup', 'stop_intent', 'stop_retry',
+    'terminal_resource_reappeared', 'lease_expired_or_clock_changed',
+    'lease_expired_during_observation', 'lease_expired_during_persistence',
+    'lease_expired_during_renewal', 'lease_expired_during_resource_sample'})
 ENVIRONMENT = {'PATH': '/usr/sbin:/usr/bin:/sbin:/bin', 'LC_ALL': 'C'}
 ET.register_namespace('harniqo', NAMESPACE)
 
@@ -57,6 +64,7 @@ class Template:
     channel: Path
     console: Path
     source_base_sha256: str
+    resource_profile: str = LEGACY_PROFILE
 
     @property
     def configuration_sha256(self) -> str:
@@ -99,6 +107,8 @@ class Observation:
     recovery_generation: int
     stop_evidence: StopEvidence | None = None
     error_code: str | None = None
+    stop_cause: str | None = None
+    limits_error: dict | None = None
 
 
 def _json(value) -> bytes:
@@ -322,6 +332,8 @@ def _template_description(template: Template) -> dict:
     _uuid(template.resource_id)
     if not _identifier(template.name) or len(template.name) > 80 or re.fullmatch(r'[0-9a-f]{64}', template.source_base_sha256) is None:
         raise BrokerError('template_invalid')
+    if type(template.resource_profile) is not str or template.resource_profile not in {LEGACY_PROFILE, LIMITED_PROFILE}:
+        raise BrokerError('resource_profile_invalid')
     files = []
     for role in ('disk', 'seed', 'channel', 'console'):
         try:
@@ -332,12 +344,27 @@ def _template_description(template: Template) -> dict:
             diagnostic.setdefault('failed_fields', ['parent_directory'] if error.code.startswith('directory_') else ['metadata_validation'])
             error.configuration_error = diagnostic
             raise
-    return {'version': 1, 'profile': 'sealed-raw8g-q35-v1', 'template_id': template.template_id,
+    description = {'version': 1, 'profile': template.resource_profile, 'template_id': template.template_id,
             'resource_id': template.resource_id, 'name': template.name,
             'source_base_sha256': template.source_base_sha256,
             'files': files,
             'memory_mib': 1024, 'vcpus': 1, 'channel_name': CHANNEL, 'network': 'none',
             'disk_driver': 'raw', 'seed_driver': 'raw-readonly'}
+    if template.resource_profile == LIMITED_PROFILE:
+        description['host_limits'] = {'cpu_period_usec': resources.CPU_PERIOD,
+            'cpu_quota_usec': resources.CPU_QUOTA, 'memory_max_bytes': resources.MEMORY_BYTES,
+            'swap_max_bytes': resources.SWAP_BYTES, 'mechanism': 'libvirt-cgroup-v2'}
+    return description
+
+
+def _read_resource_limits(template: Template) -> dict:
+    try:
+        return resources.read_limits(name=template.name, resource_id=template.resource_id)
+    except resources.LimitReadError as error:
+        code = error.code if error.code in resources.ERROR_CODES else 'resource_limits_observation_unavailable'
+        wrapped = BrokerError(code)
+        wrapped.limits_error = {'code': code, 'phase': error.phase if error.phase in resources.ERROR_PHASES else 'unknown'}
+        raise wrapped from None
 
 
 def _invoke_local(args: list[str], timeout=10) -> str:
@@ -410,6 +437,7 @@ class ResourceBroker:
             raise BrokerError('clock_policy_invalid')
         self._maximum = max_lease_seconds; self._skew = max_clock_skew_seconds
         self._last_configuration_error = None
+        self._last_limits_error = None
         self._templates = {}; self._descriptions = {}; aliases = set(); inodes = set(); resource_ids = set()
         if not 1 <= len(templates) <= 64:
             raise BrokerError('catalog_size_invalid')
@@ -463,6 +491,21 @@ class ResourceBroker:
     def last_configuration_error(self) -> dict | None:
         """Bounded role/field diagnostics; never filesystem paths or values."""
         return copy.deepcopy(self._last_configuration_error)
+
+    @property
+    def last_limits_error(self) -> dict | None:
+        """Only enumerated code/phase diagnostics, without native values."""
+        return copy.deepcopy(self._last_limits_error)
+
+    def _remember_limits_error(self, record, error):
+        detail = getattr(error, 'limits_error', {})
+        code = error.code if error.code in resources.ERROR_CODES | {'resource_limits_xml_mismatch'} else 'resource_limits_observation_unavailable'
+        phase = 'domain_xml' if code == 'resource_limits_xml_mismatch' else detail.get('phase', 'unknown')
+        if phase not in resources.ERROR_PHASES | {'domain_xml'}:
+            phase = 'unknown'
+        diagnostic = {'code': code, 'phase': phase}
+        self._last_limits_error = copy.deepcopy(diagnostic)
+        record['limits_error'] = diagnostic
 
     def _configuration_fault(self, template_id, phase: str, *, cause=None, current=None,
                              code='state_catalog_changed', index=None) -> BrokerError:
@@ -641,7 +684,7 @@ class ResourceBroker:
         evidence = record.get('stop_evidence')
         return Observation(record['claims']['resource_id'], record['state'], record['claims']['generation'],
                            record['claims']['recovery_generation'], StopEvidence(**evidence) if evidence else None,
-                           record.get('error_code'))
+                           record.get('error_code'), record.get('stop_cause'), copy.deepcopy(record.get('limits_error')))
 
     def _metadata(self, record: dict) -> dict:
         fields = {'anchor_id': self._anchor, 'owner_token': record['owner_token'],
@@ -657,6 +700,15 @@ class ResourceBroker:
         ET.SubElement(domain, 'memory', unit='MiB').text = '1024'
         ET.SubElement(domain, 'currentMemory', unit='MiB').text = '1024'
         ET.SubElement(domain, 'vcpu', placement='static').text = '1'
+        if template.resource_profile == LIMITED_PROFILE:
+            cpu = ET.SubElement(domain, 'cputune')
+            ET.SubElement(cpu, 'global_period').text = str(resources.CPU_PERIOD)
+            ET.SubElement(cpu, 'global_quota').text = str(resources.CPU_QUOTA)
+            memory = ET.SubElement(domain, 'memtune')
+            ET.SubElement(memory, 'hard_limit', unit='KiB').text = str(resources.MEMORY_BYTES // 1024)
+            # On the fixed libvirt-10/cgroup-v2 backend this maps directly to
+            # memory.swap.max: an additional finite 2 GiB, not zero swap.
+            ET.SubElement(memory, 'swap_hard_limit', unit='KiB').text = str(resources.SWAP_BYTES // 1024)
         operating = ET.SubElement(domain, 'os'); ET.SubElement(operating, 'type', arch='x86_64', machine='q35').text = 'hvm'
         ET.SubElement(operating, 'boot', dev='hd')
         features = ET.SubElement(domain, 'features'); ET.SubElement(features, 'acpi'); ET.SubElement(features, 'apic')
@@ -683,7 +735,7 @@ class ResourceBroker:
         values = _virsh('list', '--all', '--uuid').splitlines()
         return {_uuid(value.strip()) for value in values if value.strip()}
 
-    def _match(self, record: dict, xml: str) -> None:
+    def _match(self, record: dict, xml: str, *, check_limits=True) -> None:
         try:
             tree = ET.fromstring(xml); claims = record['claims']; template = self._templates[claims['template_id']]
             node = tree.find('./metadata/{' + NAMESPACE + '}ownership')
@@ -704,10 +756,18 @@ class ResourceBroker:
                     raise BrokerError('resource_topology_mismatch')
             if channels[0].find('target').get('name') != CHANNEL or tree.findtext('vcpu') != '1':
                 raise BrokerError('resource_topology_mismatch')
+            if check_limits and template.resource_profile == LIMITED_PROFILE:
+                if (tree.findtext('./cputune/global_period') != str(resources.CPU_PERIOD)
+                        or tree.findtext('./cputune/global_quota') != str(resources.CPU_QUOTA)):
+                    raise BrokerError('resource_limits_xml_mismatch')
+                for field, expected in [('hard_limit', resources.MEMORY_BYTES), ('swap_hard_limit', resources.SWAP_BYTES)]:
+                    element = tree.find('./memtune/' + field)
+                    if element is None or element.get('unit') != 'KiB' or element.text != str(expected // 1024):
+                        raise BrokerError('resource_limits_xml_mismatch')
         except (ET.ParseError, AttributeError, TypeError, KeyError):
             raise BrokerError('resource_xml_invalid') from None
 
-    def _status(self, record: dict, *, check_profile=True) -> str:
+    def _status(self, record: dict, *, check_profile=True, check_limits=True) -> str:
         if check_profile:
             template_id = record['claims']['template_id']
             try:
@@ -719,11 +779,20 @@ class ResourceBroker:
         identity = record['claims']['resource_id']
         if identity not in self._ids():
             return 'absent'
-        self._match(record, _virsh('dumpxml', identity))
+        try:
+            self._match(record, _virsh('dumpxml', identity), check_limits=check_limits)
+            template = self._templates[record['claims']['template_id']]
+            if check_limits and template.resource_profile == LIMITED_PROFILE:
+                _read_resource_limits(template)
+        except BrokerError as error:
+            if error.code.startswith('resource_limits_'):
+                self._remember_limits_error(record, error)
+            raise
         return 'present'
 
     def _stopped(self, body: dict, record: dict, sample: dict, method: str) -> Observation:
         sample = _clock()  # Sample after the host absence observation, not before RPC.
+        record.setdefault('stop_cause', 'host_absence_after_confirmed_dispatch')
         record.update(state='stopped', error_code=None, stop_evidence=asdict(StopEvidence(
             record['claims']['resource_id'], sample['wall'], method, record['claims']['configuration_sha256'])))
         self._save(body)
@@ -732,9 +801,11 @@ class ResourceBroker:
     def _stop(self, body: dict, record: dict, sample: dict, cause: str) -> Observation:
         record['state'] = 'reconciling'; record['error_code'] = cause; record['stop_evidence'] = None
         record['stop_intent'] = True  # Durable and irreversible for this execution generation.
+        safe_causes = STOP_CAUSES | resources.ERROR_CODES | {'resource_limits_xml_mismatch'}
+        record.setdefault('stop_cause', cause if cause in safe_causes else 'requested_revoke')
         self._save(body)
         try:
-            status = self._status(record)
+            status = self._status(record, check_limits=False)
             if status == 'absent':
                 if record['dispatch'] not in {'confirmed', 'not_sent'} or record.get('stop_dispatch') == 'pending':
                     raise BrokerError('dispatch_unconfirmed')
@@ -743,7 +814,7 @@ class ResourceBroker:
             record['dispatch'] = 'confirmed'; record['stop_dispatch'] = 'pending'; self._save(body)
             _virsh('destroy', record['claims']['resource_id'])
             record['stop_dispatch'] = 'acknowledged'; self._save(body)
-            if self._status(record) != 'absent':
+            if self._status(record, check_limits=False) != 'absent':
                 raise BrokerError('stop_unconfirmed')
             return self._stopped(body, record, sample, 'libvirt_destroy_then_absent')
         except BrokerError as error:
@@ -758,7 +829,7 @@ class ResourceBroker:
             # A terminal resource unexpectedly reappearing is never silently
             # reused or reported stopped; it requires ownership-checked stop.
             try:
-                if self._status(record) == 'present':
+                if self._status(record, check_limits=False) == 'present':
                     return self._stop(body, record, sample, 'terminal_resource_reappeared')
             except BrokerError as error:
                 if error.code.startswith(('state_', 'journal_', 'private_')):
@@ -785,6 +856,8 @@ class ResourceBroker:
         except BrokerError as error:
             if error.code.startswith(('state_', 'journal_', 'private_')):
                 raise
+            if error.code.startswith('resource_limits_'):
+                return self._stop(body, record, _clock(), error.code)
             record.update(state='reconciling', error_code=error.code)
         self._save(body)
         if record['state'] == 'running' and not self._lease_valid(record, _clock()):
@@ -846,6 +919,8 @@ class ResourceBroker:
                 if not dispatched:
                     record['dispatch'] = 'not_sent'
                 record.update(state='reconciling', error_code=error.code)
+                if error.code.startswith('resource_limits_'):
+                    return self._stop(body, record, _clock(), error.code)
             self._save(body)
             return self._inspect(body, record, _clock())
 
@@ -889,6 +964,33 @@ class ResourceBroker:
             if record is None:
                 raise BrokerError('resource_not_registered')
             return self._inspect(body, record, _clock())
+
+    def resource_limits(self, resource_id: str) -> dict:
+        """Read a verified fixed-profile host sample; unverifiable limits stop it.
+
+        The returned PID/cgroup/thread identities are host-private diagnostics.
+        Callers do not select PID, paths, quota values or writable controllers.
+        """
+        _uuid(resource_id)
+        with self._locked():
+            body = self._load(); record = body['records'].get(resource_id)
+            if record is None:
+                raise BrokerError('resource_not_registered')
+            template = self._templates[record['claims']['template_id']]
+            if template.resource_profile != LIMITED_PROFILE:
+                raise BrokerError('resource_limits_profile_unsupported')
+            if self._inspect(body, record, _clock()).state != 'running':
+                raise BrokerError('resource_not_running')
+            try:
+                sample = _read_resource_limits(template)
+            except BrokerError as error:
+                self._remember_limits_error(record, error)
+                self._stop(body, record, _clock(), error.code)
+                raise
+            if not self._lease_valid(record, _clock()):
+                self._stop(body, record, _clock(), 'lease_expired_during_resource_sample')
+                raise BrokerError('lease_expired')
+            return sample
 
     def revoke(self, resource_id: str, cause: str) -> Observation:
         _uuid(resource_id)
@@ -938,9 +1040,9 @@ class ResourceBroker:
         for identity, record in records.items():
             entry = {'resource_id': identity, 'state': 'reconciling', 'error_code': code, 'host_stop_confirmed': False}
             try:
-                if self._status(record, check_profile=False) == 'present':
+                if self._status(record, check_profile=False, check_limits=False) == 'present':
                     _virsh('destroy', identity)
-                    entry['host_stop_confirmed'] = self._status(record, check_profile=False) == 'absent'
+                    entry['host_stop_confirmed'] = self._status(record, check_profile=False, check_limits=False) == 'absent'
                 elif record.get('dispatch') == 'confirmed' and record.get('stop_dispatch') != 'pending':
                     entry['host_stop_confirmed'] = True
             except BrokerError as error:
