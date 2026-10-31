@@ -176,4 +176,6 @@
 
 | 2026-10-31 | M0-05 有界console/超限停止 | VERIFIED（固定v2可信写者子项）；M0-05仍IN_PROGRESS | 正式Module实际预留、逐次fsync、失败锁存与独立归档摘要/身份核对；真实2KVM/22Guest/22门槛，A超限后正式Broker停止与持久防复活、B五个新挑战及watch期限链通过。服务器180组件0失败/错误/跳过；E57 | 原始失败选择组保留，0模型/新端口；不含通用FSquota、SQLite事件spool、宿主OOM/专用UID/完整出口和授权预算，M0仍4/8 |
 
+| 2026-10-31 | M0-05/07 console组件CI | VERIFIED（组件/契约CI子项） | 源码`2d41af6b78f0`的[实际资格CI](https://github.com/StateKnot/Harniqo/actions/runs/41181576301)353项Python及两组Node成功、零失败/错误/跳过；[同源三平台契约](https://github.com/StateKnot/Harniqo/actions/runs/41181576255)通过，下载artifact及源摘要已核。E58 | E57真实VM与组件/契约分别计量；最终增补console Module的push/PR路径覆盖，执行步骤和受测源码不变；不扩大宿主配额/SQLite spool/桌面支持，M0仍4/8 |
+
 后续每次追加：任务 ID、状态、源码提交、配置/版本、验收用例、报告位置、已知限制、阻塞解除条件。执行细节及敏感报告放受控存储，仓库只保留脱敏索引。

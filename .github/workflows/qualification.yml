@@ -3,9 +3,9 @@ name: Qualification component regression
 on:
   push:
     branches: [main]
-    paths: ['apps/runner/resource_broker/**', 'scripts/qualification/**', 'deploy/qualification/**', 'scripts/ci/qualification_components.py', '.github/workflows/qualification.yml', '.gitattributes']
+    paths: ['apps/runner/resource_broker/**', 'apps/runner/console_store.py', 'scripts/qualification/**', 'deploy/qualification/**', 'scripts/ci/qualification_components.py', '.github/workflows/qualification.yml', '.gitattributes']
   pull_request:
-    paths: ['apps/runner/resource_broker/**', 'scripts/qualification/**', 'deploy/qualification/**', 'scripts/ci/qualification_components.py', '.github/workflows/qualification.yml', '.gitattributes']
+    paths: ['apps/runner/resource_broker/**', 'apps/runner/console_store.py', 'scripts/qualification/**', 'deploy/qualification/**', 'scripts/ci/qualification_components.py', '.github/workflows/qualification.yml', '.gitattributes']
   workflow_dispatch:
 
 permissions:

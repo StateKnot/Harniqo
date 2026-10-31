@@ -74,3 +74,6 @@ Linux quota 支持 user/group/project 限额；设置限额的 `Q_SETQUOTA` 和�
 原base、既有libvirt对象和协调锁不变，两份8GiB raw及seed及运行目录仅在宿主停止/归档/身份确认后回收。旧80GiB诊断材料不动。无模型调用、NIC、新TCP监听、sudo、宿主挂载/quota/全局服务或防火墙修改；无新可复用镜像归档。原始报告SHA-256为`88d4738a73ce6d6bfef3fd6097f6014271603f4ec29fa0eb80def583e64adf5d`；[脱敏原生报告](../docs/operations/bounded-console-kvm-2026-10-31.json)包含9份原生源码和15份组件源码摘要。
 
 通过范围为固定v2可信写者console及其超限后的真实VM停止；`host_hard_quotas_verified=false`、`generic_filesystem_quota_verified=false`、`critical_event_spool_verified=false`、`power_loss_recovery_verified=false`。专用UID、完整Egress/授权预算、其他宿主日志、全局容量和宿主OOM仍须单独实现验收。M0仍4/8，M0-05整项不提前接受。
+
+
+本轮[实际资格CI](https://github.com/StateKnot/Harniqo/actions/runs/41181576301)在源码`2d41af6b78f0fd439bcc34ecaba0e0589e3b68e9`通过353项Python、两组Node检查，失败/错误/跳过均0；[同源三平台契约](https://github.com/StateKnot/Harniqo/actions/runs/41181576255)通过，下载报告/source hash已核。[CI摘要](../docs/operations/qualification-ci-bounded-console-2026-10-31.json)与上述原生VM分别计量。随后增补`console_store.py`的push/PR触发路径，现有执行步骤和受测源码不变；不是桌面构建、签名、通用配额或生产出口准入。
