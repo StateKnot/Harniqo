@@ -103,6 +103,16 @@ class BrokerInterfaceTests(unittest.TestCase):
         self.libvirt=LibvirtFixture();self.native_patch=patch.object(native,'_virsh',side_effect=self.libvirt);self.native_patch.start();self.addCleanup(self.native_patch.stop)
         self.broker=self.new_broker()
 
+    def test_console_capacity_stop_is_persistent_and_does_not_stop_other_resource(self):
+        assignments=[self.assignment(index) for index in (0,1)]
+        for assignment in assignments:self.broker.ensure(assignment)
+        stopped=self.broker.revoke(assignments[0].resource_id,'console_capacity_exceeded')
+        self.assertEqual(stopped.stop_cause,'console_capacity_exceeded')
+        self.assertEqual(stopped.stop_evidence.method,'libvirt_destroy_then_absent')
+        fresh=self.new_broker()
+        self.assertEqual(fresh.observe(assignments[0].resource_id),stopped)
+        self.assertEqual(fresh.observe(assignments[1].resource_id).state,'running')
+
     def new_broker(self):
         return ResourceBroker(state_dir=self.root/getattr(self, 'state_name', 'state'),templates=self.templates,issuer_key_file=self.key_file,
             images_root=self.images,channel_root=self.channels,max_lease_seconds=300)

@@ -1,0 +1,413 @@
+{
+  "qualification": "M0-05-bounded-console-stop",
+  "run_id": "74336c2285a8",
+  "passed": true,
+  "started_at": "2026-10-31T07:26:11Z",
+  "finished_at": "2026-10-31T07:28:50Z",
+  "checks": {
+    "workspace_busy": true,
+    "repeat_ensure_same_uuids": true,
+    "only_two_owned_domains": true,
+    "runtime_qemu_socket_observed": true,
+    "guest_checks": true,
+    "a_live_after_launcher_exit": true,
+    "console_storage_reserved": true,
+    "console_progress_identity_stable": true,
+    "b_healthy_during_console_pressure": true,
+    "console_capacity_failure_latched": true,
+    "console_no_overshoot": true,
+    "console_broker_stop_confirmed": true,
+    "console_stop_tombstone_rebuilt": true,
+    "console_old_authorization_rejected": true,
+    "b_healthy_after_console_stop": true,
+    "independent_watch_survives_launcher": true,
+    "b_restart_deadline_stop": true,
+    "no_revival_or_replacement": true,
+    "disks_retained_until_host_stop": true,
+    "console_archives_explicit": true,
+    "console_retained_archive_matches": true,
+    "qualification_limits_frozen": true
+  },
+  "base_sha256": "04e8f2461a16a44e78a370284471f29616cdd9baf1893df25807b71f985b6c94",
+  "resource_profile": "sealed-raw8g-q35-limited-v2",
+  "workers_confirmed_exited": true,
+  "baseline_unchanged": true,
+  "base_unchanged": true,
+  "sources_unchanged": true,
+  "coordination_lock_unchanged": true,
+  "temporary_files_removed": true,
+  "milestone_complete": false,
+  "dedicated_service_identity_verified": false,
+  "production_egress_verified": false,
+  "global_fencing_verified": false,
+  "real_model_calls": 0,
+  "source_sha256": {
+    "scripts/qualification/qualify_resource_broker.py": "e6cace9ddb193776f1438e797e740472aac8d964c875d2eee818a734456702e7",
+    "scripts/qualification/qualify_kvm.py": "f49bd3eb3e67fbaf451607b17961582f6398859abe0e57bebab463943e8bc152",
+    "scripts/qualification/qualify_kvm_network.py": "00634de6710f39ee8d39362a6d4018d268346dffa7f63dc690031efc1849105d",
+    "scripts/qualification/kvm_host_policy.py": "e415cf611e49057e46d0469516635a24f196a5319190e9a7f9d0a0789e8407d3",
+    "apps/runner/resource_broker/__init__.py": "765153df1e3cd92f3d37f19dc441a6f6871bc0dda3851d6075371082fa5fec2d",
+    "apps/runner/resource_broker/resources.py": "3c3a15339f0440d22c16b5f26ca8310635ce99e08abb2d63b0290b6d536a26b3",
+    "scripts/qualification/guest_memory_pressure.py": "8d0398ba447799d55bce41f738d80559341e5f8e1ad072483345f33d192b4479",
+    "scripts/qualification/console_pressure.py": "e24b565fcbe69c880a1a7b7b80fcb6cfa2f963a70a33635541994746630ce1e7",
+    "apps/runner/console_store.py": "4fe2ba401ecb7846c2bbbd6008ed680d0fc9a001ee8abb99398ca22a32a8e4f4"
+  },
+  "host_cpu_memory_limits_verified": true,
+  "host_hard_quotas_verified": false,
+  "memory_exhaustion_verified": false,
+  "guest_memory_exhaustion_verified": false,
+  "host_qemu_oom_verified": false,
+  "external_vm_stop_recovery_verified": false,
+  "bounded_console_writer_verified": true,
+  "console_failure_vm_stop_verified": true,
+  "a_live_after_launcher_exit_at": 1793431705.7544718,
+  "b_live_before_broker_restart_at": 1793431729.0124214,
+  "scope": "fixed_v2_reserved_raw_console_and_owned_vm_capacity_stop_only",
+  "environment": {
+    "kernel": "7.0.0-38-generic",
+    "python": "3.12.3",
+    "libc": [
+      "glibc",
+      "2.39"
+    ]
+  },
+  "qualification_limits": {
+    "virtual_machines": 2,
+    "console_bytes_per_vm": 2097152,
+    "guest_stage_bytes": 131072,
+    "guest_stage_count": 3,
+    "guest_final_burst_bytes": 3145728,
+    "guest_write_chunk_bytes": 4096,
+    "guest_a_total_seconds": 100,
+    "guest_b_control_seconds": 120,
+    "guest_a_independent_alarm_seconds": 100,
+    "guest_command_bytes": 128,
+    "host_pressure_seconds": 40,
+    "readiness_seconds": 10,
+    "stage_seconds": 8,
+    "challenge_seconds_including_write": 3,
+    "control_write_seconds": 2,
+    "console_receive_chunk_bytes": 8192,
+    "console_drain_seconds": 10,
+    "source_payload_reserved_bytes": 4194304,
+    "maximum_source_plus_archive_payload_bytes": 8388608
+  },
+  "qualification_limits_sha256": "658645955ec6c5ba62a5157f5bcb8db89e04091c125619b318ba0d8f05ec9655",
+  "limits_manifest_saved_before_dispatch": true,
+  "report_sha256": "88d4738a73ce6d6bfef3fd6097f6014271603f4ec29fa0eb80def583e64adf5d",
+  "errors": 0,
+  "cleanup_errors": 0,
+  "guest_check_details": [
+    {
+      "kvm_guest": true,
+      "one_vcpu": true,
+      "one_gib_visible": true,
+      "disk_capacity": true,
+      "no_nic": true,
+      "no_external_default_route": true,
+      "no_host_socket": true,
+      "no_shared_filesystem": true,
+      "no_host_workspace": true,
+      "canary_valid": true,
+      "other_canary_absent": true
+    },
+    {
+      "kvm_guest": true,
+      "one_vcpu": true,
+      "one_gib_visible": true,
+      "disk_capacity": true,
+      "no_nic": true,
+      "no_external_default_route": true,
+      "no_host_socket": true,
+      "no_shared_filesystem": true,
+      "no_host_workspace": true,
+      "canary_valid": true,
+      "other_canary_absent": true
+    }
+  ],
+  "launcher_kill": {
+    "signal": "SIGKILL",
+    "confirmed_exit_at": 1793431705.7445645
+  },
+  "watch_kill": {
+    "signal": "SIGKILL",
+    "confirmed_exit_at": 1793431722.9908755
+  },
+  "console_pressure": {
+    "seconds": 16.37647759000538,
+    "stages": [
+      {
+        "stage": 1,
+        "bytes_before": 81464,
+        "bytes_after": 213721
+      },
+      {
+        "stage": 2,
+        "bytes_before": 213721,
+        "bytes_after": 345978
+      },
+      {
+        "stage": 3,
+        "bytes_before": 345978,
+        "bytes_after": 478235
+      }
+    ],
+    "a_at_failure": {
+      "capacity_bytes": 2097152,
+      "reserved_bytes": 2097152,
+      "reservation_mode": "linux_fallocate_keep_size",
+      "bytes_saved": 2097075,
+      "durable_bytes": 2097075,
+      "bytes_seen": 2097169,
+      "rejected_bytes": 94,
+      "failure_code": "console_capacity_exceeded"
+    },
+    "qemu_identity_stable": true,
+    "b_three_causal_challenges_verified": true,
+    "b_after_quota_before_stop_verified": true,
+    "b_after_physical_stop_verified": true,
+    "before": [
+      {
+        "cpu_period_usec": 100000,
+        "cpu_quota_usec": 100000,
+        "memory_max_bytes": 2147483648,
+        "swap_max_bytes": 2147483648,
+        "memory_current_bytes": 463020032,
+        "memory_peak_bytes": 464474112,
+        "memory_events": {
+          "low": 0,
+          "high": 0,
+          "max": 0,
+          "oom": 0,
+          "oom_kill": 0,
+          "oom_group_kill": 0,
+          "sock_throttled": 0
+        },
+        "verified_threads": 23
+      },
+      {
+        "cpu_period_usec": 100000,
+        "cpu_quota_usec": 100000,
+        "memory_max_bytes": 2147483648,
+        "swap_max_bytes": 2147483648,
+        "memory_current_bytes": 469024768,
+        "memory_peak_bytes": 469471232,
+        "memory_events": {
+          "low": 0,
+          "high": 0,
+          "max": 0,
+          "oom": 0,
+          "oom_kill": 0,
+          "oom_group_kill": 0,
+          "sock_throttled": 0
+        },
+        "verified_threads": 21
+      }
+    ],
+    "after": [
+      {
+        "cpu_period_usec": 100000,
+        "cpu_quota_usec": 100000,
+        "memory_max_bytes": 2147483648,
+        "swap_max_bytes": 2147483648,
+        "memory_current_bytes": 460947456,
+        "memory_peak_bytes": 464474112,
+        "memory_events": {
+          "low": 0,
+          "high": 0,
+          "max": 0,
+          "oom": 0,
+          "oom_kill": 0,
+          "oom_group_kill": 0,
+          "sock_throttled": 0
+        },
+        "verified_threads": 23
+      },
+      {
+        "cpu_period_usec": 100000,
+        "cpu_quota_usec": 100000,
+        "memory_max_bytes": 2147483648,
+        "swap_max_bytes": 2147483648,
+        "memory_current_bytes": 466907136,
+        "memory_peak_bytes": 469471232,
+        "memory_events": {
+          "low": 0,
+          "high": 0,
+          "max": 0,
+          "oom": 0,
+          "oom_kill": 0,
+          "oom_group_kill": 0,
+          "sock_throttled": 0
+        },
+        "verified_threads": 21
+      }
+    ]
+  },
+  "console_stop": {
+    "cause": "console_capacity_exceeded",
+    "intent_at": 1793431722.261316,
+    "host_stop_confirmed_at": 1793431722.6343782,
+    "stop_method": "libvirt_destroy_then_absent",
+    "rebuilt_observation_equal": true,
+    "old_assignment": {
+      "rejected": true,
+      "code": "generation_stale"
+    },
+    "old_grant": {
+      "rejected": true,
+      "code": "resource_terminal"
+    }
+  },
+  "console_logs": [
+    {
+      "connected": true,
+      "stream_closed": true,
+      "bytes_seen": 2098309,
+      "bytes_saved": 2097075,
+      "durable_bytes": 2097075,
+      "discarded_bytes": 1234,
+      "truncated": true,
+      "saved": true,
+      "closed": true,
+      "boot_attempted": true,
+      "limit_bytes": 2097152,
+      "reserved_bytes": 2097152,
+      "reservation_mode": "linux_fallocate_keep_size",
+      "failure_code": "console_capacity_exceeded",
+      "archive_bytes": 2097075,
+      "archive_durable_bytes": 2097075,
+      "archive_reserved_bytes": 2097152,
+      "source_sha256": "a5a4030dea42aaa4705bef96c5182555770503fa0b8b54d812f427dbfa27d8b5",
+      "archive_sha256": "a5a4030dea42aaa4705bef96c5182555770503fa0b8b54d812f427dbfa27d8b5"
+    },
+    {
+      "connected": true,
+      "stream_closed": true,
+      "bytes_seen": 81939,
+      "bytes_saved": 81939,
+      "durable_bytes": 81939,
+      "discarded_bytes": 0,
+      "truncated": false,
+      "saved": true,
+      "closed": true,
+      "boot_attempted": true,
+      "limit_bytes": 2097152,
+      "reserved_bytes": 2097152,
+      "reservation_mode": "linux_fallocate_keep_size",
+      "failure_code": null,
+      "archive_bytes": 81939,
+      "archive_durable_bytes": 81939,
+      "archive_reserved_bytes": 2097152,
+      "source_sha256": "1cb91a545f00fb5ffeb05f1da58ff230127f9d9f8f4616f32c3e242b205216b9",
+      "archive_sha256": "1cb91a545f00fb5ffeb05f1da58ff230127f9d9f8f4616f32c3e242b205216b9"
+    }
+  ],
+  "console_source_archive_identities_and_sha256_verified": true,
+  "journal_archive": {
+    "anchor_hmac_valid": true,
+    "journal_hmac_valid": true,
+    "bindings_match": true,
+    "private_file_metadata": {
+      "anchor.json": {
+        "bytes": 288,
+        "mode": "0600",
+        "sha256": "6e259ae2d9c36746c470f09733f9d90de87d32535eb599dcd88ff0adc93ff24c"
+      },
+      "journal.json": {
+        "bytes": 3994,
+        "mode": "0600",
+        "sha256": "d9c1814cd78a0f58f8a5925629c205a16216c4cf431012ad19be2a9af64bbaae"
+      }
+    },
+    "terminal_records": {
+      "sealed-a": {
+        "state": "stopped",
+        "generation": 2,
+        "method": "libvirt_destroy_then_absent",
+        "lease_expires_at": 1793431825.4160595,
+        "host_stop_confirmed_at": 1793431722.6343782,
+        "ownership_xml_hmac_valid": true,
+        "workspace_epoch_matches": true,
+        "stop_binding_matches": true
+      },
+      "sealed-b": {
+        "state": "stopped",
+        "generation": 3,
+        "method": "libvirt_destroy_then_absent",
+        "lease_expires_at": 1793431727.891709,
+        "host_stop_confirmed_at": 1793431729.414384,
+        "ownership_xml_hmac_valid": true,
+        "workspace_epoch_matches": true,
+        "stop_binding_matches": true
+      }
+    }
+  },
+  "date_local": "2026-10-31",
+  "timezone": "Asia/Shanghai",
+  "status": "VERIFIED",
+  "milestone_status": "M0-05 IN_PROGRESS; M0 4/8 ACCEPTED",
+  "filesystem_scope": "observed local Linux filesystem; no project quota or remount",
+  "critical_event_spool_verified": false,
+  "generic_filesystem_quota_verified": false,
+  "power_loss_recovery_verified": false,
+  "component_tests": {
+    "designated_server": {
+      "scope": "affected_bounded_console_broker_and_qualification_components_only",
+      "python": "3.12.3",
+      "tests": 180,
+      "suites": {
+        "test_console_store.py": 26,
+        "test_console_pressure.py": 10,
+        "test_qualify_kvm.py": 11,
+        "test_qualify_kvm_network.py": 6,
+        "test_resource_broker.py": 56,
+        "test_resource_broker_operator.py": 22,
+        "test_resource_pressure.py": 7,
+        "test_guest_memory_pressure.py": 42
+      },
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "passed": true,
+      "seconds": 2.5999919140012935,
+      "vm_started": false,
+      "host_tcp_listener_started": false,
+      "real_model_calls": 0,
+      "source_sha256": {
+        "scripts/qualification/test_console_store.py": "f1e89e0c5b190b7c8f9a6e27b457df6e5b909361b56da64d8f8bcb36267b60b7",
+        "scripts/qualification/test_console_pressure.py": "97f0407369a839503c14abac9a5b6fb0b8404186bc7c9cc7703650e8dd1050cb",
+        "scripts/qualification/test_qualify_kvm.py": "60306382a585a24c36ba6ba4828ecb81a76e0c928c1babcedaa468a22e96b768",
+        "scripts/qualification/test_qualify_kvm_network.py": "a1a3349f06415635cf35f4a413c4f34c494720f397f62ef905fe8d0e5c01f14f",
+        "scripts/qualification/test_resource_broker.py": "c664d5a31bd490ddbfeda736f2988cc3af67346494951a9f861557ff40e007d2",
+        "scripts/qualification/test_resource_broker_operator.py": "53511f1d58608895db1d43e4776b8430c3922eebc9654dcfd5a42b0806062c6f",
+        "scripts/qualification/test_resource_pressure.py": "2783714a84835c60cac320e8ef0b22f015f917c19246e7ef7549f54575af5418",
+        "scripts/qualification/test_guest_memory_pressure.py": "2c3727da46593b3a13d6aa85c55b0e61e83b5b202c5f654b4b38ef94033d39a7",
+        "scripts/qualification/qualify_resource_broker.py": "e6cace9ddb193776f1438e797e740472aac8d964c875d2eee818a734456702e7",
+        "scripts/qualification/guest_memory_pressure.py": "8d0398ba447799d55bce41f738d80559341e5f8e1ad072483345f33d192b4479",
+        "scripts/qualification/qualify_kvm.py": "f49bd3eb3e67fbaf451607b17961582f6398859abe0e57bebab463943e8bc152",
+        "scripts/qualification/console_pressure.py": "e24b565fcbe69c880a1a7b7b80fcb6cfa2f963a70a33635541994746630ce1e7",
+        "apps/runner/console_store.py": "4fe2ba401ecb7846c2bbbd6008ed680d0fc9a001ee8abb99398ca22a32a8e4f4",
+        "apps/runner/resource_broker/__init__.py": "765153df1e3cd92f3d37f19dc441a6f6871bc0dda3851d6075371082fa5fec2d",
+        "apps/runner/resource_broker/resources.py": "3c3a15339f0440d22c16b5f26ca8310635ce99e08abb2d63b0290b6d536a26b3"
+      },
+      "independent_process_lock_probe": {
+        "case": "test_console_store.ConsoleNativeTests.test_independent_process_is_excluded_until_writer_owner_closes",
+        "child_processes": 2,
+        "separate_interpreters": true,
+        "same_device_inode_bound": true,
+        "blocked_before_close_and_acquired_after": true
+      }
+    }
+  },
+  "review": {
+    "standards": "previous archive reservation/digest findings resolved; no remaining blocker",
+    "spec": "previous archive verification/blocked-output deadline findings resolved; no remaining actionable finding"
+  },
+  "limitations": [
+    "fixed limited-v2 two-VM raw-console configuration only",
+    "trusted writer-owned per-stream byte cap, not kernel filesystem/project quota",
+    "authority journal, SQLite event spool, libvirt logs and global storage admission remain separate",
+    "no Host QEMU OOM, dedicated UID, complete egress, control-plane authorization or budget acceptance",
+    "filesystem metadata is outside the payload byte cap; advisory locks assume a trusted host owner"
+  ]
+}

@@ -42,3 +42,5 @@ Octop Harness实际image ID为`sha256:714e015d1c1281e1c91bd2ae67f39191b99c408eb7
 
 
 2026-10-31 Guest内存故障资格复用同一已核Canonical base与固定v2，不新增可复用镜像或工具链归档，私有manifest仍为12项。三组FAILED及最终通过组各自使用`vm/instances/`下独立8GiB raw/seed；均按本组宿主停止/日志归档证据精确回收，原始失败报告与旧未知派发材料保留。Guest临时监督脚本与log只写各自Guest/run，未写入只读base或其他实例；不能把已回收运行写层登记成生产基础镜像。[实际范围与结果](../research/m0-guest-memory-failure.md)。
+
+2026-10-31有界console资格复用同一Canonical base与固定v2，私有manifest仍12项。两份8GiB raw/seed位于`vm/instances/`本组目录，宿主停止/归档核对后精确回收；不新增基础镜像或工具链。console位于私有运行目录，原始归档留私有报告，源/归档各有独立容量预留；不混入`images/`镜像清单或声称通用文件系统quota通过。[本轮结果](../research/m0-bounded-console.md)。

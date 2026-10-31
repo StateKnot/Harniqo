@@ -40,6 +40,7 @@ CONNECTION = 'qemu:///system'
 LEGACY_PROFILE = 'sealed-raw8g-q35-v1'
 LIMITED_PROFILE = 'sealed-raw8g-q35-limited-v2'
 STOP_CAUSES = frozenset({'cancelled', 'qualification_cleanup', 'stop_intent', 'stop_retry',
+    'console_capacity_exceeded',
     'terminal_resource_reappeared', 'lease_expired_or_clock_changed',
     'lease_expired_during_observation', 'lease_expired_during_persistence',
     'lease_expired_during_renewal', 'lease_expired_during_resource_sample'})

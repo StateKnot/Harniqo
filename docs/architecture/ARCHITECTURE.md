@@ -201,6 +201,12 @@ Resource Broker 独立于 Supervisor 持久保存并检查权威截止时间，�
 
 Runner spool 有配额、落盘确认和重传游标；guest 的 critical event 在控制面 committed ACK 前保留。Runner “已接收”与控制面“已提交”不是同一种 ACK。SQLite spool 使用本地文件系统、WAL + FULL 同步及有界 checkpoint，核验实际嵌入的 SQLite 已修复 WAL-reset 问题（3.51.3+ 或官方已修复分支）；不放在网络共享文件系统。大轨迹分块进入对象存储并校验后才发布引用。缓冲耗尽必须限流、暂停或停止执行并显示原因，不静默丢审批/终态事件。[SQLite WAL](https://www.sqlite.org/wal.html)
 
+原始console字节独立交给[有界console Module](../../apps/runner/CONSOLE.md)：可信宿主
+写者先实际预留固定容量，逐次同步，容量/I/O失败锁存并交回已绑定资源的撤销流程。
+原始前缀与归档的长度/摘要/身份分别核对，失败日志不能标完整。该Module没有事件
+ACK、重传或崩溃续接语义，不替代上述SQLite spool；通用文件系统quota和其他宿主
+日志仍需各自准入。
+
 committed ACK 按 `(attempt_id, stream_id)` 返回最高连续提交的 `source_seq`，不能以最大序号跨过缺口。乱序事件保留、缺口重传，Runner/guest 只删除已确认范围；原始块需对象校验及数据库引用均完成后确认。物理宿主损坏导致未提交尾部确实无法恢复时，明确标注轨迹不完整，不伪造连续历史。
 
 SSE 用 `id`/`Last-Event-ID` 携带游标，持久数据仍来自数据库；NOTIFY 仅唤醒读取。任务中心先使用授权快照、ETag 和低频刷新，不共享一个可能漏提交的全局文本流游标。游标过期返回 `CURSOR_EXPIRED`；`readSnapshot` 在同一数据库一致性快照中返回 projection 和 `last_seq`，客户端从该 seq 补取并跟随，不能先读快照再取一个更晚游标。订阅建立和历史补取交叠时靠事件 ID 去重，并定期按 cursor 查持久记录，不因通知丢失漏事件。[SSE 规范](https://html.spec.whatwg.org/multipage/server-sent-events.html)

@@ -194,7 +194,7 @@ class ReportChannelIntegrationTests(unittest.TestCase):
         options = {} if retain is None else {'retain_report_channels': retain}
         streams = operator.kvm.GuestStreams(self.instances, Path(temporary.name), 1, logs, **options)
         for log in logs:
-            self.addCleanup(os.close, log['fd'])
+            self.addCleanup(log.close)
         self.addCleanup(streams._close)
         peers = {}
         hosts = {}

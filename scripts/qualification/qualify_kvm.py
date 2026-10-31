@@ -22,11 +22,17 @@ import selectors
 import signal
 import shutil
 import socket
+import stat
 import subprocess
 import sys
 import time
 import uuid
 import xml.etree.ElementTree as ET
+
+REPO = Path(__file__).resolve().parents[2]
+if str(REPO) not in sys.path:
+    sys.path.insert(0, str(REPO))
+from apps.runner.console_store import BoundedConsole, ConsoleStoreError
 
 
 CONNECTION = "qemu:///system"
@@ -321,6 +327,47 @@ def listener_at(path: Path) -> socket.socket:
         raise
 
 
+class GuestConsoleError(RuntimeError):
+    """Expose a safe, resource-bound sink failure once to the execution owner."""
+
+    def __init__(self, instance_uuid: str, failure_code: str):
+        self.instance_uuid = instance_uuid
+        self.failure_code = failure_code
+        super().__init__(f"Guest console failed: {instance_uuid}: {failure_code}")
+
+
+class ConsoleLog(dict):
+    """Serializable evidence metadata; the sink alone owns its descriptors.
+
+    The non-mapping attribute keeps the runtime object out of report JSON and
+    lets archival close the same owner after exporting its durable prefix.
+    """
+
+    def __init__(self, sink: BoundedConsole, metadata: dict):
+        super().__init__(metadata)
+        self.sink = sink
+
+    def close(self) -> None:
+        try:
+            self.sink.close()
+        finally:
+            self["closed"] = True
+
+
+def console_directory(work: Path) -> Path:
+    path = work / "console-logs"
+    no_symlinks(path)
+    try:
+        path.mkdir(mode=0o700)
+    except FileExistsError:
+        pass
+    info = path.lstat()
+    if (not stat.S_ISDIR(info.st_mode) or info.st_uid != os.geteuid()
+            or stat.S_IMODE(info.st_mode) != 0o700):
+        raise RuntimeError("Console log directory must be privately owned with mode 0700")
+    return path
+
+
 class GuestStreams:
     """Collect JSON reports and bounded serial bytes through separate host-owned sockets."""
 
@@ -330,27 +377,41 @@ class GuestStreams:
         self.retain_report_channels = retain_report_channels
         self.report_channels: dict[str, socket.socket] = {}
         self.logs: dict[str, dict] = {}
+        self.sinks: dict[str, BoundedConsole] = {}
         self.connections: set[socket.socket] = set()
         self.buffers: dict[socket.socket, bytearray] = {}
         self.accepted: set[tuple[str, str]] = set()
         self.selector = selectors.DefaultSelector()
         self.closed = False
         try:
+            directory = console_directory(work)
             for instance in instances:
-                path = work / f"{instance['name']}-round-{round_index}-console.log"
-                descriptor = os.open(path, os.O_RDWR | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
-                os.fchmod(descriptor, 0o600)
-                info = os.fstat(descriptor)
-                log = {"instance_uuid": instance["uuid"], "round": round_index, "source_path": path,
-                       "fd": descriptor, "inode": (info.st_dev, info.st_ino), "limit_bytes": MAX_CONSOLE_BYTES,
+                path = directory / f"{instance['name']}-round-{round_index}-console.log"
+                sink = BoundedConsole.create(path, capacity_bytes=MAX_CONSOLE_BYTES)
+                self.sinks[instance["uuid"]] = sink
+                receipt = sink.snapshot()
+                log = ConsoleLog(sink, {"instance_uuid": instance["uuid"], "round": round_index, "source_path": path,
+                       "fd": sink.fd, "inode": sink.identity, "limit_bytes": MAX_CONSOLE_BYTES,
+                       "reserved_bytes": receipt["reserved_bytes"], "durable_bytes": 0,
+                       "reservation_mode": receipt["reservation_mode"],
                        "boot_attempted": False, "connected": False, "stream_closed": False,
-                       "bytes_seen": 0, "bytes_saved": 0, "discarded_bytes": 0, "truncated": False}
+                       "bytes_seen": 0, "bytes_saved": 0, "discarded_bytes": 0, "truncated": False,
+                       "failure_code": None, "failure_exposed": False, "closed": False})
                 logs.append(log)
                 self.logs[instance["uuid"]] = log
                 for role, listener_key in [("report", "listener"), ("console", "console_listener")]:
                     self.selector.register(instance[listener_key], selectors.EVENT_READ, (instance, role, True))
         except BaseException:
             self._close()
+            # No guest has started: release every partially prepared sink. Never
+            # close the exposed read-only fd independently of its runtime owner.
+            for sink in self.sinks.values():
+                try:
+                    sink.close()
+                except ConsoleStoreError:
+                    pass
+            for log in self.logs.values():
+                log["closed"] = True
             raise
 
     def mark_start(self, instance: dict) -> None:
@@ -390,16 +451,27 @@ class GuestStreams:
             if role == "console":
                 log = self.logs[instance["uuid"]]
                 log["bytes_seen"] += len(chunk)
-                saved = chunk[:max(0, MAX_CONSOLE_BYTES - log["bytes_saved"])]
-                view = memoryview(saved)
-                while view:
-                    written = os.write(log["fd"], view)
-                    if written <= 0:
-                        raise RuntimeError("Console log write made no progress")
-                    log["bytes_saved"] += written
-                    view = view[written:]
+                error = None
+                if log["failure_code"] is None:
+                    sink = self.sinks[instance["uuid"]]
+                    try:
+                        sink.append(chunk)
+                    except ConsoleStoreError as caught:
+                        log["failure_code"] = caught.code
+                        error = caught
+                    finally:
+                        # Only bytes whose append completed its fsync are
+                        # visible to pressure probes as collected evidence.
+                        log["bytes_saved"] = sink.durable_bytes
+                        log["durable_bytes"] = sink.durable_bytes
                 log["discarded_bytes"] = log["bytes_seen"] - log["bytes_saved"]
                 log["truncated"] = log["discarded_bytes"] > 0
+                if error is not None:
+                    log["failure_exposed"] = True
+                    raise GuestConsoleError(instance["uuid"], error.code) from None
+                # A failed stream is still drained in bounded recv chunks. Its
+                # first failure already reached the owner; retrying it must not
+                # prevent another guest's health/report or cleanup EOF.
                 continue
             self.buffers[connection].extend(chunk)
             if len(self.buffers[connection]) > MAX_FRAME:
@@ -456,32 +528,105 @@ class GuestStreams:
 
 
 def save_console(log: dict, reports: Path) -> None:
-    """Archive the host's log inode; QEMU never receives this file's path or descriptor."""
+    """Reserve an independent archive, read it back, then release both owners.
+
+    Partial failed writes remain useful private forensics. They are explicitly
+    outside durable_bytes and never become successfully collected probe data.
+    """
+    if not isinstance(log, ConsoleLog):
+        raise RuntimeError("Console evidence requires its runtime sink owner")
+    log["saved"] = False
     descriptor = log["fd"]
+    archive = None
+    archive_closed = False
+
+    def close_archive() -> None:
+        nonlocal archive_closed
+        if archive is not None and not archive_closed:
+            try:
+                archive.close()
+            finally:
+                archive_closed = True
+
+    def prefix_digest(fd: int, size: int, incomplete_code: str) -> str:
+        digest = hashlib.sha256()
+        offset = 0
+        while offset < size:
+            chunk = os.pread(fd, min(64 * 1024, size - offset), offset)
+            if not chunk:
+                raise ConsoleStoreError(incomplete_code)
+            digest.update(chunk)
+            offset += len(chunk)
+        if os.pread(fd, 1, size):
+            raise ConsoleStoreError("console_archive_length_mismatch")
+        return digest.hexdigest()
+
     try:
-        os.fsync(descriptor)
+        receipt = log.sink.snapshot()
         info = os.fstat(descriptor)
         current = log["source_path"].lstat()
         if ((info.st_dev, info.st_ino) != log["inode"]
                 or (current.st_dev, current.st_ino) != log["inode"]
                 or info.st_uid != os.geteuid() or info.st_mode & 0o777 != 0o600
-                or info.st_size != log["bytes_saved"] or info.st_size > MAX_CONSOLE_BYTES):
+                or info.st_size != receipt["bytes_saved"] or info.st_size > log["limit_bytes"]
+                or receipt["durable_bytes"] != log["bytes_saved"]):
             raise RuntimeError("Host console log identity, permissions or bounded size differs")
-        os.lseek(descriptor, 0, os.SEEK_SET)
         destination = reports / log["source_path"].name
-        output_fd = os.open(destination, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
-        os.fchmod(output_fd, 0o600)
-        with os.fdopen(output_fd, "wb") as output:
-            while chunk := os.read(descriptor, 1024**2):
-                output.write(chunk)
-            output.flush()
-            os.fsync(output.fileno())
+        archive = BoundedConsole.create(destination, capacity_bytes=log["limit_bytes"])
         log["archive_path"] = str(destination)
+        log["archive_reserved_bytes"] = archive.snapshot()["reserved_bytes"]
+        source_digest = hashlib.sha256()
+        offset = 0
+        while offset < receipt["bytes_saved"]:
+            chunk = os.pread(descriptor, min(64 * 1024, receipt["bytes_saved"] - offset), offset)
+            if not chunk:
+                raise ConsoleStoreError("console_archive_source_incomplete")
+            source_digest.update(chunk)
+            archive.append(chunk)
+            offset += len(chunk)
+        log["source_sha256"] = source_digest.hexdigest()
+        archived = archive.snapshot()
+        if (archived["bytes_saved"] != receipt["bytes_saved"]
+                or archived["durable_bytes"] != receipt["bytes_saved"]
+                or archived["failure_code"] is not None):
+            raise ConsoleStoreError("console_archive_length_mismatch")
+        log["archive_sha256"] = prefix_digest(archive.fd, receipt["bytes_saved"],
+                                               "console_archive_readback_incomplete")
+        if log["source_sha256"] != log["archive_sha256"]:
+            raise ConsoleStoreError("console_archive_digest_mismatch")
+        # A same-size source mutation during export must also fail rather than
+        # allowing a mixture of different observations to become exact proof.
+        after = log.sink.snapshot()
+        if (after["bytes_saved"] != receipt["bytes_saved"]
+                or after["durable_bytes"] != receipt["durable_bytes"]
+                or prefix_digest(descriptor, receipt["bytes_saved"], "console_archive_source_incomplete")
+                   != log["source_sha256"]):
+            raise ConsoleStoreError("console_archive_source_changed")
+        # Verify the archive path, read-only fd, permissions, nlink, natural EOF
+        # and reserved allocation again after its bounded digest readback.
+        archive.snapshot()
+        log["archive_bytes"] = receipt["bytes_saved"]
+        log["archive_durable_bytes"] = receipt["durable_bytes"]
         if log["boot_attempted"] and not (log["connected"] and log["bytes_seen"] and log["stream_closed"]):
             raise RuntimeError("Boot console evidence requires a nonempty connection drained through EOF")
+        # Each owner validates and fsyncs before releasing its descriptors. A
+        # newly observed archive/source failure must not produce saved=True.
+        close_archive()
+        log.close()
         log["saved"] = True
-    finally:
-        os.close(descriptor)
+    except BaseException as error:
+        log["archive_failure_code"] = (error.code if isinstance(error, ConsoleStoreError)
+                                       else "console_archive_failed")
+        try:
+            close_archive()
+        except ConsoleStoreError as close_error:
+            log["archive_close_failure_code"] = close_error.code
+        if not log["closed"]:
+            try:
+                log.close()
+            except ConsoleStoreError as close_error:
+                log["close_failure_code"] = close_error.code
+        raise
 
 
 class RoundEvidence:

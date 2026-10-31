@@ -179,3 +179,12 @@ Node主项目为MIT，但实际archive的完整`LICENSE`包含所带第三方条
 ## 2026-10-31 Guest 内存故障资格增量
 
 Guest OOM/外部VM终止资格仅增加Harniqo自有Python标准库源码与测试，使用既有固定Canonical Guest、libvirt/QEMU和Linux内核接口，无新pip/npm包、宿主工具安装或可分发二进制。`ctypes`调用的是该Guest已有libc的`prctl`；不会因使用标准库而把Guest OS组件概括为Harniqo MIT。既有v1/v2生产策略及Broker源码不改；原生证据、此前失败和合成回归按[本轮记录](../../research/m0-guest-memory-failure.md)分别登记。镜像来源、许可和未来发行SBOM门槛保持原要求。
+
+## 2026-10-31 有界 console 增量
+
+[正式 console Module](../../apps/runner/CONSOLE.md)及其资格脚本/测试属于Harniqo自有
+Python标准库源码，无新pip/npm依赖或二进制归档。宿主`ctypes`调用既有Linux libc
+的`fallocate(FALLOC_FL_KEEP_SIZE)`；文件系统、glibc、内核、QEMU及Guest组件继续
+按各自来源/许可管理，未复制其实现或重新标注为MIT。固定v1/v2配置不迁移；Broker
+仅增加有限停止原因`console_capacity_exceeded`，其持久终态不能用不认识该原因的
+旧二进制直接回退。实例和原始证据仍留受控存储；未来发行仍需实际SBOM/NOTICE。

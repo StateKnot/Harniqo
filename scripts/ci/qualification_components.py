@@ -33,6 +33,8 @@ TESTS = (
     'test_resource_broker_operator.py',
     'test_resource_pressure.py',
     'test_guest_memory_pressure.py',
+    'test_console_store.py',
+    'test_console_pressure.py',
 )
 
 

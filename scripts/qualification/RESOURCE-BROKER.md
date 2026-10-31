@@ -92,3 +92,30 @@ A先完成原sealed检查，再在其Guest内用nonce命名的transient service�
 完成上述证据后，受信资格操作者才对已由正式Broker核对的A精确UUID注入一次外部`virsh destroy`；该操作只用于故障注入。正式Module必须通过真实宿主absence产生`libvirt_absent_after_confirmed_start`，重构后同一停止证据仍在，旧Assignment/Grant均不能复活A。B继续执行watch SIGKILL与持久期限重建停止。两类停止原因、console、journal/anchor及源码快照独立保留；不能把外部终止写成Guest OOM杀掉了QEMU。
 
 此用例无NIC、无新增TCP监听、无模型调用，不更改宿主sysctl/cgroup/swap、全局服务或防火墙。公开证据仅表示固定v2的Guest耗尽和外部终止恢复；不证明宿主QEMU OOM、完整存储/spool硬配额、专用服务身份、Egress或控制面授权/预算。细化门槛与来源见[本轮研究](../../research/m0-guest-memory-failure.md)。
+
+## 显式 console 容量故障资格
+
+共享收集器使用正式 [BoundedConsole Module](../../apps/runner/CONSOLE.md)，在私有
+`console-logs/` 为每条2MiB原始流实际预分配；成功append逐次fsync，超限不再静默
+截断后继续报告正常执行。首次错误绑定已登记UUID，后续有界排空保留另一流与EOF；
+归档保留物理前缀、持久边界和失败标识。
+
+```sh
+python3 scripts/qualification/qualify_resource_broker.py \
+  --root "$HARNIQO_WORKSPACE" --base-image "$HARNIQO_VERIFIED_BASE_IMAGE" \
+  --resource-profile sealed-raw8g-q35-limited-v2 --console-pressure --timeout 150
+```
+
+该flag与Guest内存故障互斥，只接受新建固定v2组。A先完成11项封闭检查，再响应
+宿主新token输出三段各128KiB原始console；每段保存完成后B回答新挑战，然后才
+开始下一段。最终有界3MiB输出必须触发A自己的容量错误，不能用超时或B失败替代。
+宿主通过正式Broker以`console_capacity_exceeded`撤销A，要求真实destroy/absence
+StopEvidence、同一持久终态重建及旧Assignment/Grant拒绝；B在停止前后均有新应答。
+原launcher/watch SIGKILL、B过期期限停止、全部Guest检查、源/基础镜像/既有对象
+不变、完整排空和精确清理仍须通过。
+
+预冻结limits记录流容量、发射字节、期限、读取块及源/归档最多8MiB的payload。
+归档是另一份分配；失败截断不能标成完整console。原始日志和authority材料保留
+私有，本flag不启用文件系统quota、不调整宿主挂载/服务/防火墙，不调用模型。
+它只允许登记有界console和该固定VM的故障停止，不关闭M0-05，也不替代SQLite
+critical-event spool、通用宿主硬配额或磁盘耗尽。[依据与范围](../../research/m0-bounded-console.md)。
