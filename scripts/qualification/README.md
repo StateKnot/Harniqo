@@ -58,3 +58,8 @@ PYTHONDONTWRITEBYTECODE=1 python3 scripts/qualification/test_qualify_kvm.py -v
 - CPU/内存/磁盘耗尽后的宿主限制与回收、负载容量、备份/灾备恢复。
 
 既有 VM 在测试期间被其他人正常启动/停止时，清单比较也会报差异；脚本只报告，不试图把其他人的 VM 改回原状态。基础镜像与本次报告保留，运行写入层不会作为可跨 Trial 复用的基础镜像发布。
+
+
+## 4. 内部 HTTPS 上游传输资格
+
+使用项目锁定的 Node24.22.1 和 `apps/model-egress` 的 integrity-locked 依赖；先检查 `df`，运行 `npm run typecheck` 与 `npm test`。完整命令、前置条件、固定端口、私有 PKI/报告及失败保留规则见 [Module README](../../apps/model-egress/README.md)；真实操作者为 `qualify_egress_transport.mjs`，仅 Linux 普通用户、loopback TCP10020/10021，不启动 VM、不改防火墙、不使用模型凭据。不要把受控 resolver 分支当作真实公网 DNS/供应商验证。脱敏结果见 [原生报告](../../docs/operations/egress-transport-native-2026-10-31.json)。

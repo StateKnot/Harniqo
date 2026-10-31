@@ -371,3 +371,6 @@ CI 从 M1 就覆盖三个原生系统；模块逻辑、真实 PostgreSQL/S3/OIDC
 关键取舍记录于 [ADR-0001](../adr/0001-modular-control-plane.md)、[ADR-0002](../adr/0002-isolated-execution.md)、[ADR-0003](../adr/0003-native-harness-adapters.md)。这些决定约束后续实现；具体版本、模型权限、原生签名资源与真实隔离验证仍按里程碑关闭。
 
 固定本地Resource Broker现已提供显式 `sealed-raw8g-q35-limited-v2`：固定CPU/内存/swap进入签名配置，在 `ensure/observe/renew` 核验真实QEMU身份、全线程与有限控制组；`resource_limits(resource_id)`仅提供宿主私有读样本，不能选择PID/路径或任意配额。v1保留恢复兼容，已登记实例组不能原位换profile。[同源真实结果与范围](../../research/m0-host-resource-limits.md)仅覆盖sealed1GiB模板与CPU压力对照，M0-05整体仍未验收。
+
+
+`apps/model-egress` 已实现可信宿主内部的受限 HTTPS 上游传输 Module，配置冻结后只接受 routeId 与精确方法/路径；内部承担 DNS 答案集策略、单地址固定拨号、原 Host/SNI/TLS、Secret 注入、背压/边界/期限/取消和脱敏收据。它没有面向 Guest 的监听入口，调用方仍须在发起每个操作前完成权威执行授权、撤销/代次核对及预算预留；不得直接把该 Module 暴露为 Guest 任意代理。不可取消的 DNS/Secret/异步响应头依赖在超时返回后仍占用内部许可直至真正结束；取消或断流不能证明供应商停止计费。[接口与证据](../../apps/model-egress/README.md)、[真实结果和来源](../../research/m0-egress-transport.md)仅确认此内部子项，完整 Model Egress 与 M0-05 未验收。

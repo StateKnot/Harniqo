@@ -24,3 +24,6 @@ images/containers/
 images/sources/
 images/vm/
 images/manifest.local.json
+
+# Project-scoped runtime distribution archives
+images/toolchains/

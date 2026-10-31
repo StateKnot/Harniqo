@@ -1,0 +1,21 @@
+{
+  "origin": "https://nodejs.org/dist/v24.22.1/node-v24.22.1-linux-x64.tar.xz",
+  "manifest_origin": "https://nodejs.org/dist/v24.22.1/SHASUMS256.txt",
+  "sha256": "6c172a9ab6718f7b801fb5a7bd486af2ee5e32758086a04b84fcce2aa77095e6",
+  "bytes": 32026916,
+  "version": "v24.22.1",
+  "system": "linux",
+  "architecture": "x64",
+  "license_sha256": "5888dbb9a1d2b18f2c3e6c5f6af1b39de658372b402a0577b002777f14c62ace",
+  "verification": "official_https_manifest_sha256",
+  "release_signature_verified": false,
+  "global_install": false,
+  "completed_at": "2026-10-31T04:21:10Z",
+  "scope": "project_scoped_node_runtime_not_vm_or_container_image",
+  "archive_path": "images/toolchains/node/v24.22.1/node-v24.22.1-linux-x64.tar.xz",
+  "runtime_path": ".state/toolchains/node-v24.22.1-linux-x64",
+  "private_manifest_entries": 12,
+  "previous_manifest_entries_preserved": 11,
+  "redistributed_by_public_repository": false,
+  "complete_binary_distribution_sbom_verified": false
+}

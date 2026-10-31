@@ -154,3 +154,23 @@ Octop出站ACP在原Harness1.0.5的固定上游锁中补`agent-client-protocol0.
 本地 Resource Broker 使用 Python3.12 标准库、系统 libvirt/virsh 与 QEMU，不新增 pip/npm 依赖或镜像来源。模板基于已有 Canonical 签名验证的 Ubuntu base，raw 写入层及 NoCloud seed 是本次运行资源，不作为新的上游基础发行包。HMAC 指派与续约签名是宿主私有授权格式，issuer key 不进入 Guest、镜像或公开报告。具体源版本、原始失败与准入范围见[本轮记录](../../research/m0-resource-broker-qualification.md)。
 
 2026-10-31固定limited-v2增加Linux cgroup v2实际读回，仍仅Python标准库/libvirt/QEMU，无新增pip/npm依赖。明确核验libvirt10的GetNested及swap direct映射；1GiB Guest使用QEMU记账内存2GiB+额外swap2GiB只是本sealed模板验证值，不是任意Harness通用余量。[结果与primary来源](../../research/m0-host-resource-limits.md)。
+
+
+## 2026-10-31 受限 HTTPS 上游传输与 Node 工具链
+
+`apps/model-egress/` 是受信宿主调用的 Model Egress 内部 HTTPS transport，仍按 Harniqo 自有 MIT 源码交付。它不开放 Guest listener，不代表执行授权、预算、OpenBao、VM 出网或内核出口策略已实现。最终指定服务器 Node24.22.1 的严格 TypeScript 与14项 Module回归通过，独立 TLS/HTTP 资格入口30个必需门槛通过；真实连接、配置拒绝及可控 resolver/依赖用例分范围登记，模型调用0。[实现](../../apps/model-egress/README.md)、[原生脱敏结果](../operations/egress-transport-native-2026-10-31.json)、[来源与边界](../../research/m0-egress-transport.md)。
+
+完整依赖图固定于[package-lock.json](../../apps/model-egress/package-lock.json)，SHA-256 `ab45312ad661eb8b38b23e8f63b8fd67983f6a5526626838560a99eba366a4b5`。所有4个发行包均来自锁内明确的 `https://registry.npmjs.org/` tarball URL，并保留完整 SHA-512 SRI；运行安装用 `npm ci --ignore-scripts`，不能以直接版本声明代替该完整锁。以下许可表达式与包内许可文件按实际锁定内容分别登记：
+
+| 包 | 精确版本 | 用途 | 许可与已核包内文件 | 锁定 tarball SRI |
+| --- | --- | --- | --- | --- |
+| ipaddr.js | 2.5.0 | 直接运行依赖 | MIT；包内 `LICENSE` SHA-256 `62568a2d1337b77171ecca9db10579163446de1ba6151678e81f06cdc199971b` | `sha512-aq+t5NAc+cS6rZQQVWC2x98CPqGtKKTMDd4Gaodv0wShnItdKg/51djkGJ1hqH+Oy0ivDftCbSLCQob8zso01w==` |
+| typescript | 6.0.3 | 直接开发/typecheck依赖 | Apache-2.0；包内 `LICENSE.txt` SHA-256 `a7d00bfd54525bc694b6e32f64c7ebcf5e6b7ae3657be5cc12767bce74654a47` | `sha512-y2TvuxSZPDyQakkFRPZHKFm+KKVqIisdg9/CZwm9ftvKXLP8NRWj38/ODjNbr43SsoXqNuAisEf1GdCxqWcdBw==` |
+| @types/node | 24.19.2 | 直接开发类型依赖 | MIT；包内 `LICENSE` SHA-256 `c2cfccb812fe482101a8f04597dfc5a9991a6b2748266c47ac91b6a5aae15383` | `sha512-93d49wCWJkCyN87MxLpNN6KXPCwFw7bVUg79mGUV1OS40JGWwVCr8n61DXCSqz7CV6/VfPkb7xec7uP2M+QHWQ==` |
+| undici-types | 7.24.6 | @types/node 的传递开发类型依赖 | MIT；包内 `LICENSE` SHA-256 `a6db8096b2707bc0102d256917d4d33f298ba36d8c3f25de067a2b5bb379db27` | `sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg==` |
+
+TypeScript包还包含`ThirdPartyNoticeText.txt`，分发开发工具时须保留其适用第三方材料；MIT类型包与ipaddr.js各自保留版权/许可。上述包是依赖引用，不把其实现改标为Harniqo MIT，也不表示尚未构建的发行物已完成SBOM/NOTICE验收。
+
+服务器实际工具链来自[Node官方v24.22.1 Linux x64 archive](https://nodejs.org/dist/v24.22.1/node-v24.22.1-linux-x64.tar.xz)，32,026,916 bytes，SHA-256 `6c172a9ab6718f7b801fb5a7bd486af2ee5e32758086a04b84fcce2aa77095e6`，与同站点HTTPS取得的[SHASUMS256.txt](https://nodejs.org/dist/v24.22.1/SHASUMS256.txt)条目一致。解包后实际`node --version`为v24.22.1；最终TLS客户端记录的Node内嵌OpenSSL为3.5.9。取得方式是`official_https_manifest_sha256`，**`release_signature_verified=false`**，没有将HTTPS校验称为独立发布签名核验或源码可复现构建。
+
+Node主项目为MIT，但实际archive的完整`LICENSE`包含所带第三方条款；本次该文件SHA-256为`5888dbb9a1d2b18f2c3e6c5f6af1b39de658372b402a0577b002777f14c62ace`。Node、内嵌OpenSSL等组件不能只按一个顶层MIT标签概括。该archive仅存受控`images/toolchains/node/v24.22.1/`，运行时解包到项目`.state/toolchains/`，未做全局安装，公开仓库不再分发该二进制。私有清单新增1条、原11条保留，当前共12条；镜像/工具链与Module资格分别计量。[工具链脱敏来源](../operations/node-toolchain-2026-10-31.json)、[目录约定](../../images/README.md)。后续若打包Node、ipaddr.js或开发工具，仍需按实际发行包收集完整许可、适用NOTICE与SBOM。

@@ -8,6 +8,7 @@ images/
   manifest.example.json        脱敏清单格式，进入 Git
   manifest.local.json          实际镜像、校验值和本机路径，不进入 Git
   containers/                  容器 OCI/Docker 镜像归档
+  toolchains/                  固定运行/构建工具链的上游发行归档
   vm/base/                     校验后的只读 VM 基础镜像
   vm/instances/                各工作区/Trial 独立 VM 写入层
 ```
@@ -19,6 +20,7 @@ Octop Harness实际image ID为`sha256:714e015d1c1281e1c91bd2ae67f39191b99c408eb7
 ## 命名与来源
 
 - 容器归档：`containers/<component>/<version>/<image-digest>.oci.tar`，登记 registry 引用、不可变 digest、平台、源码提交与归档 SHA-256。使用 Docker archive 时显式标明格式。
+- 工具链归档：`toolchains/<component>/<version>/<upstream-filename>`，登记原始HTTPS来源、平台、精确版本、归档大小/SHA、官方manifest来源及实际核验方式；不是VM或容器镜像。发布签名未验证时明确记为`false`，不得以同站点checksum代替签名声明。解包运行目录属于项目`.state/`，不覆盖系统运行时。
 - VM 基础镜像：`vm/base/<distribution>/<version>/<architecture>/<sha256>.qcow2`，登记原始发行来源、系统/内核/依赖、构建脚本版本、磁盘格式和校验值。使用 raw 等格式时按真实格式命名。
 - 交互工作区写入层：`vm/instances/<workspace-id>/active.qcow2`，绑定稳定工作区身份，同一获准工作区的连续 Run 可保留状态且仅允许单写者。批量试验写入层：`vm/instances/<trial-id>/<attempt-id>.qcow2`，每个 Trial 独立；Attempt 记录复用、快照或分叉关系，旧执行确认终止后才可继续写。不得跨组织、未授权工作区、不同 Trial 或并行候选复用。清单记录 backing image digest、所属资源和生命周期。
 - 移动或导入前验证 SHA-256，加载后另查实际容器 image ID 及可用的 manifest descriptor。Docker image ID 的含义随镜像存储后端而异，不能直接当作 config digest 或已发布 registry digest。归档校验值、镜像存储身份和 registry 内容摘要分别记录，不互相替代。
@@ -32,3 +34,8 @@ Octop Harness实际image ID为`sha256:714e015d1c1281e1c91bd2ae67f39191b99c408eb7
 构建前检查实际可用空间，记录预计体积和配额。回收前核对真实路径、活动 VM/容器、引用关系、发布回退和备份保留；有活跃引用的基础镜像与写入层不得删除。回收后用 `df` 记录实际可用空间变化，不能把 `du` 总量当成释放量。
 
 2026-10-30新增主要资格输入：DSH0.2.2-alpha.2（845,569,536 bytes）、Octop原版ACP（580,660,736 bytes）、独立修正ACP（580,673,024 bytes），完整SHA与来源见各[DSH](../deploy/qualification/dsh/README.md)/[ACP](../deploy/qualification/octop/acp-README.md)记录。三份归档重新核验后追加私有清单，合计11项，原8项不改写。其他失败构建候选保留其原构建报告，不能默认计为已通过组合。
+
+
+2026-10-31新增Node.js v24.22.1 Linux x64工具链archive：`toolchains/node/v24.22.1/node-v24.22.1-linux-x64.tar.xz`，32,026,916 bytes，SHA-256 `6c172a9ab6718f7b801fb5a7bd486af2ee5e32758086a04b84fcce2aa77095e6`，旁车保留官方HTTPS manifest与provenance。已核同站点[SHASUMS256.txt](https://nodejs.org/dist/v24.22.1/SHASUMS256.txt)；`release_signature_verified=false`，未宣称发布签名、源码可复现构建或完整二进制分发SBOM通过。实际完整`LICENSE` SHA-256为`5888dbb9a1d2b18f2c3e6c5f6af1b39de658372b402a0577b002777f14c62ace`，不能用Node顶层MIT覆盖所带组件。
+
+该项类型为`runtime-toolchain-archive`；新增后私有清单共12条，原11条保持不变。实际解释器在项目`.state/toolchains/node-v24.22.1-linux-x64`，不是全局安装。上游归档校验与最终transport资格分开：Node24.22.1严格typecheck/14项Module回归及30门槛TLS/HTTP资格已通过，后者仍不代表完整生产Egress、Guest VM模型链路或执行权限/预算/内核策略通过。归档与运行时元数据见[工具链来源](../docs/operations/node-toolchain-2026-10-31.json)，流式/拒绝/清理证据见[传输结果](../docs/operations/egress-transport-native-2026-10-31.json)。二进制、测试CA/私钥及原始报告继续留受控存储，不进入Git。

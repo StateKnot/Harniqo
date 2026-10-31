@@ -1,0 +1,65 @@
+name: HTTPS upstream transport verification
+
+on:
+  push:
+    branches: [main]
+    paths: ['apps/model-egress/**', 'scripts/qualification/qualify_egress_transport.mjs', 'scripts/ci/*egress_transport_summary.py', '.github/workflows/egress-transport.yml']
+  pull_request:
+    paths: ['apps/model-egress/**', 'scripts/qualification/qualify_egress_transport.mjs', 'scripts/ci/*egress_transport_summary.py', '.github/workflows/egress-transport.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: egress-transport-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  transport:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24.22.1'
+      - name: Check failure evidence retention
+        run: |
+          df -h .
+          python3 -m unittest discover -s scripts/ci -p test_egress_transport_summary.py -v
+      - name: Check disk and install integrity-locked dependencies
+        id: install
+        working-directory: apps/model-egress
+        run: |
+          df -h .
+          umask 077
+          mkdir -p ../../ci-evidence
+          npm ci --ignore-scripts --no-audit --no-fund
+      - name: Strict TypeScript check
+        id: typecheck
+        working-directory: apps/model-egress
+        run: |
+          npm run typecheck
+          node --input-type=module -e "import fs from 'node:fs'; fs.writeFileSync('../../ci-evidence/egress-transport-typecheck.json', JSON.stringify({passed:true,node:process.version,source_commit:process.env.GITHUB_SHA,typescript:JSON.parse(fs.readFileSync('node_modules/typescript/package.json')).version}));"
+      - name: Run bounded transport and TLS regressions
+        id: tests
+        working-directory: apps/model-egress
+        run: node --test --test-concurrency=1 --test-reporter=junit --test-reporter-destination=../../ci-evidence/egress-transport.junit.xml transport.test.ts
+      - name: Validate retained transport summary
+        if: always()
+        env:
+          INSTALL_OUTCOME: ${{ steps.install.outcome }}
+          TYPECHECK_OUTCOME: ${{ steps.typecheck.outcome }}
+          TESTS_OUTCOME: ${{ steps.tests.outcome }}
+        run: python3 scripts/ci/egress_transport_summary.py
+      - name: Retain transport summary
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: egress-transport-${{ github.sha }}
+          path: ci-evidence/egress-transport.json
+          if-no-files-found: warn
+          retention-days: 14

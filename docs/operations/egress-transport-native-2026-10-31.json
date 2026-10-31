@@ -1,0 +1,385 @@
+{
+  "schema_version": 1,
+  "qualification": "M0-05-https-upstream-transport",
+  "run_id": "a24cab89bf23",
+  "started_at": "2026-10-31T04:37:05.713Z",
+  "finished_at": "2026-10-31T04:37:08.593Z",
+  "versions": {
+    "node": "v24.22.1",
+    "openssl": "3.5.9"
+  },
+  "environment_proxy_enabled_fixture": true,
+  "configuration_sha256": "9f4bdc1142ecef22e3df15b1954b46d55be973d76c121f81ba9357562b3bbe47",
+  "checks": {
+    "zero_port_rejected": true,
+    "tls_success": true,
+    "request_body_preserved": true,
+    "pinned_dns_dial": true,
+    "mixed_dns_denied": true,
+    "default_private_denied": true,
+    "wrong_ca": true,
+    "wrong_san": true,
+    "expired_certificate": true,
+    "redirect_target_positive_control": true,
+    "redirect_rejected": true,
+    "stream_backpressure": true,
+    "upstream_status_preserved": true,
+    "request_header_rejected": true,
+    "absolute_path_rejected": true,
+    "request_bound": true,
+    "response_bound": true,
+    "header_bound": true,
+    "truncated_response": true,
+    "idle_timeout": true,
+    "total_timeout": true,
+    "dns_total_deadline": true,
+    "dns_permit_retained": true,
+    "late_dns_cannot_dial": true,
+    "caller_cancel": true,
+    "concurrency_guard": true,
+    "upgrade_rejected": true,
+    "fixture_authentication": true,
+    "sources_unchanged": true,
+    "owned_ports_released": true
+  },
+  "source_sha256": {
+    "scripts/qualification/qualify_egress_transport.mjs": "96f4ed22f0249a7f9d11df1f420ce5d5b58290ea0364f0472de62f0682062d58",
+    "apps/model-egress/types.ts": "e79d0ccb5bb2a61e6591102e23ddc3dfe5214836308d8a63696cda71e7b315ec",
+    "apps/model-egress/policy.ts": "fe92e3d48afc783f80177bb03c3fba8bf1302368ed455d60da16bff1f2cc7da8",
+    "apps/model-egress/transport.ts": "ad4f85f3604debf89da5694cc683224c06e0c76f982f8731e93877cf7fa423f9",
+    "apps/model-egress/package.json": "cf97a1075ced86024d31c7f55a9501e50df4a269244219e4cf764759a9a231b6",
+    "apps/model-egress/package-lock.json": "ab45312ad661eb8b38b23e8f63b8fd67983f6a5526626838560a99eba366a4b5",
+    "apps/model-egress/tsconfig.json": "7a3f8cd19c5b6190583e5c2d6213ef76ab276525f4a44ad389276bc820b981ed"
+  },
+  "real_model_calls": 0,
+  "production_egress_verified": false,
+  "execution_authorization_verified": false,
+  "budget_accounting_verified": false,
+  "kernel_egress_verified": false,
+  "vm_network_verified": false,
+  "dedicated_service_identity_verified": false,
+  "milestone_complete": false,
+  "passed": true,
+  "sources_unchanged": true,
+  "evidence_scopes": {
+    "real_tls_http": true,
+    "configuration_rejection_cases": [
+      "zero_port_rejected"
+    ],
+    "controlled_resolver_policy_and_dependency_cases": [
+      "pinned_dns_dial",
+      "mixed_dns_denied",
+      "dns_total_deadline",
+      "dns_permit_retained",
+      "late_dns_cannot_dial"
+    ],
+    "real_provider_model_requests": false
+  },
+  "stream": {
+    "bytes": 262144,
+    "writable_peak_bytes": 16378,
+    "write_calls": 32,
+    "sha256": "dd3dde87623d9a6b354c68c943d189c89c63652d945e7bbdf0986cae91a49521"
+  },
+  "errors": 0,
+  "cleanup_errors": 0,
+  "report_sha256": "990a1f5f74a73bff9a8b58aae38be0f579cda0cfa191beb4299d413b6b4a8667",
+  "receipts": [
+    {
+      "case": "tls_success",
+      "routeId": "native",
+      "requestExposure": "may_have_been_sent",
+      "requestBodyBytes": 0,
+      "responseBodyBytes": 76,
+      "upstreamStatus": 200,
+      "outcome": "completed"
+    },
+    {
+      "case": "request_body_preserved",
+      "routeId": "native",
+      "requestExposure": "may_have_been_sent",
+      "requestBodyBytes": 76,
+      "responseBodyBytes": 76,
+      "upstreamStatus": 200,
+      "outcome": "completed"
+    },
+    {
+      "case": "pinned_dns_dial",
+      "routeId": "pin",
+      "requestExposure": "may_have_been_sent",
+      "requestBodyBytes": 0,
+      "responseBodyBytes": 76,
+      "upstreamStatus": 200,
+      "outcome": "completed"
+    },
+    {
+      "case": "mixed_dns_denied",
+      "code": "address_denied",
+      "routeId": "pin",
+      "requestExposure": "not_sent",
+      "requestBodyBytes": 0,
+      "responseBodyBytes": 0,
+      "upstreamStatus": null,
+      "outcome": "failed"
+    },
+    {
+      "case": "default_private_denied",
+      "code": "address_denied",
+      "routeId": "deny",
+      "requestExposure": "not_sent",
+      "requestBodyBytes": 0,
+      "responseBodyBytes": 0,
+      "upstreamStatus": null,
+      "outcome": "failed"
+    },
+    {
+      "case": "wrong_ca",
+      "code": "upstream_failed",
+      "routeId": "wrong-ca",
+      "requestExposure": "may_have_been_sent",
+      "requestBodyBytes": 0,
+      "responseBodyBytes": 0,
+      "upstreamStatus": null,
+      "outcome": "failed"
+    },
+    {
+      "case": "wrong_san",
+      "code": "upstream_failed",
+      "routeId": "wrong-san",
+      "requestExposure": "may_have_been_sent",
+      "requestBodyBytes": 0,
+      "responseBodyBytes": 0,
+      "upstreamStatus": null,
+      "outcome": "failed"
+    },
+    {
+      "case": "expired_certificate",
+      "code": "upstream_failed",
+      "routeId": "expired",
+      "requestExposure": "may_have_been_sent",
+      "requestBodyBytes": 0,
+      "responseBodyBytes": 0,
+      "upstreamStatus": null,
+      "outcome": "failed"
+    },
+    {
+      "case": "redirect_rejected",
+      "code": "upstream_redirect_rejected",
+      "routeId": "native",
+      "requestExposure": "may_have_been_sent",
+      "requestBodyBytes": 0,
+      "responseBodyBytes": 0,
+      "upstreamStatus": 302,
+      "outcome": "failed"
+    },
+    {
+      "case": "stream_backpressure",
+      "routeId": "native",
+      "requestExposure": "may_have_been_sent",
+      "requestBodyBytes": 0,
+      "responseBodyBytes": 262144,
+      "upstreamStatus": 200,
+      "outcome": "completed"
+    },
+    {
+      "case": "upstream_status_preserved",
+      "routeId": "native",
+      "requestExposure": "may_have_been_sent",
+      "requestBodyBytes": 0,
+      "responseBodyBytes": 76,
+      "upstreamStatus": 429,
+      "outcome": "completed"
+    },
+    {
+      "case": "request_header_rejected",
+      "code": "request_header_rejected",
+      "routeId": "native",
+      "requestExposure": "not_sent",
+      "requestBodyBytes": 0,
+      "responseBodyBytes": 0,
+      "upstreamStatus": null,
+      "outcome": "failed"
+    },
+    {
+      "case": "absolute_path_rejected",
+      "code": "request_operation_invalid",
+      "routeId": "native",
+      "requestExposure": "not_sent",
+      "requestBodyBytes": 0,
+      "responseBodyBytes": 0,
+      "upstreamStatus": null,
+      "outcome": "failed"
+    },
+    {
+      "case": "request_bound",
+      "code": "request_body_too_large",
+      "routeId": "native",
+      "requestExposure": "not_sent",
+      "requestBodyBytes": 0,
+      "responseBodyBytes": 0,
+      "upstreamStatus": null,
+      "outcome": "failed"
+    },
+    {
+      "case": "response_bound",
+      "code": "response_too_large",
+      "routeId": "native",
+      "requestExposure": "may_have_been_sent",
+      "requestBodyBytes": 0,
+      "responseBodyBytes": 540562,
+      "upstreamStatus": 200,
+      "outcome": "failed"
+    },
+    {
+      "case": "header_bound",
+      "code": "upstream_failed",
+      "routeId": "native",
+      "requestExposure": "may_have_been_sent",
+      "requestBodyBytes": 0,
+      "responseBodyBytes": 0,
+      "upstreamStatus": null,
+      "outcome": "failed"
+    },
+    {
+      "case": "truncated_response",
+      "code": "destination_failed",
+      "routeId": "native",
+      "requestExposure": "may_have_been_sent",
+      "requestBodyBytes": 0,
+      "responseBodyBytes": 7,
+      "upstreamStatus": 200,
+      "outcome": "failed"
+    },
+    {
+      "case": "idle_timeout",
+      "code": "idle_timeout",
+      "routeId": "native",
+      "requestExposure": "may_have_been_sent",
+      "requestBodyBytes": 0,
+      "responseBodyBytes": 19,
+      "upstreamStatus": 200,
+      "outcome": "failed"
+    },
+    {
+      "case": "total_timeout",
+      "code": "total_timeout",
+      "routeId": "total",
+      "requestExposure": "may_have_been_sent",
+      "requestBodyBytes": 0,
+      "responseBodyBytes": 396,
+      "upstreamStatus": 200,
+      "outcome": "failed"
+    },
+    {
+      "case": "dns_total_deadline",
+      "code": "total_timeout",
+      "routeId": "pin",
+      "requestExposure": "not_sent",
+      "requestBodyBytes": 0,
+      "responseBodyBytes": 0,
+      "upstreamStatus": null,
+      "outcome": "failed"
+    },
+    {
+      "case": "dns_permit_retained",
+      "code": "concurrency_exceeded",
+      "routeId": "pin",
+      "requestExposure": "not_sent",
+      "requestBodyBytes": 0,
+      "responseBodyBytes": 0,
+      "upstreamStatus": null,
+      "outcome": "failed"
+    },
+    {
+      "case": "caller_cancel",
+      "code": "aborted",
+      "routeId": "native",
+      "requestExposure": "may_have_been_sent",
+      "requestBodyBytes": 0,
+      "responseBodyBytes": 19,
+      "upstreamStatus": 200,
+      "outcome": "failed"
+    },
+    {
+      "case": "concurrency_guard",
+      "code": "concurrency_exceeded",
+      "routeId": "single",
+      "requestExposure": "not_sent",
+      "requestBodyBytes": 0,
+      "responseBodyBytes": 0,
+      "upstreamStatus": null,
+      "outcome": "failed"
+    },
+    {
+      "case": "upgrade_rejected",
+      "code": "upstream_upgrade_rejected",
+      "routeId": "native",
+      "requestExposure": "may_have_been_sent",
+      "requestBodyBytes": 0,
+      "responseBodyBytes": 0,
+      "upstreamStatus": null,
+      "outcome": "failed"
+    }
+  ],
+  "fixture_counters": {
+    "main_http": 14,
+    "peer_http": 1,
+    "forbidden_http": 0,
+    "authorized_http": 14,
+    "tls_client_errors": 3,
+    "post_body_valid": true,
+    "pinned_hostname_preserved": true
+  },
+  "scope": "trusted_host_internal_https_upstream_transport_only",
+  "environment": {
+    "os": "Ubuntu 24.04",
+    "architecture": "x86_64",
+    "ordinary_unprivileged_user": true,
+    "host_listeners": "loopback-only TCP 10020/10021",
+    "vm_started": false,
+    "system_firewall_changed": false
+  },
+  "module_checks": {
+    "scope": "transport_module_regressions_only",
+    "node": "v24.22.1",
+    "typescript": "6.0.3",
+    "typecheck_passed": true,
+    "tests": 14,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "passed": true,
+    "source_commit": null,
+    "junit_sha256": "52d56694d918839a0953fdddd2c1dc69cd50475efb01e9116dc4749aad2f5e37",
+    "package_lock_sha256": "ab45312ad661eb8b38b23e8f63b8fd67983f6a5526626838560a99eba366a4b5",
+    "real_model_calls": 0,
+    "vm_isolation_verified": false,
+    "production_egress_verified": false,
+    "execution_authorization_verified": false,
+    "budget_accounting_verified": false,
+    "kernel_egress_verified": false
+  },
+  "preserved_runs": [
+    {
+      "run_id": "ef745a7c5158",
+      "passed": false,
+      "reason": "cleanup called HTTPS-only closeAllConnections on net.Server; cleanup_errors=2",
+      "overwritten": false
+    },
+    {
+      "run_id": "ccc8406f3326",
+      "passed": true,
+      "checks": 29,
+      "scope": "before zero-port constructor rejection fix; valid-origin native cases",
+      "overwritten": false
+    }
+  ],
+  "failure_evidence_retention_checks": {
+    "scope": "ci_summary_failure_retention_only",
+    "tests": 11,
+    "local_python": "3.9.6",
+    "designated_server_passed": true,
+    "real_model_calls": 0,
+    "production_egress_verified": false
+  }
+}
