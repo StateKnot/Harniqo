@@ -174,3 +174,8 @@ TypeScript包还包含`ThirdPartyNoticeText.txt`，分发开发工具时须保�
 服务器实际工具链来自[Node官方v24.22.1 Linux x64 archive](https://nodejs.org/dist/v24.22.1/node-v24.22.1-linux-x64.tar.xz)，32,026,916 bytes，SHA-256 `6c172a9ab6718f7b801fb5a7bd486af2ee5e32758086a04b84fcce2aa77095e6`，与同站点HTTPS取得的[SHASUMS256.txt](https://nodejs.org/dist/v24.22.1/SHASUMS256.txt)条目一致。解包后实际`node --version`为v24.22.1；最终TLS客户端记录的Node内嵌OpenSSL为3.5.9。取得方式是`official_https_manifest_sha256`，**`release_signature_verified=false`**，没有将HTTPS校验称为独立发布签名核验或源码可复现构建。
 
 Node主项目为MIT，但实际archive的完整`LICENSE`包含所带第三方条款；本次该文件SHA-256为`5888dbb9a1d2b18f2c3e6c5f6af1b39de658372b402a0577b002777f14c62ace`。Node、内嵌OpenSSL等组件不能只按一个顶层MIT标签概括。该archive仅存受控`images/toolchains/node/v24.22.1/`，运行时解包到项目`.state/toolchains/`，未做全局安装，公开仓库不再分发该二进制。私有清单新增1条、原11条保留，当前共12条；镜像/工具链与Module资格分别计量。[工具链脱敏来源](../operations/node-toolchain-2026-10-31.json)、[目录约定](../../images/README.md)。后续若打包Node、ipaddr.js或开发工具，仍需按实际发行包收集完整许可、适用NOTICE与SBOM。
+
+
+## 2026-10-31 Guest 内存故障资格增量
+
+Guest OOM/外部VM终止资格仅增加Harniqo自有Python标准库源码与测试，使用既有固定Canonical Guest、libvirt/QEMU和Linux内核接口，无新pip/npm包、宿主工具安装或可分发二进制。`ctypes`调用的是该Guest已有libc的`prctl`；不会因使用标准库而把Guest OS组件概括为Harniqo MIT。既有v1/v2生产策略及Broker源码不改；原生证据、此前失败和合成回归按[本轮记录](../../research/m0-guest-memory-failure.md)分别登记。镜像来源、许可和未来发行SBOM门槛保持原要求。

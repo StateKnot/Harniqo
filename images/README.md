@@ -39,3 +39,6 @@ Octop Harness实际image ID为`sha256:714e015d1c1281e1c91bd2ae67f39191b99c408eb7
 2026-10-31新增Node.js v24.22.1 Linux x64工具链archive：`toolchains/node/v24.22.1/node-v24.22.1-linux-x64.tar.xz`，32,026,916 bytes，SHA-256 `6c172a9ab6718f7b801fb5a7bd486af2ee5e32758086a04b84fcce2aa77095e6`，旁车保留官方HTTPS manifest与provenance。已核同站点[SHASUMS256.txt](https://nodejs.org/dist/v24.22.1/SHASUMS256.txt)；`release_signature_verified=false`，未宣称发布签名、源码可复现构建或完整二进制分发SBOM通过。实际完整`LICENSE` SHA-256为`5888dbb9a1d2b18f2c3e6c5f6af1b39de658372b402a0577b002777f14c62ace`，不能用Node顶层MIT覆盖所带组件。
 
 该项类型为`runtime-toolchain-archive`；新增后私有清单共12条，原11条保持不变。实际解释器在项目`.state/toolchains/node-v24.22.1-linux-x64`，不是全局安装。上游归档校验与最终transport资格分开：Node24.22.1严格typecheck/14项Module回归及30门槛TLS/HTTP资格已通过，后者仍不代表完整生产Egress、Guest VM模型链路或执行权限/预算/内核策略通过。归档与运行时元数据见[工具链来源](../docs/operations/node-toolchain-2026-10-31.json)，流式/拒绝/清理证据见[传输结果](../docs/operations/egress-transport-native-2026-10-31.json)。二进制、测试CA/私钥及原始报告继续留受控存储，不进入Git。
+
+
+2026-10-31 Guest内存故障资格复用同一已核Canonical base与固定v2，不新增可复用镜像或工具链归档，私有manifest仍为12项。三组FAILED及最终通过组各自使用`vm/instances/`下独立8GiB raw/seed；均按本组宿主停止/日志归档证据精确回收，原始失败报告与旧未知派发材料保留。Guest临时监督脚本与log只写各自Guest/run，未写入只读base或其他实例；不能把已回收运行写层登记成生产基础镜像。[实际范围与结果](../research/m0-guest-memory-failure.md)。

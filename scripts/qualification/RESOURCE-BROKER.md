@@ -71,3 +71,24 @@ sealed Guest fixture沿用完整原探针程序，但由cloud-init `bootcmd` 直
 资格Guest先完成原11项报告，随后A执行45秒有期限CPU pulse、B仅对宿主在采样窗口新生成的随机挑战输出绑定nonce的应答。宿主只读采样6秒，要求A真实节流计数增长、CPU用量按同份cpu.stat的单调采样时间差落在有负载及周期容差范围内，B至少3次匹配窗口内新挑战的应答、两台正常内存峰值低于硬上限且无OOM事件。原两个SIGKILL、期限停止、拒绝复活、完整console及精确回收判据全部保留；缺少任何v2门槛即失败。
 
 此子项不制造宿主OOM或swap耗尽，不证明磁盘/spool/块I/O等完整硬配额；`host_hard_quotas_verified=false`、`memory_exhaustion_verified=false`。2GiB余量只用于本sealed模板，非任意Harness通用参数。libvirt10/v2 swap映射和官方依据见[宿主资源限额研究](../../research/m0-host-resource-limits.md)。
+
+
+## 显式 Guest 内存耗尽与外部终止资格
+
+在既有固定 `limited-v2` 下运行独立用例，不修改 v1/v2 的 CPU、内存、swap 或配置摘要。此模式要求普通 Linux x86_64 / Python3.12 操作者及实际 KVM/libvirt 权限，复用本文件的已验证基础镜像、目录 ACL、空间与私有证据前置条件。运行前检查 `df`，至少保留50GiB加两块8GiB raw盘；镜像和本轮写入层仍位于项目 `images/`。
+
+```sh
+python3 scripts/qualification/qualify_resource_broker.py \
+  --root "$HARNIQO_WORKSPACE" \
+  --base-image "$HARNIQO_VERIFIED_BASE_IMAGE" \
+  --resource-profile sealed-raw8g-q35-limited-v2 \
+  --guest-memory-pressure --timeout 150
+```
+
+`HARNIQO_VERIFIED_BASE_IMAGE` 必须是工作区内已核来源、由操作者拥有且只读的 Canonical base；不是可由 Guest 提交的任意路径。`--guest-memory-pressure` 只接受显式v2，默认v1及不带此flag的v2仍走原有生命周期/CPU压力流程。
+
+A先完成原sealed检查，再在其Guest内用nonce命名的transient service运行监控器和有界触页worker。该unit显式`Type=exec`、`DefaultDependencies=no`、`OOMPolicy=continue`、`OOMScoreAdjust=-1000`、185秒运行/3秒停止限额，外层等待190秒；worker仍覆写+1000。START/RESULT均读回实际MainPID、unit、cgroup、score、`memory.oom.group`及限额，变化即拒绝。不会修改已有cloud-init unit或manager默认策略；子进程身份、随机短comm、实际OOM分值、新内核victim记录、Guest OOM计数和SIGKILL退出必须关联。B在分配进度增长期间回答三次新挑战；OOM后的A需给出绑定本轮token和相同boot ID的健康应答，B也有新增健康检查。宿主通过正式`resource_limits`核对双方QEMU身份、实际限额及OOM事件前后样本。超时人为回收、MemoryError、旧日志或无匹配victim均不能计为OOM通过。
+
+完成上述证据后，受信资格操作者才对已由正式Broker核对的A精确UUID注入一次外部`virsh destroy`；该操作只用于故障注入。正式Module必须通过真实宿主absence产生`libvirt_absent_after_confirmed_start`，重构后同一停止证据仍在，旧Assignment/Grant均不能复活A。B继续执行watch SIGKILL与持久期限重建停止。两类停止原因、console、journal/anchor及源码快照独立保留；不能把外部终止写成Guest OOM杀掉了QEMU。
+
+此用例无NIC、无新增TCP监听、无模型调用，不更改宿主sysctl/cgroup/swap、全局服务或防火墙。公开证据仅表示固定v2的Guest耗尽和外部终止恢复；不证明宿主QEMU OOM、完整存储/spool硬配额、专用服务身份、Egress或控制面授权/预算。细化门槛与来源见[本轮研究](../../research/m0-guest-memory-failure.md)。

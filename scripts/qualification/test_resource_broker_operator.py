@@ -197,5 +197,94 @@ class CoordinationPathTests(unittest.TestCase):
         self.assertEqual(stat.S_IMODE(base.stat().st_mode), 0o444)
 
 
+
+
+class MemoryFailureModeTests(unittest.TestCase):
+    def test_explicit_memory_fixture_does_not_change_default_guest_programs(self):
+        instance = {'uuid': 'instance-a', 'nonce': 'nonce-a'}
+        other = {'uuid': 'instance-b'}
+        root = Path('/qualification/workspace')
+        def generated(**kwargs):
+            return json.loads(operator.sealed_guest_config(instance, other, root,
+                resource_profile='sealed-raw8g-q35-limited-v2', **kwargs).split('\n', 1)[1])['bootcmd'][0][2]
+        baseline = generated(pressure=True)
+        memory = generated(pressure=True, guest_memory_pressure=True)
+        control = generated(pressure=False, guest_memory_pressure=True)
+        self.assertNotIn('guest_identity_guard', baseline)
+        self.assertIn('guest_identity_guard', memory)
+        self.assertIn('until=time.monotonic()+120', control)
+        self.assertNotIn('MEMORY_WORKER=', control)
+        compile(memory, '<memory-failure-fixture>', 'exec')
+
+    def test_memory_budget_manifest_is_saved_with_matching_hash_before_execution(self):
+        import hashlib
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            result = {}
+            operator.freeze_qualification_limits(root, result)
+            manifest = root / 'qualification-limits.json'
+            self.assertEqual(result['qualification_limits'], operator.memory_pressure.qualification_limits())
+            self.assertEqual(json.loads(manifest.read_text()), result['qualification_limits'])
+            self.assertEqual(result['qualification_limits_manifest'], manifest.name)
+            self.assertEqual(result['qualification_limits_sha256'], hashlib.sha256(manifest.read_bytes()).hexdigest())
+            self.assertEqual(stat.S_IMODE(manifest.stat().st_mode), 0o600)
+
+    def fault_fixture(self, *, wrong_uuid=False, rebuilt_mismatch=False, method='libvirt_absent_after_confirmed_start'):
+        from apps.runner.resource_broker import BrokerError, Observation, StopEvidence
+        temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        reports = Path(temporary.name)
+        disk = reports/'owned.raw'; disk.write_bytes(b'fixture')
+        identity = '00000000-0000-4000-8000-000000000001'
+        running = Observation(identity, 'running', 2, 1)
+        stopped = Observation(identity, 'stopped', 2, 1, StopEvidence(identity, 100, method, 'a'*64))
+        alternate = Observation(identity, 'stopped', 2, 1, StopEvidence(identity, 101, method, 'a'*64))
+        state = {'injected': False}
+        class Broker:
+            def observe(self, _identity): return stopped if state['injected'] else running
+            def resource_limits(self, _identity): return {'pid': 123, 'process_start_time': 88}
+        class Rebuilt:
+            def observe(self, _identity): return alternate if rebuilt_mismatch else stopped
+            def ensure(self, assignment): raise BrokerError('generation_stale')
+            def renew(self, grant): raise BrokerError('resource_terminal')
+        xml = '<domain><uuid>'+('foreign' if wrong_uuid else identity)+'</uuid><name>owned-a</name><metadata><ownership xmlns="urn:harniqo:resource-broker:1" signature="fixture"/></metadata></domain>'
+        calls=[]
+        def virsh(*args):
+            calls.append(args)
+            if args[0]=='dumpxml': return xml
+            self.assertEqual(args, ('destroy',identity))
+            self.assertTrue((reports/'external-stop-intent.json').exists())
+            state['injected']=True
+            return ''
+        def invoke():
+            result={'checks':{}}
+            with patch.object(operator.kvm,'virsh',side_effect=virsh), \
+                    patch.object(operator.kvm,'domain_ids',return_value=set()), \
+                    patch.object(operator,'broker_from',return_value=Rebuilt()), \
+                    patch.object(operator.time,'time',return_value=99):
+                operator.external_vm_stop_fault(Broker(),{'templates':[{'resource_id':identity,'name':'owned-a'}]},
+                    {'uuid':identity,'overlay':disk},None,reports,result,object(),object())
+            return result
+        return invoke,calls
+
+    def test_external_fault_records_intent_and_reconstructs_exact_absence_tombstone(self):
+        invoke,calls=self.fault_fixture()
+        result=invoke()
+        self.assertTrue(all(result['checks'].values()))
+        self.assertEqual([item[0] for item in calls],['dumpxml','destroy'])
+        self.assertEqual(result['external_vm_stop']['observed'],result['external_vm_stop']['rebuilt_observation'])
+
+    def test_external_fault_rejects_wrong_uuid_before_destroy(self):
+        invoke,calls=self.fault_fixture(wrong_uuid=True)
+        with self.assertRaisesRegex(RuntimeError,'VM identity differs'): invoke()
+        self.assertEqual([item[0] for item in calls],['dumpxml'])
+
+    def test_external_fault_requires_absence_method_and_immutable_reconstruction(self):
+        for kwargs in ({'rebuilt_mismatch':True},{'method':'libvirt_destroy_then_absent'}):
+            with self.subTest(kwargs=kwargs):
+                invoke,_=self.fault_fixture(**kwargs)
+                with self.assertRaises(RuntimeError): invoke()
+
+
 if __name__ == '__main__':
     unittest.main()

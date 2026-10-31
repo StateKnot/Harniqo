@@ -169,5 +169,7 @@
 | 2026-10-31 | M0-05 内部HTTPS上游传输 | VERIFIED（内部transport子项）；M0-05仍IN_PROGRESS | 固定路由/DNS全量策略+IP固定、Host/SNI/TLS、凭据注入、背压/限额/期限/取消及receipt完成；指定服务器Node24.22.1严格tsc、14回归、30原生门槛通过，错误/清理错误0；0模型/VM/规则更改。E52–53 | 仅可信宿主内部Module；Guest入口、当前执行授权/撤销/预算、kernel出口与专用UID继续实现验收；原始失败与修正前通过分别保留，M0仍4/8 |
 | 2026-10-31 | M0-05/07 传输组件CI | VERIFIED（组件CI子项） | 源码`ba836f2039ca`的[实际传输CI](https://github.com/StateKnot/Harniqo/actions/runs/41170364383)严格tsc/14模块/11失败留证全部成功；既有262组件、三平台契约同源通过，下载artifact及源码/lock hash核验。E54 | 各自范围分别记录；0模型/VM，非完整Egress/桌面准入，M0仍4/8 |
 
+| 2026-10-31 | M0-05 Guest耗尽/外部停止恢复 | VERIFIED（固定v2与显式Guest监督子项）；M0-05仍IN_PROGRESS | 已实现并验证：A真实触页736MiB/Guest OOM精确归因、同boot健康与B三阶段/事后响应；外部精确终止后正式停止证据/重建/旧授权双拒绝，B watch故障期限链通过。2KVM/22Guest/21门槛、服务器126组件，错误/清理0。E55 | 3组FAILED各自保留；生产Broker/profile未改，0模型；Host QEMU OOM、磁盘/spool/专用UID及完整Guest出口/控制面授权预算仍待完成，M0仍4/8 |
+
 
 后续每次追加：任务 ID、状态、源码提交、配置/版本、验收用例、报告位置、已知限制、阻塞解除条件。执行细节及敏感报告放受控存储，仓库只保留脱敏索引。

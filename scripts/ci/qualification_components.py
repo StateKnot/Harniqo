@@ -32,6 +32,7 @@ TESTS = (
     'test_resource_broker.py',
     'test_resource_broker_operator.py',
     'test_resource_pressure.py',
+    'test_guest_memory_pressure.py',
 )
 
 

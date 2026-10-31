@@ -27,6 +27,7 @@ import uuid
 
 import qualify_kvm as kvm
 import qualify_kvm_network as network
+import guest_memory_pressure as memory_pressure
 
 REPO = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO))
@@ -34,7 +35,7 @@ DISK_BYTES = 8 * 1024**3
 MAX_CONFIG_BYTES = 256 * 1024
 
 
-def sealed_guest_config(instance: dict, other: dict, root: Path, *, resource_profile: str = "sealed-raw8g-q35-v1", pressure: bool = False) -> str:
+def sealed_guest_config(instance: dict, other: dict, root: Path, *, resource_profile: str = "sealed-raw8g-q35-v1", pressure: bool = False, guest_memory_pressure: bool = False) -> str:
     """Run the unchanged sealed probe before unrelated final-stage services."""
     config = json.loads(kvm.guest_config(instance, other, root, DISK_BYTES).split("\n", 1)[1])
     program = config.pop("write_files")[0]["content"]
@@ -42,7 +43,9 @@ def sealed_guest_config(instance: dict, other: dict, root: Path, *, resource_pro
     if resource_profile == "sealed-raw8g-q35-limited-v2":
         # Qualification fixture only: report the unchanged eleven checks first.
         # CPU pressure and the independent control heartbeat stay in the Guest.
-        if pressure:
+        if pressure and guest_memory_pressure:
+            program += memory_pressure.supervised_guest_program()
+        elif pressure:
             program += "\nprint('HARNIQO-RESOURCE-START ' + C['nonce'], flush=True)\nuntil=time.monotonic()+45\nwhile time.monotonic()<until: pass\n"
         else:
             program += r"""
@@ -63,6 +66,8 @@ while time.monotonic()<until:
             print('HARNIQO-HEARTBEAT '+C['nonce']+' '+line.decode('ascii'),flush=True)
 os.close(fd)
 """
+        if guest_memory_pressure and not pressure:
+            program = program.replace("until=time.monotonic()+45", "until=time.monotonic()+120")
         program += "print('HARNIQO-RESOURCE-END ' + C['nonce'], flush=True)\n"
     config["bootcmd"] = [["/usr/bin/python3", "-c", program]]
     return "#cloud-config\n" + json.dumps(config) + "\n"
@@ -290,6 +295,16 @@ def save(path: Path, value) -> None:
     kvm.write(path, json.dumps(value, indent=2) + "\n")
 
 
+
+def freeze_qualification_limits(reports: Path, result: dict) -> None:
+    """Persist this fault experiment's budget before creating any VM resource."""
+    limits = memory_pressure.qualification_limits()
+    manifest = reports / 'qualification-limits.json'
+    save(manifest, limits)
+    result['qualification_limits'] = limits
+    result['qualification_limits_manifest'] = manifest.name
+    result['qualification_limits_sha256'] = kvm.sha256(manifest)
+
 def ready(path: Path, value) -> None:
     # Publish a complete ready receipt to the reader, never a partially written
     # JSON file. The task directory is private and this role is its only writer.
@@ -453,6 +468,52 @@ def stopped_receipt(broker, resource_id: str):
     return observed
 
 
+
+def external_vm_stop_fault(broker, config, instance, streams, reports, result, assignment, grant):
+    """Trusted, exact-owned VM fault injection, separate from Broker stopping."""
+    import xml.etree.ElementTree as ET
+    identity = instance['uuid']
+    observed = broker.observe(identity)
+    if observed.state != 'running' or observed.stop_evidence is not None:
+        raise RuntimeError('External stop requires verified running owned resource')
+    sample = broker.resource_limits(identity)
+    xml = kvm.virsh('dumpxml', identity)
+    tree = ET.fromstring(xml)
+    expected = next(t for t in config['templates'] if t['resource_id'] == identity)
+    ownership = tree.find('./metadata/{urn:harniqo:resource-broker:1}ownership')
+    if (tree.findtext('uuid') != identity or tree.findtext('name') != expected['name']
+            or ownership is None or not ownership.get('signature')):
+        raise RuntimeError('External stop VM identity differs')
+    if broker.observe(identity) != observed:
+        raise RuntimeError('External stop ownership changed during fault preparation')
+    # The production observation verifies ownership MAC, full template and limits.
+    # Persist intent before this qualification-only external destroy operation.
+    evidence = {'resource_id': identity, 'pre_observation': asdict(observed),
+                'pre_limits': sample, 'domain_xml_sha256': hashlib.sha256(xml.encode()).hexdigest(),
+                'domain_xml': xml, 'intent_at': time.time(), 'operation': 'qualification_external_virsh_destroy'}
+    result['external_vm_stop'] = evidence
+    save(reports / 'external-stop-intent.json', evidence)
+    kvm.virsh('destroy', identity)
+    evidence['command_acknowledged_at'] = time.time()
+    await_absent(identity, 15, streams)
+    stopped = stopped_receipt(broker, identity)
+    evidence['observed'] = asdict(stopped)
+    if (stopped.stop_evidence.method != 'libvirt_absent_after_confirmed_start'
+            or stopped.stop_evidence.confirmed_at < evidence['intent_at']):
+        raise RuntimeError('External termination absence evidence invalid')
+    fresh = broker_from(config)
+    rebuilt = stopped_receipt(fresh, identity)
+    evidence['rebuilt_observation'] = asdict(rebuilt)
+    if asdict(stopped) != asdict(rebuilt):
+        raise RuntimeError('External termination tombstone changed across reconstruction')
+    evidence['old_assignment'] = rejected(lambda: fresh.ensure(assignment), expected='generation_stale')
+    evidence['old_grant'] = rejected(lambda: fresh.renew(grant), expected='resource_terminal')
+    if identity in kvm.domain_ids() or not instance['overlay'].is_file():
+        raise RuntimeError('External termination resurrected or lost disk')
+    result['checks'].update(external_stop_absence_verified=True,
+        external_stop_tombstone_rebuilt=True, external_stop_old_authorization_rejected=True)
+    return fresh, stopped
+
 def inventory() -> dict:
     result = network.object_inventory()
     result["domain_xml"] = {identity: kvm.virsh("dumpxml", identity) for identity in result["domains"]}
@@ -482,6 +543,9 @@ def execute(args) -> int:
     if (sys.platform != "linux" or platform.machine() not in {"x86_64", "amd64"}
             or os.geteuid() == 0 or sys.version_info[:2] != (3, 12) or not 30 <= args.timeout <= 150):
         raise RuntimeError("Require ordinary Linux x86_64/Python 3.12 operator and timeout 30..150")
+    memory_mode = getattr(args, 'guest_memory_pressure', False)
+    if memory_mode and args.resource_profile != 'sealed-raw8g-q35-limited-v2':
+        raise RuntimeError('Guest memory pressure requires fixed limited-v2 profile')
     os.umask(0o077)
     resource.setrlimit(resource.RLIMIT_CORE, (0, 0))
     root = args.root.absolute(); base = args.base_image.absolute()
@@ -504,7 +568,7 @@ def execute(args) -> int:
     work = parent / ("rb-" + rid); private_directory(work, create=True)
     images = root / "images/vm/instances" / ("rb-" + rid); private_directory(images, create=True)
     directories = {p: (p.stat().st_dev, p.stat().st_ino) for p in (work, images)}
-    ownership = {"qualification": "M0-05-resource-limits-lifecycle" if args.resource_profile == "sealed-raw8g-q35-limited-v2" else "M0-05-resource-broker-lifecycle", "run_id": rid}
+    ownership = {"qualification": "M0-05-guest-memory-external-stop" if memory_mode else "M0-05-resource-limits-lifecycle" if args.resource_profile == "sealed-raw8g-q35-limited-v2" else "M0-05-resource-broker-lifecycle", "run_id": rid}
     for p in (work, images): save(p / ".harniqo-m0-owner.json", ownership)
     baseline = inventory(); save(reports / "baseline.json", baseline)
     key_file = reports / "issuer-key"; key = os.urandom(32)
@@ -517,11 +581,14 @@ def execute(args) -> int:
     acl = kvm.TemporaryACL("libvirt-qemu")
     result = {"schema_version": 1, "qualification": ownership["qualification"], "run_id": rid,
               "started_at": kvm.now(), "base_sha256": base.stem, "resource_profile": args.resource_profile,
-              "host_hard_quotas_verified": False, "memory_exhaustion_verified": False, "checks": {}, "observations": {},
+              "host_hard_quotas_verified": False, "memory_exhaustion_verified": False,
+              "guest_memory_exhaustion_verified": False, "host_qemu_oom_verified": False,
+              "external_vm_stop_recovery_verified": False, "checks": {}, "observations": {},
               "errors": [], "cleanup_errors": [], "milestone_complete": False,
               "dedicated_service_identity_verified": False, "production_egress_verified": False,
               "global_fencing_verified": False, "real_model_calls": 0}
     try:
+        if memory_mode: freeze_qualification_limits(reports, result)
         result["df_before"] = kvm.run(["df", "-h", str(root)])
         for label in ("a", "b"):
             instances.append({"uuid": str(uuid.uuid4()), "name": "harniqo-rb-" + rid + "-" + label,
@@ -546,7 +613,7 @@ def execute(args) -> int:
                     "bytes": metadata.st_size, "allocated_bytes": metadata.st_blocks * 512}
             finally: os.close(disk_fd)
             user, meta, net = [work / (i["template_id"] + "-" + n) for n in ("user", "meta", "network")]
-            kvm.write(user, sealed_guest_config(i, other, root, resource_profile=args.resource_profile, pressure=i is instances[0]))
+            kvm.write(user, sealed_guest_config(i, other, root, resource_profile=args.resource_profile, pressure=i is instances[0], guest_memory_pressure=memory_mode))
             save(meta, {"instance-id": i["uuid"], "local-hostname": i["name"]})
             save(net, {"version": 2, "ethernets": {}})
             kvm.run(["cloud-localds", "--network-config", str(net), str(i["seed"]), str(user), str(meta)])
@@ -579,6 +646,7 @@ def execute(args) -> int:
                    REPO / "scripts/qualification/qualify_kvm_network.py",
                    REPO / "scripts/qualification/kvm_host_policy.py",
                    *sorted((REPO / "apps/runner/resource_broker").rglob("*.py"))]
+        sources.append(REPO / 'scripts/qualification/guest_memory_pressure.py')
         snapshots = {p: public_source(p) for p in sources}
         result["source_sha256"] = {str(p.relative_to(REPO)): hashlib.sha256(data).hexdigest()
                                    for p, data in snapshots.items()}
@@ -619,8 +687,9 @@ def execute(args) -> int:
         if watch.poll() is not None:
             raise RuntimeError("Independent watch exited during Guest boot")
         if args.resource_profile == "sealed-raw8g-q35-limited-v2":
-            resource_pressure(broker, instances, streams, result)
-        a2, b2 = claim(claims[0], 2, 8), claim(claims[1], 2, 120)
+            if memory_mode: memory_pressure.run_pressure(broker, instances, streams, result)
+            else: resource_pressure(broker, instances, streams, result)
+        a2, b2 = claim(claims[0], 2, 120 if memory_mode else 8), claim(claims[1], 2, 120)
         result["observations"]["renewed"] = [asdict(broker.renew(sign_grant(key, **c))) for c in (a2, b2)]
         stale = claim(claims[0], 1, 60)
         result["stale_generation"] = rejected(lambda: broker.renew(sign_grant(key, **stale)), expected="generation_stale")
@@ -629,12 +698,18 @@ def execute(args) -> int:
         result["a_live_after_launcher_exit_at"] = time.time()
         if not result["checks"]["a_live_after_launcher_exit"]:
             raise RuntimeError("A was not live after confirmed launcher exit")
-        await_absent(instances[0]["uuid"], 30, streams)
-        result["a_absent_before_observe_at"] = time.time()
-        stopped_a = stopped_receipt(broker, instances[0]["uuid"])
-        result["observations"]["a_after_launcher_death"] = asdict(stopped_a)
-        result["checks"]["a_watch_deadline_stop"] = (stopped_a.stop_evidence.method == "libvirt_destroy_then_absent"
-            and stopped_a.stop_evidence.confirmed_at >= a2["expires_at"] - .25)
+        if memory_mode:
+            broker, stopped_a = external_vm_stop_fault(broker, config, instances[0], streams, reports,
+                result, assignments[0], sign_grant(key, **a2))
+            result["guest_memory_pressure"]["b_after_external_stop_challenge"] = memory_pressure.challenge(streams, instances[1])
+            result["checks"]["b_healthy_after_external_stop"] = True
+        else:
+            await_absent(instances[0]["uuid"], 30, streams)
+            result["a_absent_before_observe_at"] = time.time()
+            stopped_a = stopped_receipt(broker, instances[0]["uuid"])
+            result["observations"]["a_after_launcher_death"] = asdict(stopped_a)
+            result["checks"]["a_watch_deadline_stop"] = (stopped_a.stop_evidence.method == "libvirt_destroy_then_absent"
+                and stopped_a.stop_evidence.confirmed_at >= a2["expires_at"] - .25)
         result["observations"]["b_survivor"] = asdict(broker.observe(instances[1]["uuid"]))
         result["checks"]["independent_watch_survives_launcher"] = watch.poll() is None and instances[1]["uuid"] in kvm.domain_ids() and result["observations"]["b_survivor"]["state"] == "running"
         b3 = claim(claims[1], 3, 5)
@@ -732,10 +807,29 @@ def execute(args) -> int:
         expected = {"workspace_busy", "repeat_ensure_same_uuids", "only_two_owned_domains", "guest_checks", "runtime_qemu_socket_observed",
                     "independent_watch_survives_launcher", "no_revival_or_replacement", "disks_retained_until_host_stop",
                     "a_live_after_launcher_exit", "a_watch_deadline_stop", "b_restart_deadline_stop"}
-        if args.resource_profile == "sealed-raw8g-q35-limited-v2":
+        if memory_mode:
+            expected.remove('a_watch_deadline_stop')
+            expected |= memory_pressure.REQUIRED_CHECKS | {'external_stop_absence_verified',
+                'external_stop_tombstone_rebuilt', 'external_stop_old_authorization_rejected',
+                'b_healthy_after_external_stop'}
+        elif args.resource_profile == "sealed-raw8g-q35-limited-v2":
             expected |= {"qemu_cpu_throttled", "b_heartbeat_during_pressure", "host_limits_verified", "normal_memory_within_cap", "resource_pressure_identity_stable"}
+        if memory_mode:
+            expected.add('qualification_limits_frozen')
+            try:
+                manifest = reports / 'qualification-limits.json'
+                frozen = (result.get('qualification_limits') == memory_pressure.qualification_limits()
+                    and json.loads(manifest.read_text()) == result['qualification_limits']
+                    and kvm.sha256(manifest) == result.get('qualification_limits_sha256'))
+            except (OSError, ValueError):
+                frozen = False
+            result['checks']['qualification_limits_frozen'] = frozen
+            if not frozen:
+                result['errors'].append({'phase':'qualification_limits','message':'Frozen qualification budget missing or changed'})
         result["passed"] = not result["errors"] and not result["cleanup_errors"] and all(result["checks"].get(c) is True for c in expected)
         result["host_cpu_memory_limits_verified"] = result["passed"] and args.resource_profile == "sealed-raw8g-q35-limited-v2"
+        result['guest_memory_exhaustion_verified'] = result['passed'] and memory_mode
+        result['external_vm_stop_recovery_verified'] = result['passed'] and memory_mode
         save(reports / "report.json", result)
         print(json.dumps({"qualification": result["qualification"], "passed": result["passed"],
                           "milestone_complete": False, "errors": len(result["errors"]),
@@ -751,11 +845,12 @@ def main() -> int:
     parser.add_argument("--base-image", type=Path)
     parser.add_argument("--timeout", type=int, default=120)
     parser.add_argument("--resource-profile", choices=("sealed-raw8g-q35-v1", "sealed-raw8g-q35-limited-v2"), default="sealed-raw8g-q35-v1")
+    parser.add_argument("--guest-memory-pressure", action="store_true", help="Explicit limited-v2 Guest OOM and external-stop fault qualification")
     parser.add_argument("--worker", choices=("launcher", "watch"))
     parser.add_argument("--config", type=Path)
     args = parser.parse_args()
     if args.worker:
-        if args.config is None or args.base_image is not None: parser.error("Worker requires only --config")
+        if args.config is None or args.base_image is not None or args.guest_memory_pressure: parser.error("Worker requires only --config")
         return worker(args.config.absolute(), args.worker, args.root)
     if args.base_image is None or args.config is not None: parser.error("Qualification requires --base-image")
     def terminate(signum, _frame): raise KeyboardInterrupt("Qualification interrupted by signal " + str(signum))
