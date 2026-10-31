@@ -1,0 +1,51 @@
+{
+  "scope": "synthetic_qualification_components_only",
+  "date_local": "2026-10-31",
+  "timezone": "Asia/Shanghai",
+  "source_commit": "9292cc6f785ffce7cd9a64d0e840b1de8865aa27",
+  "run_url": "https://github.com/StateKnot/Harniqo/actions/runs/41165398801",
+  "job_url": "https://github.com/StateKnot/Harniqo/actions/runs/41165398801/job/124431759667",
+  "conclusion": "success",
+  "runner": "ubuntu-24.04",
+  "python": "3.12.15",
+  "python_tests": 262,
+  "failures": 0,
+  "errors": 0,
+  "skipped": 0,
+  "expected_failures": 0,
+  "report_sha256": "af31d375085d1d683f2ed30535ea6e6275fda52698fa7ee2fecb9fbf1fcd95b5",
+  "node_checks": [
+    {
+      "step": "Run native protocol and private profile component checks",
+      "conclusion": "success"
+    },
+    {
+      "step": "Run transparent provider observer component checks",
+      "conclusion": "success"
+    }
+  ],
+  "real_model_calls": 0,
+  "native_harness_verified": false,
+  "vm_isolation_verified": false,
+  "desktop_build_verified": false,
+  "contracts_ci": {
+    "source_commit": "9292cc6f785ffce7cd9a64d0e840b1de8865aa27",
+    "run_url": "https://github.com/StateKnot/Harniqo/actions/runs/41165398840",
+    "conclusion": "success",
+    "jobs": [
+      {
+        "runner": "macos-15",
+        "conclusion": "success"
+      },
+      {
+        "runner": "ubuntu-24.04",
+        "conclusion": "success"
+      },
+      {
+        "runner": "windows-2025",
+        "conclusion": "success"
+      }
+    ],
+    "scope": "contract_verification_only"
+  }
+}

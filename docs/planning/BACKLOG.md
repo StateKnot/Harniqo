@@ -165,5 +165,6 @@
 | 2026-10-30 | M0-05 本地Resource Broker | VERIFIED（固定实例组子项）；M0-05仍IN_PROGRESS | 可复用正式Module、34核心/16操作者及服务器233纯组件通过；真实2KVM/22Guest检查、两个SIGKILL、独立期限停止与重建停止、拒绝复活及精确回收通过。E46–48 | 固定≤64实例组，非全局分配器；生产Egress、专用UID/授权、宿主硬配额与耗尽、控制面全局fencing/更广故障仍需完成；旧失败及未知写入层保留 |
 | 2026-10-30 | M0-05/07 本轮CI留证 | VERIFIED（组件CI子项） | [GitHub实际运行](https://github.com/StateKnot/Harniqo/actions/runs/41043954665)233项Python及两组Node通过，下载报告hash已核对，源a0eae677a290。E49 | 组件CI与E48真实VM分别计量，M0仍4/8，M0-05保持IN_PROGRESS |
 | 2026-10-31 | M0-05 固定宿主限额 | VERIFIED（v2 CPU/内存/swap与CPU压力子项）；M0-05仍IN_PROGRESS | 整域1核、记账RAM2GiB+额外swap2GiB，真实全线程/cgroup读取、A节流+B3新挑战、22Guest及双SIGKILL期限链通过；262组件，0模型。E50 | 显式新profile，v1不原位迁移；三FAILED保留、当前组完整回收，旧诊断共80GiB保留；OOM/磁盘spool/UID/Egress等仍需完成 |
+| 2026-10-31 | M0-05/07 限额组件CI | VERIFIED（组件CI子项） | [GitHub实际运行](https://github.com/StateKnot/Harniqo/actions/runs/41165398801)262项Python和两组Node全部成功，下载合成报告核验，source9292cc6f785f。E51 | 55核心+17操作者+7压力集成+183原套件；M0仍4/8，M0-05保持IN_PROGRESS |
 
 后续每次追加：任务 ID、状态、源码提交、配置/版本、验收用例、报告位置、已知限制、阻塞解除条件。执行细节及敏感报告放受控存储，仓库只保留脱敏索引。

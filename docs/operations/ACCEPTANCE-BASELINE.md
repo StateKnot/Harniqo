@@ -107,6 +107,8 @@
 
 后续Resource Broker固定实例组子项已完成[真实KVM验证](resource-broker-kvm-2026-10-30.json)，其原生证据与合成组件分别登记。[本轮实际组件CI](https://github.com/StateKnot/Harniqo/actions/runs/41043954665)新增34项Broker及16项操作者回归，总计233项Python全部通过，两组Node检查通过；[新CI摘要](qualification-ci-m005-2026-10-30.json)与旧183项/失败记录分别保留。组件CI仍不调用模型或VM，完整M0-05与桌面原生构建等门槛保持独立。
 
+2026-10-31固定limited-v2的[真实CPU/内存/swap及CPU压力结果](resource-limits-kvm-2026-10-31.json)与[实际262项组件CI](https://github.com/StateKnot/Harniqo/actions/runs/41165398801)分别完成；7项压力门槛和真实socketpair集成覆盖旧心跳、慢采样时钟、身份变化及默认v1/显式v2通道生命周期。[CI摘要](qualification-ci-limits-2026-10-31.json)与旧报告分别保留。完整OOM/磁盘spool/专用UID/Egress等M0-05门槛保持未验。
+
 本轮已固定初始 OS/架构、负载、SLO、资源、恢复数据规模、预算边界和测试方式。正式关闭任务还要求：逐项确认能用于验收的资源与权限、实际环境参数、独立备份位置，以及缺失项的受影响阶段和可执行解除方案；不能只写“以后准备”。真实签名发布、容量和恢复测量在相应阶段执行并回填证据。
 
 当前资源表仍有未验证项，因此本任务未完成，后续按项目状态规则继续推进。所有支持声明以最终通过的组合和能力为准，未经验证的候选保留候选状态。
