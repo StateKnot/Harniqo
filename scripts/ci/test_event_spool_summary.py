@@ -280,11 +280,56 @@ class SummaryTests(unittest.TestCase):
         report = self.report()
         self.assertFalse(report['passed'])
         self.assertIn('test_evidence_unavailable', report['evidence_issues'])
-        for document in ('<unrelated/>', '<testsuites>' + '<testcase name="case"/>' * 35
-                         + '</testsuites>'):
+        for document in ('<unrelated/>', '<testsuites><wrapper><testcase name="case"/>'
+                         + '</wrapper></testsuites>'):
             with self.subTest(document=document[:30]):
                 self.junit.write_text(document)
                 self.assertFalse(self.report()['passed'])
+
+    def test_actual_node_flat_junit_shape_counts_all_34_cases(self):
+        # The designated server's Node24.22.1 JUnit producer emits direct
+        # testcase children, without any testsuite wrapper, for these 34 tests.
+        # This self-contained shape has no original timestamps or host paths.
+        self.junit.write_text('<?xml version="1.0" encoding="utf-8"?>\n<testsuites>\n'
+                              + ''.join('<testcase name="case-%d" time="0.01" classname="test" '
+                                        'file="spool.test.ts"/>\n' % number for number in range(34))
+                              + '</testsuites>\n')
+        report = self.report()
+        self.assertTrue(report['passed'], report['evidence_issues'])
+        self.assertEqual(report['tests'], 34)
+        self.assertEqual(report['junit_sha256'], hashlib.sha256(self.junit.read_bytes()).hexdigest())
+
+    def test_nested_junit_counts_and_case_placement_are_verified(self):
+        document = ('<testsuites tests="2" failures="0" errors="0" skipped="0">'
+                    '<testcase name="direct"/>'
+                    '<testsuite tests="1"><testsuite tests="1">'
+                    '<testcase name="nested"/></testsuite></testsuite></testsuites>')
+        self.junit.write_text(document)
+        self.assertTrue(self.report()['passed'])
+        self.assertEqual(self.report()['tests'], 2)
+        for invalid in (document.replace('tests="2"', 'tests="3"'),
+                        document.replace('tests="1"', 'tests="0"', 1),
+                        document.replace('failures="0"', 'failures="1"'),
+                        '<testsuites><failure/></testsuites>',
+                        '<testsuites><testcase name="outer"><testcase name="hidden"/>'
+                        '</testcase></testsuites>',
+                        '<testsuites><testcase name="case"><system-out><testcase name="hidden"/>'
+                        '</system-out></testcase></testsuites>',
+                        '<testsuites><testcase/></testsuites>'):
+            with self.subTest(document=invalid):
+                self.junit.write_text(invalid)
+                self.assertFalse(self.report()['passed'])
+
+    def test_flat_junit_failures_errors_and_skips_cannot_pass(self):
+        for tag, field in (('failure', 'failures'), ('error', 'errors'), ('skipped', 'skipped')):
+            with self.subTest(tag=tag):
+                self.junit.write_text('<testsuites><testcase name="case"><%s message="private payload"/>'
+                                      '</testcase></testsuites>' % tag)
+                report = self.report()
+                self.assertFalse(report['passed'])
+                self.assertEqual(report['tests'], 1)
+                self.assertEqual(report[field], 1)
+                self.assertNotIn('private payload', json.dumps(report))
 
     def test_failures_errors_skips_and_private_payload_are_never_success(self):
         for tag, field in (('failure', 'failures'), ('error', 'errors'), ('skipped', 'skipped')):

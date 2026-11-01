@@ -92,6 +92,44 @@ def checked_compile_options(value: object, claimed_hash: object) -> tuple[list[s
     return value, digest
 
 
+def junit_counts(raw: bytes) -> dict[str, int]:
+    if b'<!DOCTYPE' in raw.upper() or b'<!ENTITY' in raw.upper():
+        raise ValueError('junit_declaration_forbidden')
+    root = ET.fromstring(raw)
+    if root.tag not in {'testsuites', 'testsuite'}:
+        raise ValueError('junit_root_invalid')
+
+    def container(element: ET.Element) -> dict[str, int]:
+        counts = dict.fromkeys(('tests', 'failures', 'errors', 'skipped'), 0)
+        for child in element:
+            if child.tag == 'testsuite':
+                observed = container(child)
+            elif child.tag == 'testcase':
+                if not child.get('name'):
+                    raise ValueError('junit_case_name_required')
+                observed = dict.fromkeys(counts, 0)
+                observed['tests'] = 1
+                for result in child:
+                    if (result.tag not in {'failure', 'error', 'skipped', 'system-out', 'system-err'}
+                            or len(result)):
+                        raise ValueError('junit_case_result_invalid')
+                    field = {'failure': 'failures', 'error': 'errors', 'skipped': 'skipped'}.get(result.tag)
+                    if field:
+                        observed[field] += 1
+            else:
+                raise ValueError('junit_case_placement_invalid')
+            for key in counts:
+                counts[key] += observed[key]
+        for key, count in counts.items():
+            if key in element.attrib and element.attrib[key] != str(count):
+                raise ValueError('junit_counts_inconsistent')
+        return counts
+
+    # Node24.22.1 emits direct cases for top-level test() calls, while suites
+    # can wrap describe()/nested tests. Validate both without inventing wrappers.
+    return container(root)
+
+
 def summarize(root: Path, source_commit: str | None, outcomes: dict) -> dict:
     folder = root / 'ci-evidence'
     issues = []
@@ -159,29 +197,8 @@ def summarize(root: Path, source_commit: str | None, outcomes: dict) -> dict:
     try:
         raw = read_bounded(folder / 'event-spool.junit.xml', JUNIT_LIMIT)
         junit_hash = hashlib.sha256(raw).hexdigest()
-        if b'<!DOCTYPE' in raw.upper() or b'<!ENTITY' in raw.upper():
-            raise ValueError('junit_declaration_forbidden')
-        xml = ET.fromstring(raw)
-        if xml.tag not in {'testsuites', 'testsuite'}:
-            raise ValueError('junit_root_invalid')
-        if not list(xml.iter('testsuite')) or (xml.tag == 'testsuites' and any(
-                child.tag != 'testsuite' for child in xml)):
-            raise ValueError('junit_suites_required')
-        cases = list(xml.iter('testcase'))
-        if (any(not case.get('name') for case in cases)
-                or sum(len(suite.findall('testcase')) for suite in xml.iter('testsuite')) != len(cases)):
-            raise ValueError('junit_case_name_required')
-        tests = len(cases)
-        failures, errors, skipped = (len(list(xml.iter(name))) for name in ('failure', 'error', 'skipped'))
-        for suite in xml.iter():
-            if suite.tag not in {'testsuites', 'testsuite'}:
-                continue
-            observed = {'tests': len(list(suite.iter('testcase'))),
-                        **{key: len(list(suite.iter(tag))) for key, tag in
-                           (('failures', 'failure'), ('errors', 'error'), ('skipped', 'skipped'))}}
-            for key, count in observed.items():
-                if key in suite.attrib and suite.attrib[key] != str(count):
-                    raise ValueError('junit_counts_inconsistent')
+        counts = junit_counts(raw)
+        tests, failures, errors, skipped = (counts[key] for key in ('tests', 'failures', 'errors', 'skipped'))
         if not tests:
             issues.append('no_test_cases')
         if failures or errors or skipped:
