@@ -20,8 +20,8 @@ Broker、租约、持久 journal 与 [Supervisor IPC](IPC.md)。运行前先准�
 Template 字段为 `template_id`、`resource_id`、`name`、`disk`、`seed`、`channel`、
 `console`、`source_base_sha256`、`resource_profile`。peer 的资源项使用
 `resource_id`、`organization_id`、`workspace_id`、`operations`。完整输入形状见
-[部署包说明](../../../../deploy/runner/README.md)及
-[服务回归夹具](../../../../scripts/qualification/test_broker_service.py)。
+[部署包说明](../../../deploy/runner/README.md)及
+[服务回归夹具](../../../scripts/qualification/test_broker_service.py)。
 
 配置须为 root 或实际 Broker UID 拥有的单链接普通文件，模式 `0600` 或 `0640`；
 全部祖先归 root 或该 UID、不可组/其他写、无 symlink。实际身份必须与配置相符，
@@ -52,6 +52,6 @@ ready 和 systemd `Type=exec` 都不能证明 VM 或业务健康。SIGTERM/SIGIN
 等待期间不能将已接收操作的结果推断为取消；仍按 IPC 的结果未知规则处理。
 
 专用账号、发行目录、双 systemd unit、目录权限及 polkit 候选由
-[离线部署包](../../../../deploy/runner/README.md)生成。生成不安装或激活权限；必须先
+[离线部署包](../../../deploy/runner/README.md)生成。生成不安装或激活权限；必须先
 实际验收 libvirt daemon 的细粒度 ACL、两个服务身份及 Supervisor 权限隔离。
 当前宿主尚未完成这些门槛，部署包保持 `BLOCKED`。

@@ -1,0 +1,156 @@
+{
+  "scope": "broker_service_regression_ci_evidence_only",
+  "date_local": "2026-11-01",
+  "timezone": "Asia/Shanghai",
+  "source_commit": "dfc0dea86ae68fad070c07e4a48dfe0c6c9f6be3",
+  "qualification_ci": {
+    "scope": "synthetic_qualification_components_only",
+    "date_local": "2026-11-01",
+    "timezone": "Asia/Shanghai",
+    "source_commit": "dfc0dea86ae68fad070c07e4a48dfe0c6c9f6be3",
+    "run_url": "https://github.com/StateKnot/Harniqo/actions/runs/41294642335",
+    "job_url": "https://github.com/StateKnot/Harniqo/actions/runs/41294642335/job/124812802039",
+    "conclusion": "success",
+    "runner": "ubuntu-24.04",
+    "python": "3.12.15",
+    "python_tests": 572,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "expected_failures": 0,
+    "report_sha256": "a9c20d7f36764a8ef7de071cf910f803106f62e965ff1aa331e7d04c3922e092",
+    "node_checks": [
+      {
+        "step": "Run native protocol and private profile component checks",
+        "conclusion": "success"
+      },
+      {
+        "step": "Run transparent provider observer component checks",
+        "conclusion": "success"
+      }
+    ],
+    "real_model_calls": 0,
+    "native_harness_verified": false,
+    "vm_isolation_verified": false,
+    "desktop_build_verified": false
+  },
+  "native_processes_ci": {
+    "source_commit": "dfc0dea86ae68fad070c07e4a48dfe0c6c9f6be3",
+    "run_url": "https://github.com/StateKnot/Harniqo/actions/runs/41294642215",
+    "job_url": "https://github.com/StateKnot/Harniqo/actions/runs/41294642215/job/124812801833",
+    "conclusion": "success",
+    "runner": "ubuntu-24.04",
+    "artifact_sha256": "d4bc9264f523c3c76295e3192dd0d3a377dc2d92971fa3617cb52c1e059dbab8",
+    "qualification": {
+      "administrator_changes": 0,
+      "backend_scope": "deterministic_persistent_admitted_broker_interface_adapter",
+      "checks": {
+        "all_owned_workers_exited": true,
+        "client_authenticates_server": true,
+        "duplicate_request_is_not_transport_deduplicated": true,
+        "immutable_runtime_directories": true,
+        "immutable_sources": true,
+        "independent_process_authorized_calls": true,
+        "inherited_socket_sender_pid_denied": true,
+        "listener_ownership_and_exact_cleanup": true,
+        "lost_reply_unconfirmed_no_automatic_retry": true,
+        "malformed_oversized_ancillary_denied_without_fd_leak": true,
+        "operation_resource_scope_denied_before_backend": true,
+        "peer_identity_policy_denied": true,
+        "restart_observes_durable_fixture_effect": true,
+        "stalled_peer_deadline_preserves_service": true
+      },
+      "claims": {
+        "actual_vm_stop_verified": false,
+        "control_plane_authorization_verified": false,
+        "dedicated_production_uid_verified": false,
+        "full_m0_05_accepted": false,
+        "power_loss_verified": false,
+        "signed_envelope_policy_verified": false,
+        "virtual_machine_isolation_verified": false
+      },
+      "deadlines_seconds": {
+        "client_timeout_seconds": 2,
+        "wall_seconds": 180,
+        "worker_exit_seconds": 3,
+        "worker_reply_seconds": 5,
+        "worker_start_seconds": 4
+      },
+      "environment": {
+        "kernel_release": "7.0.0-1017-azure",
+        "logical_cpu_count": 4,
+        "machine": "x86_64",
+        "python": "3.12.15",
+        "system": "Linux"
+      },
+      "gate_count": 14,
+      "gates_passed": 14,
+      "milestone_complete": false,
+      "outcome": "passed",
+      "passed": true,
+      "peer_identity_negative_scope": "same_development_account_kernel_credentials_vs_wrong_configured_uid",
+      "private_report_sha256": "049a57c9f867b4b7f14357ef6318ba4b6ade3682fa59a1deef6d17b05065b166",
+      "real_linux_uds_processes": true,
+      "real_model_calls": 0,
+      "sources_sha256": {
+        "apps/runner/resource_broker/__init__.py": "ce2669a86eed247e63f205867bab35361002759c7bf9bf7a03e6614a218112b3",
+        "apps/runner/resource_broker/ipc.py": "7f84f0e8ec877be8ad61a90bfeb59785285b20f489b6d62a8d853d97fd32bb79",
+        "apps/runner/resource_broker/resources.py": "01a29cf1609dc2348ab22cde2c27d817d465e5cbee61899d274ef7bb95a4963c",
+        "scripts/qualification/qualify_broker_ipc.py": "928bae126470022f4825fa0234364c316de0f40967367d59de5aac2ddf008dc8",
+        "scripts/qualification/test_broker_ipc_operator.py": "446acbd9cdc4c12f521b7b522874f3e3b660d42e01c1880b6e5c00e1c2039efc"
+      },
+      "synthetic_backend": true,
+      "tcp_listeners_started": 0,
+      "virtual_machines_started": 0,
+      "workers_started": 33
+    }
+  },
+  "real_model_calls": 0,
+  "virtual_machine_isolation_verified": false,
+  "dedicated_production_uid_verified": false,
+  "control_plane_authorization_verified": false,
+  "desktop_build_verified": false,
+  "milestone_complete": false,
+  "contracts_ci": {
+    "source_commit": "dfc0dea86ae68fad070c07e4a48dfe0c6c9f6be3",
+    "run_url": "https://github.com/StateKnot/Harniqo/actions/runs/41294642207",
+    "conclusion": "success",
+    "jobs": [
+      {
+        "runner": "ubuntu-24.04",
+        "conclusion": "success",
+        "job_url": "https://github.com/StateKnot/Harniqo/actions/runs/41294642207/job/124812801916",
+        "python": "3.12.15",
+        "definitions": 60,
+        "paths": 18,
+        "fixtures": 107,
+        "transition_cases": 15,
+        "report_sha256": "e705ca702c619ce0a36d8636b62437a36982f8f5c3b30a02a2caca7fbaba2c91"
+      },
+      {
+        "runner": "macos-15",
+        "conclusion": "success",
+        "job_url": "https://github.com/StateKnot/Harniqo/actions/runs/41294642207/job/124812801975",
+        "python": "3.12.10",
+        "definitions": 60,
+        "paths": 18,
+        "fixtures": 107,
+        "transition_cases": 15,
+        "report_sha256": "e705ca702c619ce0a36d8636b62437a36982f8f5c3b30a02a2caca7fbaba2c91"
+      },
+      {
+        "runner": "windows-2025",
+        "conclusion": "success",
+        "job_url": "https://github.com/StateKnot/Harniqo/actions/runs/41294642207/job/124812801729",
+        "python": "3.12.10",
+        "definitions": 60,
+        "paths": 18,
+        "fixtures": 107,
+        "transition_cases": 15,
+        "report_sha256": "24d8e22f016df7935ea1ff912277c66e30c2e80cdafed31d56d433cbc1df0aeb"
+      }
+    ],
+    "scope": "contract_verification_only",
+    "desktop_build_verified": false
+  }
+}

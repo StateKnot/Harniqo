@@ -178,4 +178,12 @@ systemd-analyze verify /absolute/rendered/harniqo-broker.service /absolute/rende
 
 共2个资源UUID、3次实际VM启动。A初次期限停止后以新签Assignment、generation3/recovery2和新attempt重启同UUID，核对不同QEMU进程身份、固定v2限额与宿主在场，再IPC revoke(cancelled)；必须取得更新的libvirt_destroy_then_absent和宿主absence，B/watch保持活动。第二次A有独立完整有界console，未计作第二轮Guest健康通过。独立收集器另验11份源码快照、配置原字节/安全祖先、签名Assignment/anchor/journal及XML、三份console、ready/退出、限额与压力挑战；只读重查既有对象和base原字节，本组raw/seed与临时通道已精确回收。旧96GiB诊断材料不在本轮清理范围；不声称已为旧层追加逐字节前后对照。
 
-本轮无模型、TCP/NIC或管理员/全局服务修改，不依赖测试模型凭据。M0仍4/8、M0-05仍IN_PROGRESS；专用UID/有效ACL、Supervisor生产集成、完整Egress与控制面权威授权/预算/提交等继续按各自门槛推进。历史E62/E64/E65源码绑定保留，不改写成当前实现的证明。实际GitHub CI在发布后单列登记。
+本轮无模型、TCP/NIC或管理员/全局服务修改，不依赖测试模型凭据。M0仍4/8、M0-05仍IN_PROGRESS；专用UID/有效ACL、Supervisor生产集成、完整Egress与控制面权威授权/预算/提交等继续按各自门槛推进。历史E62/E64/E65源码绑定保留，不改写成当前实现的证明。实际GitHub CI见第9节，分别登记真实运行及其范围。
+
+## 9. 实际 GitHub CI
+
+源码`dfc0dea86ae68fad070c07e4a48dfe0c6c9f6be3`的[完整资格CI](https://github.com/StateKnot/Harniqo/actions/runs/41294642335)通过572项Python回归，0失败/错误/跳过，两组Node检查成功。[真实IPC进程CI](https://github.com/StateKnot/Harniqo/actions/runs/41294642215)通过14门槛/33进程，后端仍为确定性持久夹具，当前5份源码摘要已逐项核对；没有以旧E64源码摘要充当新实现的通过证明。
+
+同一源码的[三平台契约CI](https://github.com/StateKnot/Harniqo/actions/runs/41294642207)成功，每个平台通过60定义、18路径、107样例及15生命周期；只证明契约，不代表三端桌面构建。5份实际artifact已下载，实际run/head/workflow/job/步骤、报告、源码、锁和SHA核验完毕，见[CI索引](../docs/operations/broker-service-ci-2026-11-01.json)。CI的组件/进程夹具与E67指定服务器的真实VM分别计量。
+
+最终文档增补E68和CI索引，修正4处服务文档相对链接并逐一核对目标存在；受测运行代码、测试、工作流保持上述受测提交字节，未为文档重复执行VM或模型任务。M0继续4/8、M0-05仍IN_PROGRESS；专用生产身份/有效ACL与系统安装不继承本次CI通过状态。
