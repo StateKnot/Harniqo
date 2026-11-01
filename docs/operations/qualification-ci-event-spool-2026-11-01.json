@@ -27,5 +27,56 @@
   "real_model_calls": 0,
   "native_harness_verified": false,
   "vm_isolation_verified": false,
-  "desktop_build_verified": false
+  "desktop_build_verified": false,
+  "contracts_ci": {
+    "source_commit": "795a05c38b197a3b110536be3c59d1d9fe706451",
+    "run_url": "https://github.com/StateKnot/Harniqo/actions/runs/41275350826",
+    "conclusion": "success",
+    "jobs": [
+      {
+        "runner": "ubuntu-24.04",
+        "conclusion": "success",
+        "job_url": "https://github.com/StateKnot/Harniqo/actions/runs/41275350826/job/124756309509",
+        "python": "3.12.15",
+        "definitions": 60,
+        "paths": 18,
+        "fixtures": 107,
+        "transition_cases": 15,
+        "report_sha256": "e705ca702c619ce0a36d8636b62437a36982f8f5c3b30a02a2caca7fbaba2c91"
+      },
+      {
+        "runner": "macos-15",
+        "conclusion": "success",
+        "job_url": "https://github.com/StateKnot/Harniqo/actions/runs/41275350826/job/124756309730",
+        "python": "3.12.10",
+        "definitions": 60,
+        "paths": 18,
+        "fixtures": 107,
+        "transition_cases": 15,
+        "report_sha256": "e705ca702c619ce0a36d8636b62437a36982f8f5c3b30a02a2caca7fbaba2c91"
+      },
+      {
+        "runner": "windows-2025",
+        "conclusion": "success",
+        "job_url": "https://github.com/StateKnot/Harniqo/actions/runs/41275350826/job/124756309593",
+        "python": "3.12.10",
+        "definitions": 60,
+        "paths": 18,
+        "fixtures": 107,
+        "transition_cases": 15,
+        "report_sha256": "24d8e22f016df7935ea1ff912277c66e30c2e80cdafed31d56d433cbc1df0aeb"
+      }
+    ],
+    "scope": "contract_verification_only",
+    "desktop_build_verified": false
+  },
+  "tested_inputs_unchanged_through_commit": "795a05c38b197a3b110536be3c59d1d9fe706451",
+  "tested_inputs_unchanged": true,
+  "verified_paths": [
+    "apps/runner",
+    "scripts/qualification",
+    "deploy/qualification",
+    "scripts/ci/qualification_components.py",
+    ".github/workflows/qualification.yml"
+  ]
 }

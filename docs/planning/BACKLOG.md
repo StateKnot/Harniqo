@@ -185,3 +185,4 @@
 | --- | --- | --- | --- | --- |
 | 2026-11-01 | M0-05 本地SQLite spool | 已开发完成并验证（VERIFIED，限定子项）；M0-05仍IN_PROGRESS | 正式Module精确幂等/缺口/连续ACK回收与有限页/WAL；服务器严格tsc、34SQLite/210Python零失败/错误/跳过；原生9门槛、4SIGKILL/热WAL恢复/提交前回滚/独立进程锁/SQLITE_FULL保留与fixture ACK回收复用通过。E59 | 独立0700数据根保持原准入；首轮0775拒绝与夹具失败保留；CP认证/提交及真实上传不继承，非通用FSquota或断电证明 |
 | 2026-11-01 | M0-05 spool容量故障停止 | 已开发完成并验证（VERIFIED，固定v2子项）；M0-05仍IN_PROGRESS | 2KVM/22Guest/27宿主门槛全部通过；A15条107487B保留、实际SQLITE_FULL触发精确停止/持久防复活，B5次新挑战与落盘及watch期限重建链通过；签名/DB/归档另核，错误/清理0。E60 | 当前组精确回收、数据留存，旧80GiB和失败16GiB层保留；0模型/新端口/管理员改动；宿主OOM/通用quota/专用UID/完整出口与权威授权预算仍待完成，M0仍4/8 |
+| 2026-11-01 | M0-05/07 事件spool实际CI | 已开发完成并验证（VERIFIED，组件/契约CI子项） | 最终源码`795a05c38b19`的[实际spool CI](https://github.com/StateKnot/Harniqo/actions/runs/41275350891)严格tsc/34SQLite/17摘要回归通过，实际artifact/JUnit/编译选项/source核对；资格383Python/两组Node受测源码不变，三平台契约同spool提交通过。E61 | 两次CI失败及服务器完整8步链分别保留，CI无模型/VM；与E59进程/E60真实VM分开计量，不替代剩余生产准入，M0仍4/8 |

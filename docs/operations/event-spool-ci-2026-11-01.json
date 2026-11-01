@@ -1,0 +1,163 @@
+{
+  "artifact_zip_sha256": "ed8def5c775a86721ddfe9621bdbaf3365510e0d3906f010ce97b537075ffab1",
+  "conclusion": "success",
+  "control_plane_commit_verified": false,
+  "date_local": "2026-11-01",
+  "desktop_build_verified": false,
+  "errors": 0,
+  "evidence_issues": [],
+  "failure_evidence_retention_regressions": {
+    "conclusion": "success",
+    "count_source": "actual_job_log_verbose_unittest_result",
+    "errors": 0,
+    "failures": 0,
+    "skipped": 0,
+    "step": "Check disk and failure evidence retention",
+    "tests": 17
+  },
+  "failure_history_preserved": true,
+  "failures": 0,
+  "generic_filesystem_quota_verified": false,
+  "job_log_sha256": "20698f62996c569bbf9e73bb097a3d7f9d4576235180c1f618a10631664c1f9d",
+  "job_url": "https://github.com/StateKnot/Harniqo/actions/runs/41275350891/job/124756309766",
+  "junit_sha256": "1d9362f2a7b17224c30088d445748163ddbb4273d3c27cdd48599020b2a0c5a8",
+  "native_sigkill_recovery_verified": false,
+  "node": "v24.22.1",
+  "original_failed_runs": [
+    {
+      "conclusion": "failure",
+      "original_report_tests": 0,
+      "reason": "Compiler metadata format rejected by summary capture; later typecheck/tests skipped",
+      "report_sha256": "5995b241345120354783efdd27427341d817b5c3fdf8d2306c6d9ea66211cbf9",
+      "run_url": "https://github.com/StateKnot/Harniqo/actions/runs/41274152866",
+      "source_commit": "60eaf01932b578e1f0450191ee2b3e289cd08491"
+    },
+    {
+      "conclusion": "failure",
+      "original_report_tests": 0,
+      "reason": "Runtime/typecheck/test steps succeeded; summary rejected direct JUnit cases before counting",
+      "report_sha256": "6c67c36ec3122c949698416aca95e40325d58c1761a26e300d75189266e74960",
+      "run_url": "https://github.com/StateKnot/Harniqo/actions/runs/41274606828",
+      "source_commit": "ab91507e8d26a37440992c7c63ceb1a092a8149a"
+    }
+  ],
+  "package_lock_sha256": "f8f6b5c2b485ceec923f904707b64463254076703fb44c7c1f96fd5a66b247df",
+  "passed": true,
+  "power_loss_recovery_verified": false,
+  "real_model_calls": 0,
+  "report_sha256": "771cca73f98ac87c8c165b9b74f0ff1e39207f49bd4b0076dc70e3d7bf4b55ed",
+  "required_steps": [
+    {
+      "conclusion": "success",
+      "step": "Check disk and failure evidence retention"
+    },
+    {
+      "conclusion": "success",
+      "step": "Prepare fresh evidence files"
+    },
+    {
+      "conclusion": "success",
+      "step": "Install integrity-locked development tools"
+    },
+    {
+      "conclusion": "success",
+      "step": "Record actual Node SQLite and compiler versions"
+    },
+    {
+      "conclusion": "success",
+      "step": "Strict TypeScript check"
+    },
+    {
+      "conclusion": "success",
+      "step": "Run local event spool regressions"
+    },
+    {
+      "conclusion": "success",
+      "step": "Validate retained event spool summary"
+    },
+    {
+      "conclusion": "success",
+      "step": "Retain sanitized event spool summary"
+    }
+  ],
+  "run_url": "https://github.com/StateKnot/Harniqo/actions/runs/41275350891",
+  "runner": "ubuntu-24.04",
+  "runtime_sha256": "bc88456d12cace9039b4197c7ea3b2c7921c0cb6f8e3c5fce28ba0949dced07b",
+  "scope": "local_event_spool_module_regressions_only",
+  "skipped": 0,
+  "source_commit": "795a05c38b197a3b110536be3c59d1d9fe706451",
+  "source_sha256": {
+    "apps/runner/event-spool/package-lock.json": "f8f6b5c2b485ceec923f904707b64463254076703fb44c7c1f96fd5a66b247df",
+    "apps/runner/event-spool/package.json": "1f3fb51a00799f4c6835c5369e21ccc3de6480389aa4b189510ddec582a2eec5",
+    "apps/runner/event-spool/spool.test.ts": "6294950e0d8027df79b1ebab99e17905010d30614eec569e21f77645ac0f2e90",
+    "apps/runner/event-spool/spool.ts": "88d179a4b534aea5a989a735d228a6b74b4b29fbe6a241b5e71049718ebeb4d9",
+    "apps/runner/event-spool/tsconfig.json": "7a3f8cd19c5b6190583e5c2d6213ef76ab276525f4a44ad389276bc820b981ed",
+    "apps/runner/event-spool/types.ts": "b754fa4ad2b7259391fbe986c8cebd319189d8fed5cb634bdf49f7ef923c1fca"
+  },
+  "sqlite_compile_options": [
+    "ATOMIC_INTRINSICS=1",
+    "COMPILER=gcc-12.2.1 20221121 (Red Hat 12.2.1-7)",
+    "DEFAULT_AUTOVACUUM",
+    "DEFAULT_CACHE_SIZE=-2000",
+    "DEFAULT_FILE_FORMAT=4",
+    "DEFAULT_JOURNAL_SIZE_LIMIT=-1",
+    "DEFAULT_MEMSTATUS=0",
+    "DEFAULT_MMAP_SIZE=0",
+    "DEFAULT_PAGE_SIZE=4096",
+    "DEFAULT_PCACHE_INITSZ=20",
+    "DEFAULT_RECURSIVE_TRIGGERS",
+    "DEFAULT_SECTOR_SIZE=4096",
+    "DEFAULT_SYNCHRONOUS=2",
+    "DEFAULT_WAL_AUTOCHECKPOINT=1000",
+    "DEFAULT_WAL_SYNCHRONOUS=2",
+    "DEFAULT_WORKER_THREADS=0",
+    "DIRECT_OVERFLOW_READ",
+    "ENABLE_COLUMN_METADATA",
+    "ENABLE_DBSTAT_VTAB",
+    "ENABLE_FTS3",
+    "ENABLE_FTS3_PARENTHESIS",
+    "ENABLE_FTS5",
+    "ENABLE_GEOPOLY",
+    "ENABLE_MATH_FUNCTIONS",
+    "ENABLE_PERCENTILE",
+    "ENABLE_PREUPDATE_HOOK",
+    "ENABLE_RBU",
+    "ENABLE_RTREE",
+    "ENABLE_SESSION",
+    "MALLOC_SOFT_LIMIT=1024",
+    "MAX_ATTACHED=10",
+    "MAX_COLUMN=2000",
+    "MAX_COMPOUND_SELECT=500",
+    "MAX_DEFAULT_PAGE_SIZE=8192",
+    "MAX_EXPR_DEPTH=1000",
+    "MAX_FUNCTION_ARG=1000",
+    "MAX_LENGTH=1000000000",
+    "MAX_LIKE_PATTERN_LENGTH=50000",
+    "MAX_MMAP_SIZE=0x7fff0000",
+    "MAX_PAGE_COUNT=0xfffffffe",
+    "MAX_PAGE_SIZE=65536",
+    "MAX_SQL_LENGTH=1000000000",
+    "MAX_TRIGGER_DEPTH=1000",
+    "MAX_VARIABLE_NUMBER=32766",
+    "MAX_VDBE_OP=250000000",
+    "MAX_WORKER_THREADS=8",
+    "MUTEX_PTHREADS",
+    "SYSTEM_MALLOC",
+    "TEMP_STORE=1",
+    "THREADSAFE=1"
+  ],
+  "sqlite_compile_options_sha256": "63d78bf01e3df9f2b3a898217437af8ba2654095924631eff5de238aeab599e0",
+  "sqlite_source_id": "2026-07-24 19:02:57 bf7c7f30031888f4e796e429ab3978879485813aaca6f641c7b33e4e09459bcc",
+  "sqlite_version": "3.53.4",
+  "step_outcomes": {
+    "install": "success",
+    "tests": "success",
+    "typecheck": "success"
+  },
+  "tests": 34,
+  "timezone": "Asia/Shanghai",
+  "typecheck_passed": true,
+  "typescript": "6.0.3",
+  "vm_isolation_verified": false,
+  "workflow_sha256": "0be5744c899924640e5405a163d73b332c18679a1d3970d2eea5e730e4afe4ca"
+}
