@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 import subprocess
 import tempfile
+from types import SimpleNamespace
 import unittest
 from run_octop import finalize_container, save_operator_report, operator_passes, DOCKER_SOCKET
 
@@ -86,7 +87,7 @@ class OperatorMainTests(unittest.TestCase):
      return subprocess.CompletedProcess(args,0,json.dumps([{'Id':'a'*64,'Image':'sha256:'+'c'*64,'Config':{'Image':'sha256:'+'b'*64,'Labels':{'io.harniqo.attempt':identity['owner']}},'State':{'Running':running,'Pid':1 if running else 0}}]),'')
     if method=='stop' and stop_timeout:raise subprocess.TimeoutExpired('stop',20)
     return subprocess.CompletedProcess(args,0,'fixture','')
-   with patch('sys.argv',['run_octop','--root',str(root),'--image','sha256:'+'b'*64,'--case','allow']),patch.object(op,'command',dispatch),patch.object(op.subprocess,'run',docker):
+   with patch('sys.argv',['run_octop','--root',str(root),'--image','sha256:'+'b'*64,'--case','allow']),patch.object(op,'command',dispatch),patch.object(op.subprocess,'run',docker),patch.object(op.shutil,'disk_usage',return_value=SimpleNamespace(free=60*1024**3)):
     result=op.main()
    reports=list((root/'.private/qualification/octop').glob('native-*/operator-report.json'))
    self.assertEqual(len(reports),1);report=json.loads(reports[0].read_text())
@@ -96,5 +97,15 @@ class OperatorMainTests(unittest.TestCase):
   self.assertEqual(self.exercise(unknown_dispatch=True)['operator_error'],'TimeoutExpired')
  def test_stop_timeout_preserves_final_report(self):
   self.assertTrue(self.exercise(stop_timeout=True)['cleanup_errors'])
+ def test_low_disk_rejects_before_docker_dispatch(self):
+  from unittest.mock import patch
+  import run_octop as op
+  with tempfile.TemporaryDirectory() as tmp:
+   root=Path(tmp).resolve()
+   with patch('sys.argv',['run_octop','--root',str(root),'--image','sha256:'+'b'*64,'--case','allow']),patch.object(op,'command',return_value=subprocess.CompletedProcess([],0,'fixture df','')) as command,patch.object(op.shutil,'disk_usage',return_value=SimpleNamespace(free=49*1024**3)),patch.object(op.subprocess,'run',side_effect=AssertionError('unexpected external dispatch')) as dispatch:
+    with self.assertRaisesRegex(ValueError,'less than50GiB available'):op.main()
+   command.assert_called_once_with(['df','-h',str(root)])
+   dispatch.assert_not_called()
+   self.assertFalse((root/'.private/qualification/octop').exists())
 
 if __name__=='__main__':unittest.main()

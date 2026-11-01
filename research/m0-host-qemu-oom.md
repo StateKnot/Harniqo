@@ -65,3 +65,10 @@ A最后确认11步/352MiB真实触页，继续下一步时发生Host memcg OOM�
 正式Broker沿 `libvirt_absent_after_confirmed_start` 持久记录停止；其原有停止原因为 `host_absence_after_confirmed_dispatch`，未伪造OOM终态或stop intent。重建后停止凭据、代次及配置一致，旧Assignment/Grant双拒绝；B的watch SIGKILL与持久期限重建停止链通过。HMAC journal/anchor/ownership XML、console归档、基础镜像、既有对象及源码均由独立只读收集器另行核验，本组raw/seed/socket已精确回收，旧96GiB诊断层未动。收集器按当前内核实际字段保留nice_usec，原生报告未改。
 
 本子项已开发完成并验证（VERIFIED），M0-05整体仍IN_PROGRESS、M0仍4/8。无模型调用、新NIC/TCP监听、管理员或全局服务/挂载/防火墙更改；不继承Guest OOM、断电、全宿主OOM、通用FS quota、专用服务UID、完整Egress、控制面授权/提交或桌面构建能力。实际GitHub CI在本轮源码提交后单独记录。
+
+
+## 首轮实际资格CI与夹具修正
+
+源码`37e1bd7408233dd159e5fd0ed5a3e55feb04001e`的[首轮资格CI](https://github.com/StateKnot/Harniqo/actions/runs/41282918646)保持FAILED：Python3.12.15共451项，0失败、2错误、0跳过；两组后续Node检查因前序失败而跳过。错误均来自旧OCTOP启动测试：模拟了df输出，却没有模拟shutil.disk_usage，托管runner不足50GiB时在预检提前退出，未走到预定的停止超时/未知结果对账场景。Host OOM新增测试未失败。[三平台契约](https://github.com/StateKnot/Harniqo/actions/runs/41282918652)该轮成功，另行留证。
+
+已仅调整测试夹具：足量场景明确60GiB，增加独立49GiB拒绝、无Docker派发/无attempt目录的负例。生产run_octop.py与Host OOM运行代码均未变，50GiB准入不降低。先在外层模拟49GiB复现原2错误，再于本机和指定Linux服务器以相同低空间外层复验14项OCTOP测试全部通过；没有启动监听、Docker或模型调用。首次CI原始日志/产物及复现报告保持原样，不能改写为通过。修正后的完整CI待实际运行，不用本次14项代替完整套件。
