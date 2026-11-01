@@ -118,4 +118,12 @@ listener 需要一把**独立于现有 per-operation broker.lock** 的 lifetime 
 
 独立只读收集器不导入生产者的 summary 函数，另核5份源码快照、122个原始文件及222476字节、33份退出记录、7份ready记录、8次拒绝的FD零增长、正常3次与故障恢复1次持久effect、越权0调用及实际报告摘要；组件原始unittest日志和7个当前源摘要另核。最终原生报告SHA-256为 `a6e1126ae2b54c373f48e472ce8ac5468344172bbd6a2f4257b156babb5806d1`。首次收集器把既有0775共享validation父目录当作私有证据目录而拒绝；仅修正只读父目录前提并固定其身份，严格0700/0600证据子项保持不变，没有chmod共享目录，也不是原生资格失败。
 
-本子项已开发完成并验证（VERIFIED），M0仍4/8、M0-05仍IN_PROGRESS。专用生产 UID、libvirt/polkit 委派与服务部署、实际 VM 经 IPC 生命周期、完整 Egress/控制面授权提交、断电及跨 namespace 仍未由本轮验收。镜像manifest保持12项，无新增VM/容器/工具链归档；原有96GiB诊断写层不动。实际 GitHub CI 在源码发布后单独登记，不能以这些服务器用例替代完整CI。
+本子项已开发完成并验证（VERIFIED），M0仍4/8、M0-05仍IN_PROGRESS。专用生产 UID、libvirt/polkit 委派与服务部署、实际 VM 经 IPC 生命周期、完整 Egress/控制面授权提交、断电及跨 namespace 仍未由本轮验收。镜像manifest保持12项，无新增VM/容器/工具链归档；原有96GiB诊断写层不动。实际 GitHub CI 见第8节，与指定服务器用例分别计量。
+
+## 8. 实际 GitHub CI
+
+源码`287d61bfc073e0a5a1f3e651a46729796510570b`的[完整资格CI](https://github.com/StateKnot/Harniqo/actions/runs/41288334278)成功：Python3.12.15共510项，0失败/错误/跳过，两组Node检查也全部通过。[真实IPC进程CI](https://github.com/StateKnot/Harniqo/actions/runs/41288334191)在Linux7.0.0-1017-azure/x86_64、Python3.12.15、4逻辑CPU上完成14项门槛/33进程，实际环境与指定服务器分别记录；后端仍是同一确定性持久夹具，没有生产UID或VM声明。
+
+同提交的[三平台契约CI](https://github.com/StateKnot/Harniqo/actions/runs/41288334289)成功，每平台60定义、18路径、107样例、15生命周期案例通过；这不是三端桌面原生构建。完整资格的单份报告、进程资格唯一脱敏summary及三份契约artifact均已实际下载，逐项核对run/job/step、源码、完整锁及SHA-256。[公开CI索引](../docs/operations/broker-ipc-ci-2026-11-01.json)分别保存这三种范围。原始进程配置/身份、完整日志和服务器原件不上传公开CI产物。
+
+最终证据提交仅补本节、E65和CI索引，受测运行代码与工作流保持不变；不为文档重复运行故障或模型任务。E64的实际内核/持久夹具与正式Broker组件、E65的CI、此前真实VM报告各自保留，M0仍4/8、M0-05仍IN_PROGRESS。
