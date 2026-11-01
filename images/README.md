@@ -63,3 +63,5 @@ Octop Harness实际image ID为`sha256:714e015d1c1281e1c91bd2ae67f39191b99c408eb7
 和[执行边界](../scripts/qualification/RESOURCE-BROKER.md#显式-host-qemu-memcg-oom-与自然停止恢复资格)。
 既有失败层和80GiB诊断材料保留；本轮成功不代表默认v2 Host OOM、全宿主内存耗尽、通用
 文件系统quota、生产专用UID、完整Egress或M0-05已完成。
+
+2026-11-01 Supervisor/Broker本地IPC资格仅使用Python标准库、UNIX socket与私有metadata，不启动VM或构建镜像，现有12项manifest不变。原有镜像及诊断层继续按既有策略保存；原始IPC报告与运行socket不登记为镜像归档，见[执行证据](../research/m0-broker-local-ipc.md)。

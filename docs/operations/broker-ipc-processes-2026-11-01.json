@@ -1,0 +1,82 @@
+{
+  "actual_vm_stop_verified": false,
+  "administrator_changes": 0,
+  "all_original_artifact_hashes_verified": true,
+  "artifact_bytes_verified": 222476,
+  "artifact_files_verified": 122,
+  "checks": {
+    "all_owned_workers_exited": true,
+    "client_authenticates_server": true,
+    "duplicate_request_is_not_transport_deduplicated": true,
+    "immutable_runtime_directories": true,
+    "immutable_sources": true,
+    "independent_process_authorized_calls": true,
+    "inherited_socket_sender_pid_denied": true,
+    "listener_ownership_and_exact_cleanup": true,
+    "lost_reply_unconfirmed_no_automatic_retry": true,
+    "malformed_oversized_ancillary_denied_without_fd_leak": true,
+    "operation_resource_scope_denied_before_backend": true,
+    "peer_identity_policy_denied": true,
+    "restart_observes_durable_fixture_effect": true,
+    "stalled_peer_deadline_preserves_service": true
+  },
+  "dedicated_production_identity_verified": false,
+  "durable_fixture_effects": {
+    "denied_invocations": 0,
+    "lost_reply_recovery": 1,
+    "normal_operations": 3
+  },
+  "environment": {
+    "kernel_release": "7.0.0-38-generic",
+    "logical_cpu_count": 72,
+    "machine": "x86_64",
+    "python": "3.12.3",
+    "system": "Linux"
+  },
+  "fd_leak_delta": 0,
+  "fd_rejection_attempts": 8,
+  "gate_count": 14,
+  "gates_passed": 14,
+  "independent_verified": true,
+  "milestone_complete": false,
+  "owned_worker_exit_records_verified": 33,
+  "passed": true,
+  "private_permissions_verified": true,
+  "private_report_sha256": "a6e1126ae2b54c373f48e472ce8ac5468344172bbd6a2f4257b156babb5806d1",
+  "ready_worker_records_verified": 7,
+  "real_linux_uds_processes": true,
+  "real_model_calls": 0,
+  "source_snapshots_verified": 5,
+  "sources_sha256": {
+    "apps/runner/resource_broker/__init__.py": "b89614c4319f66e6c2e4a1de896b37ad209e8684382e932808a038631455ef95",
+    "apps/runner/resource_broker/resources.py": "01a29cf1609dc2348ab22cde2c27d817d465e5cbee61899d274ef7bb95a4963c",
+    "apps/runner/resource_broker/ipc.py": "7f84f0e8ec877be8ad61a90bfeb59785285b20f489b6d62a8d853d97fd32bb79",
+    "scripts/qualification/qualify_broker_ipc.py": "928bae126470022f4825fa0234364c316de0f40967367d59de5aac2ddf008dc8",
+    "scripts/qualification/test_broker_ipc_operator.py": "446acbd9cdc4c12f521b7b522874f3e3b660d42e01c1880b6e5c00e1c2039efc"
+  },
+  "summary_exact_projection_verified": true,
+  "synthetic_backend": true,
+  "tcp_listeners_started": 0,
+  "virtual_machines_started": 0,
+  "workers_started": 33,
+  "date_local": "2026-11-01",
+  "timezone": "Asia/Shanghai",
+  "backend_scope": "deterministic_persistent_admitted_broker_interface_adapter",
+  "peer_identity_negative_scope": "same_development_account_kernel_credentials_vs_wrong_configured_uid",
+  "claims": {
+    "actual_vm_stop_verified": false,
+    "control_plane_authorization_verified": false,
+    "dedicated_production_uid_verified": false,
+    "full_m0_05_accepted": false,
+    "power_loss_verified": false,
+    "signed_envelope_policy_verified": false,
+    "virtual_machine_isolation_verified": false
+  },
+  "deadlines_seconds": {
+    "client_timeout_seconds": 2,
+    "wall_seconds": 180,
+    "worker_exit_seconds": 3,
+    "worker_reply_seconds": 5,
+    "worker_start_seconds": 4
+  }
+}

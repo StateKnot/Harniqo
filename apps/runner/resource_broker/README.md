@@ -245,11 +245,16 @@ resource UUID can never switch organization or workspace, even after stopping.
 Malformed scalar values are rejected before signature serialization and cannot
 stop another legitimate workspace.
 
-This is a trusted local library Interface, not a network authentication endpoint.
-A future Supervisor IPC listener must enforce its own exact peer identity and
-operation ACL. Separate production UIDs, libvirt ACL/polkit delegation, platform
-registration and system service installation are not established by constructing
-this object as the development account.
+This remains the trusted local library Interface. The Linux
+[Supervisor IPC Module](IPC.md) now provides a separate bounded, credential-checked
+listener over four methods. Its fixed per-peer resource/organization/workspace
+policy is additional to the original signed envelopes; it exposes neither
+`resource_limits` host diagnostics nor arbitrary catalog/path/key configuration.
+Actual kernel IPC qualification uses independent development-account processes
+and a persistent backend fixture; real Broker/signature integration has separate
+component coverage. Separate production UIDs, libvirt ACL/polkit delegation,
+platform registration and system service installation are not established by
+constructing either object as the development account.
 
 ## Persistence, observation and failure
 

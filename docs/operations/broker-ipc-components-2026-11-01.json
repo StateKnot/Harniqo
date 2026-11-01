@@ -1,0 +1,35 @@
+{
+  "dedicated_production_identity_verified": false,
+  "errors": 0,
+  "failures": 0,
+  "independent_verified": true,
+  "milestone_complete": false,
+  "passed": true,
+  "private_report_sha256": "2f9244646e59acababef93c46b4a5c60835b282d8eca981cafc22cbe3422f888",
+  "python": "3.12.3",
+  "real_model_calls": 0,
+  "scope": "broker_local_ipc_and_existing_core_component_checks_only",
+  "skipped": 0,
+  "sources_sha256": {
+    "apps/runner/resource_broker/__init__.py": "b89614c4319f66e6c2e4a1de896b37ad209e8684382e932808a038631455ef95",
+    "scripts/qualification/test_resource_broker.py": "c918601cda2e0e5ccb08ef14bfccbe8dc7fbda37e990ab5d2f3f10efee2fa789",
+    "apps/runner/resource_broker/resources.py": "01a29cf1609dc2348ab22cde2c27d817d465e5cbee61899d274ef7bb95a4963c",
+    "scripts/qualification/test_broker_ipc.py": "5214e8d313535f4206d070c732e44fd40c59652a4bf0ea98433b2be034006cac",
+    "apps/runner/resource_broker/ipc.py": "7f84f0e8ec877be8ad61a90bfeb59785285b20f489b6d62a8d853d97fd32bb79",
+    "scripts/qualification/qualify_broker_ipc.py": "928bae126470022f4825fa0234364c316de0f40967367d59de5aac2ddf008dc8",
+    "scripts/qualification/test_broker_ipc_operator.py": "446acbd9cdc4c12f521b7b522874f3e3b660d42e01c1880b6e5c00e1c2039efc"
+  },
+  "sources_unchanged": true,
+  "suites": {
+    "broker_core": 66,
+    "ipc_transport": 32,
+    "operator_safety": 18
+  },
+  "system": "Linux",
+  "tcp_listeners_started": 0,
+  "tests": 116,
+  "unittest_transcript_verified": true,
+  "virtual_machines_started": 0,
+  "date_local": "2026-11-01",
+  "timezone": "Asia/Shanghai"
+}

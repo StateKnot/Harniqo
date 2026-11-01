@@ -1,6 +1,6 @@
 # M0 真实执行环境准入
 
-这些脚本只操作指定 Harniqo 工作区及自己创建的临时 VM。运行报告、实际主机资源和既有 domain 清单位于被 Git 忽略的 `.private/qualification/`，不得直接发布其中的环境信息。镜像与写入层全部位于工作区的 `images/`。
+这些脚本只操作指定 Harniqo 工作区及自己创建的临时资源；VM资格还会创建临时VM，IPC进程资格不启动VM。运行报告、实际主机资源和既有 domain 清单位于被 Git 忽略的 `.private/qualification/`，不得直接发布其中的环境信息。镜像与写入层全部位于工作区的 `images/`。
 
 ## 1. 取得可信 Ubuntu 基础镜像
 
@@ -63,3 +63,15 @@ PYTHONDONTWRITEBYTECODE=1 python3 scripts/qualification/test_qualify_kvm.py -v
 ## 4. 内部 HTTPS 上游传输资格
 
 使用项目锁定的 Node24.22.1 和 `apps/model-egress` 的 integrity-locked 依赖；先检查 `df`，运行 `npm run typecheck` 与 `npm test`。完整命令、前置条件、固定端口、私有 PKI/报告及失败保留规则见 [Module README](../../apps/model-egress/README.md)；真实操作者为 `qualify_egress_transport.mjs`，仅 Linux 普通用户、loopback TCP10020/10021，不启动 VM、不改防火墙、不使用模型凭据。不要把受控 resolver 分支当作真实公网 DNS/供应商验证。脱敏结果见 [原生报告](../../docs/operations/egress-transport-native-2026-10-31.json)。
+
+## Supervisor / Resource Broker 本地 IPC 资格
+
+`qualify_broker_ipc.py` 使用生产 IPC Module、实际独立 Linux 进程和内核凭据，后端是明确标记的确定性持久夹具；不创建 VM、TCP 端口、生产 UID 或管理员策略。入口需要指定源码根和预先创建的短路径、当前账号拥有的0700 runtime目录，不修改已有共享目录权限。
+
+```bash
+python3 -B scripts/qualification/qualify_broker_ipc.py --root "$PWD"   --runtime-root "${HARNIQO_IPC_RUNTIME_ROOT:?choose a short owned 0700 directory}"
+```
+
+实际预算为180秒、总48个/同时3个子进程、8MiB证据上限及1GiB metadata空间门槛，不分配镜像或编译缓存；本机执行仍先遵守50GiB可用空间检查。原始环境、配置、进程身份、状态、源码与日志留0700/0600私有证据，独立 `public-summary.json` 仅输出脱敏允许字段。失败轮次保留原件，所有子进程按注册的Popen身份停止并wait。
+
+最终指定服务器通过14门槛/33进程与116项组件，见[真实进程索引](../../docs/operations/broker-ipc-processes-2026-11-01.json)、[组件索引](../../docs/operations/broker-ipc-components-2026-11-01.json)及[失败/范围](../../research/m0-broker-local-ipc.md)。纯组件正式Broker+合成libvirt、实际kernel IPC+持久后端夹具、已有真实VM资格各自计量；新[进程CI](../../.github/workflows/broker-ipc.yml)只归档脱敏summary，不上传原始身份/配置/日志。

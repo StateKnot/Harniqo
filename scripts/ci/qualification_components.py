@@ -38,6 +38,8 @@ TESTS = (
     'test_event_spool_pressure.py',
     'test_event_spool_operator.py',
     'test_host_qemu_oom.py',
+    'test_broker_ipc.py',
+    'test_broker_ipc_operator.py',
 )
 
 

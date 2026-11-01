@@ -1,0 +1,46 @@
+name: Broker local IPC process qualification
+
+on:
+  push:
+    branches: [main]
+    paths: ['apps/runner/resource_broker/**', 'scripts/qualification/qualify_broker_ipc.py', 'scripts/qualification/test_broker_ipc*.py', '.github/workflows/broker-ipc.yml', '.gitattributes']
+  pull_request:
+    paths: ['apps/runner/resource_broker/**', 'scripts/qualification/qualify_broker_ipc.py', 'scripts/qualification/test_broker_ipc*.py', '.github/workflows/broker-ipc.yml', '.gitattributes']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: broker-ipc-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  processes:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      PYTHONUTF8: "1"
+      PYTHONDONTWRITEBYTECODE: "1"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+      - name: Check disk and create private runtime directory
+        run: |
+          df -h . "$RUNNER_TEMP"
+          umask 077
+          mkdir -p "$RUNNER_TEMP/hi-ipc" .private/qualification
+      - name: Verify real Linux processes and kernel credentials
+        run: python scripts/qualification/qualify_broker_ipc.py --root "$GITHUB_WORKSPACE" --runtime-root "$RUNNER_TEMP/hi-ipc"
+      - name: Retain sanitized process qualification summary
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: broker-ipc-processes-${{ github.sha }}
+          path: .private/qualification/broker-ipc-*/public-summary.json
+          if-no-files-found: error
+          retention-days: 14
