@@ -4,6 +4,7 @@ Only the parent Broker passes an admitted name/UUID. PID, proc and cgroup paths
 come from trusted host state, not caller-selected filesystem locations.
 """
 from pathlib import Path
+from dataclasses import dataclass
 import os
 import pwd
 import re
@@ -15,6 +16,10 @@ CPU_PERIOD = 100000
 CPU_QUOTA = 100000
 MEMORY_BYTES = 2 * 1024**3
 SWAP_BYTES = 2 * 1024**3
+LEGACY_PROFILE = 'sealed-raw8g-q35-v1'
+LIMITED_PROFILE = 'sealed-raw8g-q35-limited-v2'
+HOST_OOM_PROFILE = 'sealed-raw8g-q35-host-oom-v1'
+PROFILES = frozenset({LEGACY_PROFILE, LIMITED_PROFILE, HOST_OOM_PROFILE})
 PID_ROOT = Path('/run/libvirt/qemu')
 PROC_ROOT = Path('/proc')
 CGROUP_ROOT = Path('/sys/fs/cgroup')
@@ -33,7 +38,7 @@ ERROR_CODES = frozenset({'resource_limits_path_untrusted', 'resource_limits_file
     'resource_limits_threads_unstable', 'resource_limits_cpu_mismatch',
     'resource_limits_memory_mismatch', 'resource_limits_process_changed',
     'resource_limits_controller_changed',
-    'resource_limits_observation_unavailable'})
+    'resource_limits_observation_unavailable', 'resource_limits_profile_unsupported'})
 
 
 class LimitReadError(RuntimeError):
@@ -41,6 +46,30 @@ class LimitReadError(RuntimeError):
         self.code = code
         self.phase = phase
         super().__init__(code)
+
+
+@dataclass(frozen=True)
+class HostLimits:
+    cpu_period_usec: int
+    cpu_quota_usec: int
+    memory_max_bytes: int
+    swap_max_bytes: int
+
+
+_LIMITED_LIMITS = HostLimits(CPU_PERIOD, CPU_QUOTA, MEMORY_BYTES, SWAP_BYTES)
+# Explicit fault qualification only; never selected by a default or live update.
+# The fixed libvirt creation path must read back memory.swap.max=0. A live
+# memtune operation using zero has different semantics and is not used here.
+_HOST_OOM_LIMITS = HostLimits(CPU_PERIOD, CPU_QUOTA, 768 * 1024**2, 0)
+
+
+def limits_for_profile(profile):
+    """Return the immutable policy selected by an admitted finite profile name."""
+    if type(profile) is not str or profile not in PROFILES:
+        raise LimitReadError('resource_limits_profile_unsupported', 'configuration')
+    if profile == LEGACY_PROFILE:
+        return None
+    return _LIMITED_LIMITS if profile == LIMITED_PROFILE else _HOST_OOM_LIMITS
 
 
 def _read(path, *, bound=16384, owner=None, immutable=False):
@@ -137,16 +166,16 @@ def _thread_memberships(tasks, domains):
     return sorted(identities)
 
 
-def _control_values(scope):
+def _control_values(scope, limits):
     """Locate whole-domain caps only at the scope or its libvirt parent group.
 
     Verify each controller independently across the two permitted whole-domain
     ancestors. No per-thread leaf or broader slice qualifies.
     """
     selected = {}
-    for role, filename, expected in [('cpu', 'cpu.max', (CPU_QUOTA, CPU_PERIOD)),
-                                     ('memory', 'memory.max', MEMORY_BYTES),
-                                     ('swap', 'memory.swap.max', SWAP_BYTES)]:
+    for role, filename, expected in [('cpu', 'cpu.max', (limits.cpu_quota_usec, limits.cpu_period_usec)),
+                                     ('memory', 'memory.max', limits.memory_max_bytes),
+                                     ('swap', 'memory.swap.max', limits.swap_max_bytes)]:
         for group in (scope, scope / 'libvirt'):
             path = group / filename
             try:
@@ -170,12 +199,15 @@ def _control_values(scope):
     return selected
 
 
-def _read_limits_sample(*, name, resource_id):
+def _read_limits_sample(*, name, resource_id, profile):
     """Return a PID/start-time-bound sample, or reject unverifiable limits."""
     if type(name) is not str or not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_.:-]{0,79}', name):
         raise LimitReadError('resource_limits_name_invalid', 'configuration')
     if type(resource_id) is not str or not re.fullmatch(r'[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}', resource_id):
         raise LimitReadError('resource_limits_process_binding_invalid', 'configuration')
+    limits = limits_for_profile(profile)
+    if limits is None:
+        raise LimitReadError('resource_limits_profile_unsupported', 'configuration')
     phase = 'qemu_identity'
     try:
         qemu_uid = pwd.getpwnam('libvirt-qemu').pw_uid
@@ -206,7 +238,7 @@ def _read_limits_sample(*, name, resource_id):
         domain = Path(*parts[:3]); scope = CGROUP_ROOT / str(domain).lstrip('/')
         tasks = PROC_ROOT / str(pid) / 'task'
         phase = 'control_values'
-        controls = _control_values(scope)
+        controls = _control_values(scope, limits)
         cpu_group, memory_group, swap_group = [controls[role]['group'] for role in ('cpu', 'memory', 'swap')]
         selected_domains = [Path('/') / group.relative_to(CGROUP_ROOT) for group in (cpu_group, memory_group, swap_group)]
         phase = 'threads'
@@ -216,8 +248,8 @@ def _read_limits_sample(*, name, resource_id):
         cpu_sample_monotonic = time.monotonic()
         result = {'pid': pid, 'process_start_time': started, 'cgroup_path': str(cpu_group),
                   'memory_cgroup_path': str(memory_group), 'swap_cgroup_path': str(swap_group),
-                  'thread_ids': thread_ids, 'cpu_period_usec': CPU_PERIOD, 'cpu_quota_usec': CPU_QUOTA,
-                  'memory_max_bytes': MEMORY_BYTES, 'swap_max_bytes': SWAP_BYTES,
+                  'thread_ids': thread_ids, 'cpu_period_usec': limits.cpu_period_usec, 'cpu_quota_usec': limits.cpu_quota_usec,
+                  'memory_max_bytes': limits.memory_max_bytes, 'swap_max_bytes': limits.swap_max_bytes,
                   'cpu_stat': cpu_stat, 'cpu_stat_monotonic': cpu_sample_monotonic,
                   'memory_current_bytes': _number(_read(memory_group / 'memory.current')),
                   'memory_peak_bytes': _number(_read(memory_group / 'memory.peak')),
@@ -244,7 +276,7 @@ def _read_limits_sample(*, name, resource_id):
         if _thread_memberships(tasks, selected_domains) != thread_ids:
             raise LimitReadError('resource_limits_threads_unstable')
         phase = 'final_control_values'
-        if _control_values(scope) != controls:
+        if _control_values(scope, limits) != controls:
             raise LimitReadError('resource_limits_controller_changed')
         phase = 'process_recheck'
         if (_start_time(pid) != started or _number(_read(pidfile, bound=32, owner=0, immutable=True)) != pid
@@ -259,11 +291,11 @@ def _read_limits_sample(*, name, resource_id):
         raise LimitReadError('resource_limits_observation_unavailable', phase) from None
 
 
-def read_limits(*, name, resource_id):
+def read_limits(*, name, resource_id, profile=LIMITED_PROFILE):
     """Bound transient thread creation to three complete, revalidated samples."""
     for attempt in range(3):
         try:
-            return _read_limits_sample(name=name, resource_id=resource_id)
+            return _read_limits_sample(name=name, resource_id=resource_id, profile=profile)
         except LimitReadError as error:
             if error.code != 'resource_limits_threads_unstable' or attempt == 2:
                 raise

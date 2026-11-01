@@ -286,5 +286,171 @@ class MemoryFailureModeTests(unittest.TestCase):
                 with self.assertRaises(RuntimeError): invoke()
 
 
+class HostQemuOomModeTests(unittest.TestCase):
+    def test_fault_guest_is_explicit_and_control_retains_only_its_extended_heartbeat(self):
+        from apps.runner.resource_broker import HOST_OOM_PROFILE
+        instance = {'uuid': 'instance-a', 'nonce': 'nonce-a'}
+        other = {'uuid': 'instance-b'}
+        root = Path('/qualification/workspace')
+        original = json.loads(operator.kvm.guest_config(instance, other, root,
+            operator.DISK_BYTES).split('\n', 1)[1])['write_files'][0]['content']
+        with patch.object(operator.host_oom, 'guest_program', return_value="\nprint('host-oom-fixture')\n") as fixture:
+            a = json.loads(operator.sealed_guest_config(instance, other, root,
+                resource_profile=HOST_OOM_PROFILE, pressure=True, host_oom_mode=True).split('\n', 1)[1])
+            b = json.loads(operator.sealed_guest_config(instance, other, root,
+                resource_profile='sealed-raw8g-q35-limited-v2', host_oom_mode=True).split('\n', 1)[1])
+            legacy = json.loads(operator.sealed_guest_config(instance, other, root).split('\n', 1)[1])
+        fixture.assert_called_once_with()
+        for config in (a, b):
+            self.assertTrue(config['bootcmd'][0][2].startswith(original))
+            self.assertNotIn('runcmd', config)
+            compile(config['bootcmd'][0][2], '<host-oom-qualified-guest>', 'exec')
+        self.assertIn('host-oom-fixture', a['bootcmd'][0][2])
+        self.assertNotIn('host-oom-fixture', b['bootcmd'][0][2])
+        self.assertIn('until=time.monotonic()+150', b['bootcmd'][0][2])
+        self.assertEqual(legacy['bootcmd'][0][2], original)
+
+    def test_host_fault_budget_is_frozen_independently_of_existing_memory_case(self):
+        import hashlib
+        limits = {'qualification': 'host-qemu-oom-fixture', 'maximum_events': 64}
+        with tempfile.TemporaryDirectory() as temporary, \
+                patch.object(operator.host_oom, 'qualification_limits', return_value=limits):
+            directory = Path(temporary)
+            result = {}
+            operator.freeze_qualification_limits(directory, result, host_oom_mode=True)
+            manifest = directory / 'qualification-limits.json'
+            self.assertEqual(json.loads(manifest.read_bytes()), limits)
+            self.assertEqual(result['qualification_limits'], limits)
+            self.assertEqual(result['qualification_limits_sha256'], hashlib.sha256(manifest.read_bytes()).hexdigest())
+            self.assertEqual(stat.S_IMODE(manifest.stat().st_mode), 0o600)
+
+    def test_invalid_fault_combinations_are_rejected_before_any_host_operation(self):
+        base = dict(host_qemu_oom=True, guest_memory_pressure=False, console_pressure=False,
+                    event_spool_pressure=False, spool_data_root=None,
+                    resource_profile='sealed-raw8g-q35-limited-v2', timeout=120)
+        for changes in ({'guest_memory_pressure': True}, {'console_pressure': True},
+                        {'event_spool_pressure': True},
+                        {'resource_profile': 'sealed-raw8g-q35-v1'},
+                        {'spool_data_root': Path('/private/spool')}):
+            with self.subTest(changes=changes), patch.object(operator.sys, 'platform', 'linux'), \
+                    patch.object(operator.sys, 'version_info', (3, 12, 0)), \
+                    patch.object(operator.platform, 'machine', return_value='x86_64'), \
+                    patch.object(operator.os, 'geteuid', return_value=1000), \
+                    patch.object(operator.kvm, 'run') as command, \
+                    patch.object(operator.host_oom, 'preflight') as preflight:
+                with self.assertRaises(RuntimeError):
+                    operator.execute(SimpleNamespace(**(base | changes)))
+                command.assert_not_called()
+                preflight.assert_not_called()
+
+    def absence_fixture(self, *, method='libvirt_absent_after_confirmed_start',
+                        confirmed_at=100, wrong_binding=False, rebuilt_mismatch=False,
+                        generation=2, recovery_generation=1):
+        from apps.runner.resource_broker import BrokerError, Observation, StopEvidence
+        temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        disk = Path(temporary.name) / 'owned.raw'; disk.write_bytes(b'fixture')
+        identity = '00000000-0000-4000-8000-000000000001'
+        stop = StopEvidence(identity, confirmed_at, method, ('b' if wrong_binding else 'a') * 64)
+        stopped = Observation(identity, 'stopped', generation, recovery_generation, stop,
+                              stop_cause='host_absence_after_confirmed_dispatch')
+        alternate = Observation(identity, 'stopped', 2, 1,
+            StopEvidence(identity, 101, method, 'a' * 64), stop_cause='host_absence_after_confirmed_dispatch')
+        observed = []
+        class Broker:
+            def observe(self, resource_id):
+                observed.append(resource_id)
+                return stopped
+            def resource_limits(self, resource_id):
+                raise AssertionError('Dead QEMU cannot provide a live limits sample')
+        class Rebuilt:
+            def observe(self, resource_id): return alternate if rebuilt_mismatch else stopped
+            def ensure(self, assignment): raise BrokerError('generation_stale')
+            def renew(self, grant): raise BrokerError('resource_terminal')
+        result = {'checks': {}, 'observations': {}, 'host_qemu_oom': {'trigger_at': 99}}
+        def invoke():
+            with patch.object(operator, 'broker_from', return_value=Rebuilt()), \
+                    patch.object(operator.kvm, 'domain_ids', return_value=set()), \
+                    patch.object(operator.kvm, 'virsh', side_effect=AssertionError('No manual destroy is allowed')):
+                operator.confirm_host_oom_stop(Broker(), {}, {'uuid': identity, 'overlay': disk}, result,
+                    object(), SimpleNamespace(resource_id=identity, configuration_sha256='a' * 64,
+                                              generation=2, recovery_generation=1, expires_at=120))
+            return result
+        return invoke, observed, result
+
+    def test_host_oom_confirmation_records_physical_absence_and_rejects_revival(self):
+        invoke, observed, _ = self.absence_fixture()
+        result = invoke()
+        self.assertEqual(len(observed), 1)
+        self.assertTrue(all(result['checks'].values()))
+        self.assertEqual(result['observations']['a_host_qemu_oom_stop'],
+                         result['observations']['a_host_qemu_oom_stop_rebuilt'])
+        self.assertEqual(result['host_qemu_oom_old_assignment']['code'], 'generation_stale')
+        self.assertEqual(result['host_qemu_oom_old_grant']['code'], 'resource_terminal')
+
+    def test_manual_stop_expiry_earlier_stop_and_wrong_binding_cannot_prove_host_oom_absence(self):
+        for changes in ({'method': 'libvirt_destroy_then_absent'}, {'confirmed_at': 120},
+                        {'confirmed_at': 98}, {'wrong_binding': True}, {'rebuilt_mismatch': True},
+                        {'generation': 3}, {'recovery_generation': 2}):
+            with self.subTest(changes=changes):
+                invoke, _, _ = self.absence_fixture(**changes)
+                with self.assertRaises(RuntimeError): invoke()
+
+    def test_missing_or_invalid_causal_trigger_cannot_confirm_a_stop(self):
+        for trigger in (None, True, float('nan'), float('inf'), -float('inf'), -1, 0, 120):
+            with self.subTest(trigger=trigger):
+                invoke, observed, result = self.absence_fixture()
+                result['host_qemu_oom']['trigger_at'] = trigger
+                with self.assertRaises(RuntimeError): invoke()
+                self.assertEqual(observed, [])
+
+    def test_host_preflight_failure_allocates_no_raw_disk_and_claims_no_stop_receipt(self):
+        import hashlib
+        with tempfile.TemporaryDirectory(dir=Path('/private/tmp' if sys.platform == 'darwin' else '/tmp').resolve()) as temporary:
+            root = Path(temporary)
+            base = root / ('a' * 64 + '.qcow2'); base.write_bytes(b'synthetic base')
+            lock = root / 'fixture.lock'; lock.write_bytes(b'fixture')
+            descriptor = os.open(lock, os.O_RDONLY)
+            baseline = {'domains': {}}
+            args = SimpleNamespace(root=root, base_image=base, timeout=120,
+                resource_profile='sealed-raw8g-q35-limited-v2', host_qemu_oom=True,
+                guest_memory_pressure=False, console_pressure=False, event_spool_pressure=False,
+                spool_data_root=None)
+            actual_hash = operator.kvm.sha256
+            def fixture_hash(path):
+                return 'a' * 64 if path == base else actual_hash(path)
+            with patch.object(operator.sys, 'platform', 'linux'), \
+                    patch.object(operator.sys, 'version_info', (3, 12, 0)), \
+                    patch.object(operator.platform, 'machine', return_value='x86_64'), \
+                    patch.object(operator.resource, 'setrlimit'), \
+                    patch.object(operator.shutil, 'which', return_value='/synthetic/tool'), \
+                    patch.object(operator.shutil, 'disk_usage', return_value=SimpleNamespace(free=1024**4)), \
+                    patch.object(operator, 'check_base'), \
+                    patch.object(operator, 'coordination_lock', return_value=descriptor), \
+                    patch.object(operator, 'verify_coordination_lock'), \
+                    patch.object(operator, 'inventory', return_value=baseline), \
+                    patch.object(operator, 'broker_from') as broker, \
+                    patch.object(operator.kvm, 'TemporaryACL'), \
+                    patch.object(operator.kvm, 'domain_ids', return_value=set()), \
+                    patch.object(operator.kvm, 'sha256', side_effect=fixture_hash), \
+                    patch.object(operator.kvm, 'run', return_value='synthetic df') as command, \
+                    patch('builtins.print'), \
+                    patch.object(operator.host_oom, 'qualification_limits', return_value={'fixture': True}), \
+                    patch.object(operator.host_oom, 'preflight', side_effect=RuntimeError('synthetic unavailable journal')):
+                self.assertEqual(operator.execute(args), 1)
+            broker.assert_not_called()
+            self.assertEqual(command.call_args_list, [unittest.mock.call(['df', '-h', str(root)])])
+            reports = list((root / '.private/qualification').glob('resource-broker-*/report.json'))
+            self.assertEqual(len(reports), 1)
+            report = json.loads(reports[0].read_bytes())
+            self.assertFalse(report['passed'])
+            self.assertFalse(report['host_qemu_oom_verified'])
+            self.assertFalse(report['host_global_oom_verified'])
+            self.assertTrue(report['host_qemu_oom_preflight_failed_before_broker_submission'])
+            self.assertTrue(report['unsubmitted_resources_absent'])
+            self.assertNotIn('final_revoke', report)
+            self.assertEqual(list((root / 'images').rglob('*.raw')), [])
+
+
 if __name__ == '__main__':
     unittest.main()

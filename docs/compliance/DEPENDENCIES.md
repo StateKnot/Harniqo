@@ -204,3 +204,16 @@ WAL 与 libvirt 的实际行为分别留证。Broker 新增有限停止原因
 根目录不新增第三方依赖；本地文件长度上限不等同通用文件系统 quota。未来将
 Node 或数据库打入桌面/Runner 发行物时，继续按实际产物生成 SBOM、完整许可与
 NOTICE，不能由本次源码资格推导发行准入完成。
+
+## 2026-11-01 Host QEMU OOM 资格增量
+
+本轮固定 profile、内核证据收集器与回归均为 Harniqo 自有 Python 标准库源码；
+使用既有 libvirt/QEMU、Linux cgroup v2、pidfd 和 systemd 的 journalctl，不新增
+pip/npm 包、宿主工具安装或二进制归档。未复制这些项目的实现；既有工具/OS 的
+来源、许可和未来发行 SBOM/NOTICE 继续按实际产物管理。
+
+新增有签名配置身份的独立故障 profile，v1/v2 配置摘要和默认值不变。
+只通过新域 XML 设置 768MiB/0 swap，并核对实际控制文件；不使用动态 memtune
+或修改全局 swap/cgroup。原始 kernel journal、PID/cgroup/boot 身份和签名密钥
+只留私有证据，公开仅提供已核验的摘要与有限指标。该 profile 的持久状态须由
+认识它的匹配版本恢复，不能静默降级为其他 profile。

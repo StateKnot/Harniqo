@@ -50,3 +50,16 @@ Octop Harness实际image ID为`sha256:714e015d1c1281e1c91bd2ae67f39191b99c408eb7
 该模式的VM raw/seed仍必须位于`images/vm/instances/`。SQLite运行数据通过必填`--spool-data-root`显式指定到具有安全祖先的独立私有目录，不属于镜像归档，也不计入镜像manifest；报告、配置、源码快照和最终数据库文件大小/SHA清单留在私有报告。数据根和本轮/A/B目录要求当前操作者拥有的0700、实际数据库文件0600；不对0775共享工作区执行chmod以绕过安全检查，不改动基础镜像。SQLite预检现在先于两份各8GiB raw盘的分配；退出后保留真实SQLite存储及其清单，不能因VM写层已回收便推断数据库也已清理。实际`SQLITE_FULL`和SQLite文件上限不代表宿主通用文件系统quota已启用。
 
 本轮早期FAILED组已分配的两份各8GiB raw盘及对应seed继续保留，原始失败报告不覆盖；此前保留的80GiB诊断写层也不在本轮自动清理范围。后续若恢复该失败组，必须另存精确身份、实际停止、ACL及回收证据，不能把待恢复材料描述为已回收。新组的成功或清理不得覆盖这些旧失败记录。
+
+2026-11-01 Host QEMU memcg OOM资格仍复用同一已核Canonical只读base，不新增基础镜像、
+容器或工具链归档，私有manifest保持12项、原条目不改写。A显式使用独立故障profile
+`sealed-raw8g-q35-host-oom-v1`（宿主768MiB/0 swap），B保持原limited-v2；两Guest仍为1GiB，
+原v1/v2配置hash与默认值不变。Guest本轮文件写入只涉及各自raw层，不修改base；两份8GiB raw/seed
+仍在`images/vm/instances/`，内核journal原件、内存计数时间线、源码快照和停止凭据留私有报告，
+不属于可复用镜像或manifest项。
+
+本组实际24项宿主门槛/22项Guest检查通过、执行和清理错误0，精确确认原QEMU自然absence、
+持久停止及归档后已回收本组VM层。见[脱敏结果](../docs/operations/host-qemu-oom-kvm-2026-11-01.json)
+和[执行边界](../scripts/qualification/RESOURCE-BROKER.md#显式-host-qemu-memcg-oom-与自然停止恢复资格)。
+既有失败层和80GiB诊断材料保留；本轮成功不代表默认v2 Host OOM、全宿主内存耗尽、通用
+文件系统quota、生产专用UID、完整Egress或M0-05已完成。

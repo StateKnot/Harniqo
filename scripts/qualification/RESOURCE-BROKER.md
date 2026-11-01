@@ -106,7 +106,7 @@ python3 scripts/qualification/qualify_resource_broker.py \
   --resource-profile sealed-raw8g-q35-limited-v2 --console-pressure --timeout 150
 ```
 
-该flag与Guest内存故障互斥，只接受新建固定v2组。A先完成11项封闭检查，再响应
+该flag与其他故障模式互斥，只接受新建固定v2组。A先完成11项封闭检查，再响应
 宿主新token输出三段各128KiB原始console；每段保存完成后B回答新挑战，然后才
 开始下一段。最终有界3MiB输出必须触发A自己的容量错误，不能用超时或B失败替代。
 宿主通过正式Broker以`console_capacity_exceeded`撤销A，要求真实destroy/absence
@@ -124,7 +124,7 @@ critical-event spool、通用宿主硬配额或磁盘耗尽。[依据与范围](
 
 `--event-spool-pressure` 使用正式 [EventSpool Module](../../apps/runner/event-spool/README.md)
 及项目内固定的 Node.js v24.22.1 / SQLite3.53.4。它只接受新建的
-`sealed-raw8g-q35-limited-v2` 组，与 Guest 内存、console 故障模式互斥。
+`sealed-raw8g-q35-limited-v2` 组，与其他故障模式互斥。
 以下是执行要求，实际通过状态以私有原始报告和 [M0 证据索引](../../docs/planning/M0-RESULTS.md)
 为准；本文不将该子项或整个 M0-05 标为已验收。
 
@@ -186,3 +186,66 @@ SQLite页数和WAL上限也不证明宿主文件系统总配额、任意I/O故�
 [进程恢复证据](../../docs/operations/event-spool-native-2026-11-01.json)及
 [失败保留和范围](../../research/m0-event-spool.md)。本组VM层已精确回收，SQLite原件保留；
 首轮失败组的层不借此删除，M0-05仍为IN_PROGRESS。
+
+## 显式 Host QEMU memcg OOM 与自然停止恢复资格
+
+`--host-qemu-oom` 是独立故障模式，与 Guest 内存、console、event-spool 模式互斥，
+不接受 `--spool-data-root`。CLI 仍须显式选择 `limited-v2` 作为B的控制策略；仅A改用
+固定 `sealed-raw8g-q35-host-oom-v1`。A/B都保留原sealed 1vCPU/1GiB Guest、原11项检查、
+无NIC/共享宿主文件系统的设备边界和独立8GiB raw/seed。A整域CPU为100ms/100ms，
+宿主 `memory.max=805306368`（768MiB）、`memory.swap.max=0`；B仍为原v2的2GiB内存和
+额外2GiB swap。默认v1、原v2的描述、配置hash、XML及恢复语义不变，不原位迁移旧组。
+
+```sh
+PYTHONDONTWRITEBYTECODE=1 python3 scripts/qualification/qualify_resource_broker.py \
+  --root "$HARNIQO_WORKSPACE" --base-image "$HARNIQO_VERIFIED_BASE_IMAGE" \
+  --resource-profile sealed-raw8g-q35-limited-v2 --host-qemu-oom --timeout 150
+```
+
+本模式沿用前述普通Linux x86_64/Python3.12、KVM/libvirt、只读已核base、精确ACL与磁盘
+空间要求；额外要求普通账号可读取本boot的内核journal、支持`pidfd_open`，
+`MemAvailable`至少8GiB。先冻结limits清单、其SHA及内核journal的boot ID、精确cursor和
+原始记录，成功后才分配两块raw盘或提交Broker；预检失败保留失败报告，不制造物理停止凭据。
+固定libvirt10/cgroup-v2仅通过新建domain XML设置A的`hard_limit=786432 KiB`及
+`swap_hard_limit=0 KiB`，正式采样器必须实际读回768MiB/0；不使用语义不同的live memtune，
+不更改宿主swap、全局cgroup、挂载、服务、权限策略或防火墙。
+
+两台先完成22项Guest检查，再续约约120秒；确认launcher已被SIGKILL且A仍活动后才开始故障。
+冻结正式采样得到的QEMU PID、starttime、UUID、UID、comm、全部线程/控制器归属及内存cgroup
+设备号/inode；双方初始`oom/oom_kill`必须为0，A还须有至少128MiB实测余量。
+此时另取与预检同boot的压力前journal cursor，记录触发的宿主wall/monotonic时间。
+A仅响应新token，每次分配32MiB并逐页触写，最多25次/800MiB；前三次分别要求A在B的新挑战
+前后均有活进程、未触发pidfd退出和完整固定限额样本，B应答成功后才能进入下一阶段。
+Guest触页程序最多100秒、B健康程序最多150秒；压力总窗45秒、每步5秒、ready10秒，
+不以`--timeout`的30～150秒Guest收集窗替代这些独立期限。
+
+必须取得触发之后、同boot的两条不同新kernel记录：`oom-kill`中
+`constraint=CONSTRAINT_MEMCG`、精确`oom_memcg`、位于其内的`task_memcg`及victim的
+PID/UID/comm，和`Memory cgroup out of memory: Killed process`中的同一冻结QEMU leader。
+两条记录单调时间间隔须为0～5秒；journal元数据的`_PID/_COMM`不能冒充victim。
+每次读取包含并核对上一cursor，anchor消失、重放、歧义、重启或超时直接失败；每次最多2MiB/
+5秒，单记录64KiB，整轮最多16MiB/256次。原始批次及SHA、进度、阶段前后限额和
+`memory.events`时间线保留私有。每个实际计数样本绑定冻结cgroup身份和采样时间；死亡后
+cgroup可已被libvirt删除，保存最后成功样本和首次ENOENT时间，以`missing/value=None`
+记录缺失，不能补造`oom_kill`增长或用缺失证明OOM。
+
+取得精确kernel原因后，还须在最多10秒且不超过压力总窗内同时确认原pidfd退出和UUID实际
+absence。触发后故障收集器不调用A的`observe/reconcile`或带生命周期副作用的限额入口；
+三阶段使用正式只读采样器，生产watch保持原行为。随后正式Broker的独立观察才可形成
+`libvirt_absent_after_confirmed_start`，且receipt时间必须在触发之后、A租约到期之前，
+绑定原配置和代次；人为destroy、期限停止及无匹配kernel原因均不能替代。
+重构后StopEvidence须完全相同，旧Assignment报`generation_stale`、旧Grant报`resource_terminal`，
+原磁盘保留到宿主停止确认。kernel诊断与物理StopEvidence分开保存，不增加虚构的OOM停止方法。
+
+B在A死亡后和正式停止入账后各完成新挑战，身份、限额和OOM计数须不变；随后仍执行原watch
+SIGKILL、B过期时实际存活、重建Broker期限停止与拒绝复活链。正式Module/故障fixture/
+操作者源码快照及hash、limits清单、base和既有libvirt对象不变、console/journal归档和精确
+清理门槛缺一即失败；只有全部通过后`host_qemu_oom_verified=true`。
+`guest_memory_exhaustion_verified`、`host_global_oom_verified`、通用硬配额、生产专用UID、
+完整Egress、控制面授权/预算与M0完成标记仍不因此置真；本模式无模型调用、新端口或管理员操作。
+
+2026-11-01指定服务器实际双KVM运行的24项宿主门槛、22项Guest检查全部通过，执行错误和
+清理错误均为0；278项服务器组件检查另行通过。本组VM层已精确回收，原始报告与留证继续私有。
+见[实际脱敏证据](../../docs/operations/host-qemu-oom-kvm-2026-11-01.json)。通过范围为A的
+显式768MiB/0 swap故障profile及自然停止恢复，不能据此宣称默认v2 Host OOM、全宿主内存
+耗尽、通用文件系统quota或完整M0-05已验收；M0-05仍为IN_PROGRESS。

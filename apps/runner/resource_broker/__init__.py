@@ -37,8 +37,9 @@ MAX_JOURNAL = 4 * 1024**2
 MAX_OUTPUT = 2 * 1024**2
 VIRSH = '/usr/bin/virsh'
 CONNECTION = 'qemu:///system'
-LEGACY_PROFILE = 'sealed-raw8g-q35-v1'
-LIMITED_PROFILE = 'sealed-raw8g-q35-limited-v2'
+LEGACY_PROFILE = resources.LEGACY_PROFILE
+LIMITED_PROFILE = resources.LIMITED_PROFILE
+HOST_OOM_PROFILE = resources.HOST_OOM_PROFILE
 STOP_CAUSES = frozenset({'cancelled', 'qualification_cleanup', 'stop_intent', 'stop_retry',
     'console_capacity_exceeded',
     'event_spool_capacity_exceeded',
@@ -334,7 +335,7 @@ def _template_description(template: Template) -> dict:
     _uuid(template.resource_id)
     if not _identifier(template.name) or len(template.name) > 80 or re.fullmatch(r'[0-9a-f]{64}', template.source_base_sha256) is None:
         raise BrokerError('template_invalid')
-    if type(template.resource_profile) is not str or template.resource_profile not in {LEGACY_PROFILE, LIMITED_PROFILE}:
+    if type(template.resource_profile) is not str or template.resource_profile not in resources.PROFILES:
         raise BrokerError('resource_profile_invalid')
     files = []
     for role in ('disk', 'seed', 'channel', 'console'):
@@ -352,16 +353,16 @@ def _template_description(template: Template) -> dict:
             'files': files,
             'memory_mib': 1024, 'vcpus': 1, 'channel_name': CHANNEL, 'network': 'none',
             'disk_driver': 'raw', 'seed_driver': 'raw-readonly'}
-    if template.resource_profile == LIMITED_PROFILE:
-        description['host_limits'] = {'cpu_period_usec': resources.CPU_PERIOD,
-            'cpu_quota_usec': resources.CPU_QUOTA, 'memory_max_bytes': resources.MEMORY_BYTES,
-            'swap_max_bytes': resources.SWAP_BYTES, 'mechanism': 'libvirt-cgroup-v2'}
+    limits = resources.limits_for_profile(template.resource_profile)
+    if limits is not None:
+        description['host_limits'] = {**asdict(limits), 'mechanism': 'libvirt-cgroup-v2'}
     return description
 
 
 def _read_resource_limits(template: Template) -> dict:
     try:
-        return resources.read_limits(name=template.name, resource_id=template.resource_id)
+        return resources.read_limits(name=template.name, resource_id=template.resource_id,
+                                     profile=template.resource_profile)
     except resources.LimitReadError as error:
         code = error.code if error.code in resources.ERROR_CODES else 'resource_limits_observation_unavailable'
         wrapped = BrokerError(code)
@@ -702,15 +703,17 @@ class ResourceBroker:
         ET.SubElement(domain, 'memory', unit='MiB').text = '1024'
         ET.SubElement(domain, 'currentMemory', unit='MiB').text = '1024'
         ET.SubElement(domain, 'vcpu', placement='static').text = '1'
-        if template.resource_profile == LIMITED_PROFILE:
+        limits = resources.limits_for_profile(template.resource_profile)
+        if limits is not None:
             cpu = ET.SubElement(domain, 'cputune')
-            ET.SubElement(cpu, 'global_period').text = str(resources.CPU_PERIOD)
-            ET.SubElement(cpu, 'global_quota').text = str(resources.CPU_QUOTA)
+            ET.SubElement(cpu, 'global_period').text = str(limits.cpu_period_usec)
+            ET.SubElement(cpu, 'global_quota').text = str(limits.cpu_quota_usec)
             memory = ET.SubElement(domain, 'memtune')
-            ET.SubElement(memory, 'hard_limit', unit='KiB').text = str(resources.MEMORY_BYTES // 1024)
+            ET.SubElement(memory, 'hard_limit', unit='KiB').text = str(limits.memory_max_bytes // 1024)
             # On the fixed libvirt-10/cgroup-v2 backend this maps directly to
-            # memory.swap.max: an additional finite 2 GiB, not zero swap.
-            ET.SubElement(memory, 'swap_hard_limit', unit='KiB').text = str(resources.SWAP_BYTES // 1024)
+            # memory.swap.max, including explicit zero at domain creation.
+            # Running instances are never changed through live memtune.
+            ET.SubElement(memory, 'swap_hard_limit', unit='KiB').text = str(limits.swap_max_bytes // 1024)
         operating = ET.SubElement(domain, 'os'); ET.SubElement(operating, 'type', arch='x86_64', machine='q35').text = 'hvm'
         ET.SubElement(operating, 'boot', dev='hd')
         features = ET.SubElement(domain, 'features'); ET.SubElement(features, 'acpi'); ET.SubElement(features, 'apic')
@@ -758,11 +761,12 @@ class ResourceBroker:
                     raise BrokerError('resource_topology_mismatch')
             if channels[0].find('target').get('name') != CHANNEL or tree.findtext('vcpu') != '1':
                 raise BrokerError('resource_topology_mismatch')
-            if check_limits and template.resource_profile == LIMITED_PROFILE:
-                if (tree.findtext('./cputune/global_period') != str(resources.CPU_PERIOD)
-                        or tree.findtext('./cputune/global_quota') != str(resources.CPU_QUOTA)):
+            limits = resources.limits_for_profile(template.resource_profile)
+            if check_limits and limits is not None:
+                if (tree.findtext('./cputune/global_period') != str(limits.cpu_period_usec)
+                        or tree.findtext('./cputune/global_quota') != str(limits.cpu_quota_usec)):
                     raise BrokerError('resource_limits_xml_mismatch')
-                for field, expected in [('hard_limit', resources.MEMORY_BYTES), ('swap_hard_limit', resources.SWAP_BYTES)]:
+                for field, expected in [('hard_limit', limits.memory_max_bytes), ('swap_hard_limit', limits.swap_max_bytes)]:
                     element = tree.find('./memtune/' + field)
                     if element is None or element.get('unit') != 'KiB' or element.text != str(expected // 1024):
                         raise BrokerError('resource_limits_xml_mismatch')
@@ -784,7 +788,7 @@ class ResourceBroker:
         try:
             self._match(record, _virsh('dumpxml', identity), check_limits=check_limits)
             template = self._templates[record['claims']['template_id']]
-            if check_limits and template.resource_profile == LIMITED_PROFILE:
+            if check_limits and resources.limits_for_profile(template.resource_profile) is not None:
                 _read_resource_limits(template)
         except BrokerError as error:
             if error.code.startswith('resource_limits_'):
@@ -979,7 +983,7 @@ class ResourceBroker:
             if record is None:
                 raise BrokerError('resource_not_registered')
             template = self._templates[record['claims']['template_id']]
-            if template.resource_profile != LIMITED_PROFILE:
+            if resources.limits_for_profile(template.resource_profile) is None:
                 raise BrokerError('resource_limits_profile_unsupported')
             if self._inspect(body, record, _clock()).state != 'running':
                 raise BrokerError('resource_not_running')

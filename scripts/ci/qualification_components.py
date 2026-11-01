@@ -37,6 +37,7 @@ TESTS = (
     'test_console_pressure.py',
     'test_event_spool_pressure.py',
     'test_event_spool_operator.py',
+    'test_host_qemu_oom.py',
 )
 
 

@@ -90,7 +90,7 @@ catalog migration, global target-level writer coordination and image preparation
 are separate M2 integration responsibilities. This Module is the group's reusable
 local guard, not a complete production Runner allocator.
 
-## Opt-in host resource profile
+## Opt-in host resource profiles
 
 The existing `sealed-raw8g-q35-v1` profile remains the default, with the same
 configuration description and domain XML. It makes no claim about host CPU or
@@ -110,8 +110,8 @@ Arbitrary profile strings and caller-supplied quotas are rejected. A different
 profile changes `configuration_sha256`; an existing catalog/journal cannot be
 upgraded in place, and old signed claims cannot authorize a different profile.
 
-For v2, `ensure`, running observation, renewal and reconciliation verify the
-domain XML and actual cgroup-v2 files. The host reader obtains the PID only from
+For either finite host profile, `ensure`, running observation, renewal and
+reconciliation verify the domain XML and actual cgroup-v2 files. The host reader obtains the PID only from
 the root-owned libvirt PID file for the admitted name, binds it to the QEMU UID,
 command-line UUID and `/proc` start time, and locates the machine domain scope.
 Each controller must have its exact fixed value at that scope or its immediate
@@ -147,8 +147,8 @@ fabricated zero. A threaded hierarchy may legitimately expose an empty or
 unsupported parent `cgroup.procs`; the reader records it without substituting
 that file for per-thread membership checks.
 
-When v2 limits become unverifiable, the Broker persists stop intent and attempts
-to stop its authenticated fixed UUID. Stopping does not require the failed
+When finite-profile limits become unverifiable, the Broker persists stop intent
+and attempts to stop its authenticated fixed UUID. Stopping does not require the failed
 limits check to pass, but still requires signed ownership and the fixed device
 topology; it cannot use a policy mismatch to destroy a foreign domain. Unknown
 stop outcomes retain `reconciling` and the workspace writer as before.
@@ -165,10 +165,47 @@ a fresh Broker. Unrecognized caller-supplied revoke labels become the safe
 `requested_revoke` stop cause.
 
 Reading cgroup limits and CPU throttling establishes only that measured resource
-profile. It does not establish QEMU OOM behavior, Guest memory exhaustion, host
-storage/log/spool quotas, I/O bandwidth limits, capacity guarantees, dedicated
+profile. That sampling alone does not establish QEMU OOM behavior, Guest memory
+exhaustion, host storage/log/spool quotas, I/O bandwidth limits, capacity guarantees, dedicated
 service identities, production egress or full M0-05 acceptance. Component tests
 use a synthetic proc/cgroup filesystem and do not establish real kernel limits.
+
+### Explicit Host QEMU OOM fault profile
+
+`sealed-raw8g-q35-host-oom-v1` is a separate, explicitly selected fault
+qualification profile. It retains the sealed 1 vCPU / 1 GiB Guest and fixed
+device topology, but fixes whole-domain CPU bandwidth to 100,000/100,000
+microseconds, `memory.max=805,306,368` bytes (768 MiB) and
+`memory.swap.max=0`. The lower host memory cap deliberately makes this profile
+unsuitable as a normal workload default. The default v1 and existing limited-v2
+configuration descriptions, hashes, XML and caps remain unchanged. The fault
+profile has its own configuration hash and cannot replace an existing catalog
+or reuse its signed claims.
+
+On the qualified libvirt-10/cgroup-v2 backend, these caps are supplied in the
+initial domain XML as `memtune/hard_limit=786432 KiB` and
+`swap_hard_limit=0 KiB`; the actual cgroup files must read back the exact fixed
+values. This zero is qualified for domain creation only. No live memtune API,
+system swap setting or existing domain is changed. The production sampler uses
+the same fixed-policy selection and all-thread/control-file identity checks for
+both finite profiles; it does not accept caller-selected caps.
+
+The [explicit two-VM operator](../../../scripts/qualification/RESOURCE-BROKER.md#显式-host-qemu-memcg-oom-与自然停止恢复资格)
+uses this profile only for A, with B still on limited-v2. Fresh, cursor-bound
+kernel records identify the exact frozen QEMU leader and its memory cgroup;
+three live pressure stages establish B health while A is still alive. Kernel
+cause evidence does not authorize a stop or substitute for `StopEvidence`.
+After pidfd exit and libvirt UUID absence, the Broker must independently persist
+`libvirt_absent_after_confirmed_start`, reconstruct the same receipt and reject
+old Assignment/Grant reuse. Missing post-exit cgroup files are recorded as
+missing with `value=None`, never as an invented OOM counter.
+
+The 2026-11-01 designated-server run passed 24 host gates and 22 Guest checks,
+with zero execution or cleanup errors; 278 server component checks passed
+separately. See the [sanitized native proof](../../../docs/operations/host-qemu-oom-kvm-2026-11-01.json).
+This verifies the explicit A fault profile and its recovery chain. It does not
+qualify limited-v2 Host OOM, global host memory exhaustion, generic filesystem
+quotas, dedicated production UIDs, production egress or the full M0-05 stage.
 
 ## Signed local envelopes
 

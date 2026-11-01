@@ -24,7 +24,7 @@ class FirstSliceTests(unittest.TestCase):
 # This fixture models only the external libvirt command edge, not lifecycle
 # policy. All assertions cross the production ResourceBroker Interface.
 import copy
-from dataclasses import replace
+from dataclasses import FrozenInstanceError, replace
 import json
 import os
 import socket
@@ -34,6 +34,34 @@ from types import SimpleNamespace
 import xml.etree.ElementTree as ET
 from apps.runner import resource_broker as native
 from apps.runner.resource_broker import Template, Grant, BrokerError, sign_grant, prepare_seed_access
+
+
+class ResourceProfileTests(unittest.TestCase):
+    def test_existing_profile_configuration_hashes_remain_byte_compatible(self):
+        template=Template('stable','00000000-0000-4000-8000-000000000001','owned-a',
+            Path('/fixture/a.raw'),Path('/fixture/a.seed'),Path('/fixture/channel'),Path('/fixture/console'),'a'*64)
+        # Recorded from the de97622 baseline before adding the explicit fault
+        # profile. Stable file identities isolate the serialized configuration.
+        expected={native.LEGACY_PROFILE:'cd35931c55a3e81777c37bfc42399ff34ee6c1bbf55eb7a8a5f88875bdcdf30e',
+                  native.LIMITED_PROFILE:'3521520a4747621d8786182f8e8ab893f8b30ebd6e21c80a8fa5242108c32c08'}
+        identity=lambda path,role:{'role':role,'path':str(path),'device':1,'inode':2,'size':123,'uid':1000,'mode':384}
+        with patch.object(native,'_file_identity',side_effect=identity):
+            for profile,digest in expected.items():
+                with self.subTest(profile=profile):
+                    self.assertEqual(replace(template,resource_profile=profile).configuration_sha256,digest)
+
+    def test_only_finite_named_immutable_policies_can_be_selected(self):
+        resources=native.resources
+        self.assertIsNone(resources.limits_for_profile(native.LEGACY_PROFILE))
+        normal=resources.limits_for_profile(native.LIMITED_PROFILE)
+        fault=resources.limits_for_profile(native.HOST_OOM_PROFILE)
+        self.assertEqual((normal.memory_max_bytes,normal.swap_max_bytes),(2*1024**3,2*1024**3))
+        self.assertEqual((fault.memory_max_bytes,fault.swap_max_bytes),(768*1024**2,0))
+        with self.assertRaises(FrozenInstanceError):fault.memory_max_bytes=1
+        for invalid in (None,{},[],True,'unbounded',resources.HostLimits(1,1,1,1)):
+            with self.subTest(value=type(invalid).__name__),self.assertRaisesRegex(
+                    resources.LimitReadError,'resource_limits_profile_unsupported'):
+                resources.limits_for_profile(invalid)
 
 
 class LibvirtFixture:
@@ -132,6 +160,12 @@ class BrokerInterfaceTests(unittest.TestCase):
         self.state_name = 'limited-state'
         self.broker = self.new_broker()
 
+    def host_oom_broker(self):
+        self.templates[0] = replace(self.templates[0], resource_profile=native.HOST_OOM_PROFILE)
+        self.templates[1] = replace(self.templates[1], resource_profile=native.LIMITED_PROFILE)
+        self.state_name = 'host-oom-state'
+        self.broker = self.new_broker()
+
     def test_legacy_profile_does_not_claim_or_read_kernel_resource_limits(self):
         a=self.assignment();self.broker.ensure(a)
         with patch.object(native, '_read_resource_limits') as reader:
@@ -156,6 +190,71 @@ class BrokerInterfaceTests(unittest.TestCase):
         self.assertEqual(xml.findtext('./cputune/global_quota'),'100000')
         self.assertEqual(xml.findtext('./memtune/hard_limit'),'2097152')
         self.assertEqual(xml.findtext('./memtune/swap_hard_limit'),'2097152')
+
+    def test_host_oom_profile_binds_creation_limits_and_keeps_v2_independent(self):
+        self.host_oom_broker()
+        def sample(**fields):
+            limits=native.resources.limits_for_profile(fields['profile'])
+            return {'cpu_period_usec':limits.cpu_period_usec,'cpu_quota_usec':limits.cpu_quota_usec,
+                    'memory_max_bytes':limits.memory_max_bytes,'swap_max_bytes':limits.swap_max_bytes}
+        with patch.object(native.resources,'read_limits',side_effect=sample) as reader:
+            assignments=[self.assignment(index) for index in (0,1)]
+            for assignment in assignments:self.assertEqual(self.broker.ensure(assignment).state,'running')
+            restored=self.new_broker()
+            a,b=[restored.resource_limits(assignment.resource_id) for assignment in assignments]
+        self.assertEqual((a['memory_max_bytes'],a['swap_max_bytes']),(768*1024**2,0))
+        self.assertEqual((b['memory_max_bytes'],b['swap_max_bytes']),(2*1024**3,2*1024**3))
+        expected={template.name:template.resource_profile for template in self.templates}
+        self.assertTrue(reader.call_args_list)
+        self.assertTrue(all(call.kwargs['profile']==expected[call.kwargs['name']] for call in reader.call_args_list))
+        a_xml=ET.fromstring(self.libvirt.domains[assignments[0].resource_id])
+        b_xml=ET.fromstring(self.libvirt.domains[assignments[1].resource_id])
+        self.assertEqual(a_xml.findtext('./memory'),'1024')
+        self.assertEqual(a_xml.findtext('./memtune/hard_limit'),'786432')
+        self.assertEqual(a_xml.findtext('./memtune/swap_hard_limit'),'0')
+        self.assertEqual(b_xml.findtext('./memtune/hard_limit'),'2097152')
+        self.assertEqual(b_xml.findtext('./memtune/swap_hard_limit'),'2097152')
+
+    def test_existing_catalog_cannot_migrate_in_place_to_host_oom_profile(self):
+        self.limited_broker()
+        with patch.object(native,'_read_resource_limits',return_value={}):
+            a=self.assignment();self.broker.ensure(a)
+        self.templates[0]=replace(self.templates[0],resource_profile=native.HOST_OOM_PROFILE)
+        with self.assertRaisesRegex(BrokerError,'state_catalog_changed'):self.new_broker()
+        # The existing catalog-mismatch recovery stops the authenticated old
+        # resource. It never updates its caps or creates a replacement.
+        self.assertEqual(self.libvirt.creates,1);self.assertEqual(self.libvirt.destroys,1)
+        self.assertNotIn(a.resource_id,self.libvirt.domains)
+
+    def test_host_oom_zero_swap_must_remain_explicit_in_owned_xml(self):
+        self.host_oom_broker()
+        with patch.object(native,'_read_resource_limits',return_value={}):
+            a=self.assignment();self.broker.ensure(a)
+            xml=ET.fromstring(self.libvirt.domains[a.resource_id])
+            xml.find('./memtune').remove(xml.find('./memtune/swap_hard_limit'))
+            self.libvirt.domains[a.resource_id]=ET.tostring(xml,encoding='unicode')
+            stopped=self.broker.observe(a.resource_id)
+        self.assertEqual(stopped.state,'stopped')
+        self.assertEqual(stopped.stop_cause,'resource_limits_xml_mismatch')
+        self.assertEqual(stopped.stop_evidence.method,'libvirt_destroy_then_absent')
+
+    def test_host_oom_absence_remains_host_evidence_without_inventing_an_oom_cause(self):
+        self.host_oom_broker()
+        with patch.object(native,'_read_resource_limits',return_value={}):
+            assignments=[self.assignment(index) for index in (0,1)]
+            for assignment in assignments:self.broker.ensure(assignment)
+            del self.libvirt.domains[assignments[0].resource_id]
+            stopped=self.broker.observe(assignments[0].resource_id)
+            restored=self.new_broker()
+            self.assertEqual(restored.observe(assignments[0].resource_id),stopped)
+            self.assertEqual(restored.observe(assignments[1].resource_id).state,'running')
+            with self.assertRaisesRegex(BrokerError,'generation_stale'):restored.ensure(assignments[0])
+            with self.assertRaisesRegex(BrokerError,'resource_terminal'):
+                restored.renew(sign_grant(self.key,**self.claims(generation=2)))
+        self.assertEqual(stopped.state,'stopped')
+        self.assertEqual(stopped.stop_evidence.method,'libvirt_absent_after_confirmed_start')
+        self.assertEqual(stopped.stop_cause,'host_absence_after_confirmed_dispatch')
+        self.assertEqual(self.libvirt.destroys,0)
 
     def test_unverifiable_limits_stop_the_owned_vm_without_accepting_running(self):
         self.limited_broker();a=self.assignment()
@@ -644,8 +743,44 @@ class ResourceLimitsFilesystemTests(unittest.TestCase):
                         patch.object(self.resources.pwd,'getpwnam',return_value=SimpleNamespace(pw_uid=64055))):
             patcher.start();self.addCleanup(patcher.stop)
 
-    def sample(self):
-        return self.resources.read_limits(name='owned-a',resource_id=self.identity)
+    def sample(self,profile=native.LIMITED_PROFILE):
+        return self.resources.read_limits(name='owned-a',resource_id=self.identity,profile=profile)
+
+    def test_host_fault_profile_requires_exact_smaller_memory_and_zero_swap(self):
+        with self.assertRaisesRegex(self.resources.LimitReadError,'resource_limits_memory_mismatch'):
+            self.sample(native.HOST_OOM_PROFILE)
+        (self.scope/'memory.max').write_bytes(b'805306368\n')
+        (self.scope/'memory.swap.max').write_bytes(b'0\n')
+        sample=self.sample(native.HOST_OOM_PROFILE)
+        self.assertEqual((sample['memory_max_bytes'],sample['swap_max_bytes']),(768*1024**2,0))
+        with self.assertRaisesRegex(self.resources.LimitReadError,'resource_limits_memory_mismatch'):
+            self.sample()
+        (self.scope/'memory.swap.max').write_bytes(b'max\n')
+        with self.assertRaisesRegex(self.resources.LimitReadError,'resource_limits_memory_mismatch'):
+            self.sample(native.HOST_OOM_PROFILE)
+
+    def test_host_fault_profile_cannot_switch_to_v2_caps_during_statistics(self):
+        (self.scope/'memory.max').write_bytes(b'805306368\n')
+        (self.scope/'memory.swap.max').write_bytes(b'0\n')
+        original_read=os.read;cpu_stats=self.files[self.scope/'cpu.stat']
+        def change_to_v2(fd,size):
+            value=original_read(fd,size)
+            if value==cpu_stats:
+                (self.scope/'memory.max').write_bytes(b'2147483648\n')
+                (self.scope/'memory.swap.max').write_bytes(b'2147483648\n')
+            return value
+        with patch.object(self.resources.os,'read',side_effect=change_to_v2):
+            with self.assertRaises(self.resources.LimitReadError) as failure:
+                self.sample(native.HOST_OOM_PROFILE)
+        self.assertEqual(failure.exception.code,'resource_limits_memory_mismatch')
+        self.assertEqual(failure.exception.phase,'final_control_values')
+
+    def test_arbitrary_or_legacy_policy_cannot_reach_proc_or_kernel_reads(self):
+        for profile in ('arbitrary',native.LEGACY_PROFILE,self.resources.HostLimits(1,1,1,1)):
+            with self.subTest(profile=type(profile).__name__),patch.object(self.resources,'_read') as reader:
+                with self.assertRaisesRegex(self.resources.LimitReadError,'resource_limits_profile_unsupported'):
+                    self.sample(profile)
+                reader.assert_not_called()
 
     def test_global_scope_limits_cover_emulator_and_vcpu_thread_leaves(self):
         sample=self.sample()
