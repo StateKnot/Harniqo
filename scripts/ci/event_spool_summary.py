@@ -77,9 +77,11 @@ def safe_version(value: object, node: bool = False) -> str | None:
 
 
 def checked_compile_options(value: object, claimed_hash: object) -> tuple[list[str], str]:
+    # SQLite values are printable build descriptions, not identifier tokens.
+    # The official Node binary's COMPILER includes spaces and parentheses.
     if (not isinstance(value, list) or not 1 <= len(value) <= 256
             or any(not isinstance(option, str) or not 1 <= len(option) <= 256
-                   or not re.fullmatch(r'[A-Z][A-Z0-9_]*(?:=[A-Za-z0-9_.,+/\-]+)?', option)
+                   or not re.fullmatch(r'[A-Z][A-Z0-9_]*(?:=[\x20-\x7e]+)?', option)
                    for option in value)
             or value != sorted(value) or len(set(value)) != len(value)):
         raise ValueError('compile_options_invalid')
