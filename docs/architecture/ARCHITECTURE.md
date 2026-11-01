@@ -201,6 +201,17 @@ Resource Broker 独立于 Supervisor 持久保存并检查权威截止时间，�
 
 Runner spool 有配额、落盘确认和重传游标；guest 的 critical event 在控制面 committed ACK 前保留。Runner “已接收”与控制面“已提交”不是同一种 ACK。SQLite spool 使用本地文件系统、WAL + FULL 同步及有界 checkpoint，核验实际嵌入的 SQLite 已修复 WAL-reset 问题（3.51.3+ 或官方已修复分支）；不放在网络共享文件系统。大轨迹分块进入对象存储并校验后才发布引用。缓冲耗尽必须限流、暂停或停止执行并显示原因，不静默丢审批/终态事件。[SQLite WAL](https://www.sqlite.org/wal.html)
 
+[本地 EventSpool Module](../../apps/runner/event-spool/README.md)为固定
+attempt/stream/binding 提供 `create/open`、`append`、`pendingBatch`、
+`applyCommittedAck`、`stats` 和 `close`。唯一连接隐藏 SQLite 与 statement，
+保留精确事件字节、乱序缺口和未确认内容；已回收的来源序号拒绝重新写入。
+可信上传者负责控制面认证、批次关联和真实提交证明，Module 的
+`durable_received` 不能转换成 `committed`。固定 Node/SQLite/ext4、逻辑预算、
+数据库页数和限定调用面的 WAL 长度分别检查，不把文件长度上限当作通用文件系统
+quota。运行数据须位于可信私有目录及安全祖先路径中；不能以叶目录0700掩盖可写
+祖先，也不在共享源码目录上自动修改权限。进程恢复与固定 VM 停止须分别取得实际
+验收证据，完整控制面接收及部署身份仍按各自门槛验收。
+
 原始console字节独立交给[有界console Module](../../apps/runner/CONSOLE.md)：可信宿主
 写者先实际预留固定容量，逐次同步，容量/I/O失败锁存并交回已绑定资源的撤销流程。
 原始前缀与归档的长度/摘要/身份分别核对，失败日志不能标完整。该Module没有事件

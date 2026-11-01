@@ -188,3 +188,19 @@ Python标准库源码，无新pip/npm依赖或二进制归档。宿主`ctypes`�
 按各自来源/许可管理，未复制其实现或重新标注为MIT。固定v1/v2配置不迁移；Broker
 仅增加有限停止原因`console_capacity_exceeded`，其持久终态不能用不认识该原因的
 旧二进制直接回退。实例和原始证据仍留受控存储；未来发行仍需实际SBOM/NOTICE。
+
+## 2026-11-01 本地事件 spool 增量
+
+[EventSpool Module](../../apps/runner/event-spool/README.md)无 npm 运行依赖，使用
+既有固定 Node24.22.1 的 `node:sqlite`；实际嵌入 SQLite3.53.4、精确 source ID、
+compile options 及其摘要须由运行时查询。SQLite 核心的 public-domain 声明不替代
+Node archive 的完整 LICENSE。复用上述官方工具链及12项私有镜像/工具链清单，
+没有新增基础镜像或全局安装。开发依赖仅为上述已核验的 TypeScript6.0.3、
+@types/node24.19.2 与 undici-types7.24.6，各自完整 integrity 固定在本包 lock 中。
+
+资格 worker/操作者和 Python 回归属于 Harniqo 自有源码；SIGKILL、ext4、SQLite
+WAL 与 libvirt 的实际行为分别留证。Broker 新增有限停止原因
+`event_spool_capacity_exceeded`，恢复此终态须使用认识该原因的版本。独立私有数据
+根目录不新增第三方依赖；本地文件长度上限不等同通用文件系统 quota。未来将
+Node 或数据库打入桌面/Runner 发行物时，继续按实际产物生成 SBOM、完整许可与
+NOTICE，不能由本次源码资格推导发行准入完成。

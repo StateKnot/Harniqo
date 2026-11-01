@@ -1,0 +1,71 @@
+name: Runner event spool verification
+
+on:
+  push:
+    branches: [main]
+    paths: ['apps/runner/event-spool/**', 'scripts/qualification/*event_spool*.py', 'scripts/qualification/event_spool_worker.mjs', 'scripts/ci/*event_spool_summary.py', '.github/workflows/event-spool.yml']
+  pull_request:
+    paths: ['apps/runner/event-spool/**', 'scripts/qualification/*event_spool*.py', 'scripts/qualification/event_spool_worker.mjs', 'scripts/ci/*event_spool_summary.py', '.github/workflows/event-spool.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: event-spool-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  spool:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24.22.1'
+      - name: Check disk and failure evidence retention
+        run: |
+          df -h .
+          python3 -m unittest discover -s scripts/ci -p test_event_spool_summary.py -v
+      - name: Prepare fresh evidence files
+        run: |
+          umask 077
+          mkdir -p ci-evidence
+          rm -f ci-evidence/event-spool.json ci-evidence/event-spool-runtime.json ci-evidence/event-spool-typecheck.json ci-evidence/event-spool.junit.xml
+      - name: Install integrity-locked development tools
+        id: install
+        working-directory: apps/runner/event-spool
+        run: |
+          df -h .
+          npm ci --ignore-scripts --no-audit --no-fund
+      - name: Record actual Node SQLite and compiler versions
+        if: always()
+        run: python3 scripts/ci/event_spool_summary.py --capture-runtime
+      - name: Strict TypeScript check
+        id: typecheck
+        working-directory: apps/runner/event-spool
+        run: |
+          node node_modules/typescript/bin/tsc --noEmit --strict --project tsconfig.json
+          node --input-type=module -e "import fs from 'node:fs'; fs.writeFileSync('../../../ci-evidence/event-spool-typecheck.json', JSON.stringify({passed:true,node:process.version,source_commit:process.env.GITHUB_SHA,typescript:JSON.parse(fs.readFileSync('node_modules/typescript/package.json')).version}));"
+      - name: Run local event spool regressions
+        id: tests
+        working-directory: apps/runner/event-spool
+        run: node --test --test-concurrency=1 --test-reporter=junit --test-reporter-destination=../../../ci-evidence/event-spool.junit.xml spool.test.ts
+      - name: Validate retained event spool summary
+        if: always()
+        env:
+          INSTALL_OUTCOME: ${{ steps.install.outcome }}
+          TYPECHECK_OUTCOME: ${{ steps.typecheck.outcome }}
+          TESTS_OUTCOME: ${{ steps.tests.outcome }}
+        run: python3 scripts/ci/event_spool_summary.py
+      - name: Retain sanitized event spool summary
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: event-spool-${{ github.sha }}
+          path: ci-evidence/event-spool.json
+          if-no-files-found: error
+          retention-days: 14

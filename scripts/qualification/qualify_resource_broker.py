@@ -29,6 +29,7 @@ import qualify_kvm as kvm
 import qualify_kvm_network as network
 import guest_memory_pressure as memory_pressure
 import console_pressure
+import event_spool_pressure
 
 REPO = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO))
@@ -36,7 +37,7 @@ DISK_BYTES = 8 * 1024**3
 MAX_CONFIG_BYTES = 256 * 1024
 
 
-def sealed_guest_config(instance: dict, other: dict, root: Path, *, resource_profile: str = "sealed-raw8g-q35-v1", pressure: bool = False, guest_memory_pressure: bool = False, console_pressure_mode: bool = False) -> str:
+def sealed_guest_config(instance: dict, other: dict, root: Path, *, resource_profile: str = "sealed-raw8g-q35-v1", pressure: bool = False, guest_memory_pressure: bool = False, console_pressure_mode: bool = False, event_spool_pressure_mode: bool = False) -> str:
     """Run the unchanged sealed probe before unrelated final-stage services."""
     config = json.loads(kvm.guest_config(instance, other, root, DISK_BYTES).split("\n", 1)[1])
     program = config.pop("write_files")[0]["content"]
@@ -44,7 +45,9 @@ def sealed_guest_config(instance: dict, other: dict, root: Path, *, resource_pro
     if resource_profile == "sealed-raw8g-q35-limited-v2":
         # Qualification fixture only: report the unchanged eleven checks first.
         # CPU pressure and the independent control heartbeat stay in the Guest.
-        if pressure and console_pressure_mode:
+        if pressure and event_spool_pressure_mode:
+            program += event_spool_pressure.guest_program(instance['event_scope'])
+        elif pressure and console_pressure_mode:
             program += console_pressure.guest_program()
         elif pressure and guest_memory_pressure:
             program += memory_pressure.supervised_guest_program()
@@ -69,7 +72,7 @@ while time.monotonic()<until:
             print('HARNIQO-HEARTBEAT '+C['nonce']+' '+line.decode('ascii'),flush=True)
 os.close(fd)
 """
-        if (guest_memory_pressure or console_pressure_mode) and not pressure:
+        if (guest_memory_pressure or console_pressure_mode or event_spool_pressure_mode) and not pressure:
             program = program.replace("until=time.monotonic()+45", "until=time.monotonic()+120")
         program += "print('HARNIQO-RESOURCE-END ' + C['nonce'], flush=True)\n"
     config["bootcmd"] = [["/usr/bin/python3", "-c", program]]
@@ -299,9 +302,9 @@ def save(path: Path, value) -> None:
 
 
 
-def freeze_qualification_limits(reports: Path, result: dict, *, console_mode=False) -> None:
+def freeze_qualification_limits(reports: Path, result: dict, *, console_mode=False, event_spool_mode=False) -> None:
     """Persist this fault experiment's budget before creating any VM resource."""
-    limits = (console_pressure if console_mode else memory_pressure).qualification_limits()
+    limits = (event_spool_pressure if event_spool_mode else console_pressure if console_mode else memory_pressure).qualification_limits()
     manifest = reports / 'qualification-limits.json'
     save(manifest, limits)
     result['qualification_limits'] = limits
@@ -543,6 +546,32 @@ def stop_console_resource(broker, config, instance, result, assignment, grant):
         console_stop_tombstone_rebuilt=True,console_old_authorization_rejected=True)
     return fresh,stopped
 
+
+def stop_event_spool_resource(broker, config, instance, result, assignment, grant):
+    """A native SQLITE_FULL stops exactly the authenticated affected execution."""
+    identity = instance['uuid']
+    result['event_spool_stop_intent_at'] = time.time()
+    stopped = broker.revoke(identity, 'event_spool_capacity_exceeded')
+    if (stopped.resource_id != identity or stopped.state != 'stopped' or stopped.stop_evidence is None
+            or stopped.stop_evidence.resource_id != identity
+            or stopped.stop_evidence.method != 'libvirt_destroy_then_absent'
+            or stopped.stop_cause != 'event_spool_capacity_exceeded'
+            or stopped.stop_evidence.confirmed_at < result['event_spool_stop_intent_at']):
+        raise RuntimeError('Event spool failure did not produce a physical Broker stop')
+    fresh = broker_from(config)
+    rebuilt = stopped_receipt(fresh, identity)
+    if asdict(stopped) != asdict(rebuilt):
+        raise RuntimeError('Event spool stop tombstone changed after reconstruction')
+    result['event_spool_old_assignment'] = rejected(lambda: fresh.ensure(assignment), expected='generation_stale')
+    result['event_spool_old_grant'] = rejected(lambda: fresh.renew(grant), expected='resource_terminal')
+    if identity in kvm.domain_ids() or not instance['overlay'].is_file():
+        raise RuntimeError('Event spool stop resurrected or lost the workspace disk')
+    result['observations']['a_event_spool_stop'] = asdict(stopped)
+    result['observations']['a_event_spool_stop_rebuilt'] = asdict(rebuilt)
+    result['checks'].update(event_spool_broker_stop_confirmed=True,
+        event_spool_stop_tombstone_rebuilt=True, event_spool_old_authorization_rejected=True)
+    return fresh, stopped
+
 def inventory() -> dict:
     result = network.object_inventory()
     result["domain_xml"] = {identity: kvm.virsh("dumpxml", identity) for identity in result["domains"]}
@@ -574,12 +603,18 @@ def execute(args) -> int:
         raise RuntimeError("Require ordinary Linux x86_64/Python 3.12 operator and timeout 30..150")
     memory_mode = getattr(args, 'guest_memory_pressure', False)
     console_mode = getattr(args, 'console_pressure', False)
-    if memory_mode and console_mode:
+    event_spool_mode = getattr(args, 'event_spool_pressure', False)
+    if sum((memory_mode, console_mode, event_spool_mode)) > 1:
         raise RuntimeError('Choose one fault qualification at a time')
     if memory_mode and args.resource_profile != 'sealed-raw8g-q35-limited-v2':
         raise RuntimeError('Guest memory pressure requires fixed limited-v2 profile')
     if console_mode and args.resource_profile != 'sealed-raw8g-q35-limited-v2':
         raise RuntimeError('Console pressure requires fixed limited-v2 profile')
+    if event_spool_mode and args.resource_profile != 'sealed-raw8g-q35-limited-v2':
+        raise RuntimeError('Event spool pressure requires fixed limited-v2 profile')
+    spool_data_root = getattr(args, 'spool_data_root', None)
+    if event_spool_mode != (spool_data_root is not None):
+        raise RuntimeError('Event spool pressure requires an explicit private --spool-data-root; other modes cannot use it')
     os.umask(0o077)
     resource.setrlimit(resource.RLIMIT_CORE, (0, 0))
     root = args.root.absolute(); base = args.base_image.absolute()
@@ -602,7 +637,7 @@ def execute(args) -> int:
     work = parent / ("rb-" + rid); private_directory(work, create=True)
     images = root / "images/vm/instances" / ("rb-" + rid); private_directory(images, create=True)
     directories = {p: (p.stat().st_dev, p.stat().st_ino) for p in (work, images)}
-    ownership = {"qualification": "M0-05-bounded-console-stop" if console_mode else "M0-05-guest-memory-external-stop" if memory_mode else "M0-05-resource-limits-lifecycle" if args.resource_profile == "sealed-raw8g-q35-limited-v2" else "M0-05-resource-broker-lifecycle", "run_id": rid}
+    ownership = {"qualification": "M0-05-local-event-spool-stop" if event_spool_mode else "M0-05-bounded-console-stop" if console_mode else "M0-05-guest-memory-external-stop" if memory_mode else "M0-05-resource-limits-lifecycle" if args.resource_profile == "sealed-raw8g-q35-limited-v2" else "M0-05-resource-broker-lifecycle", "run_id": rid}
     for p in (work, images): save(p / ".harniqo-m0-owner.json", ownership)
     baseline = inventory(); save(reports / "baseline.json", baseline)
     key_file = reports / "issuer-key"; key = os.urandom(32)
@@ -611,6 +646,7 @@ def execute(args) -> int:
     finally: os.close(fd)
     config_path = reports / "config.json"
     instances, children, descriptors, console_logs = [], [], [], []
+    spool_workers = []
     streams = None; broker = None; config = None
     acl = kvm.TemporaryACL("libvirt-qemu")
     result = {"schema_version": 1, "qualification": ownership["qualification"], "run_id": rid,
@@ -619,20 +655,46 @@ def execute(args) -> int:
               "guest_memory_exhaustion_verified": False, "host_qemu_oom_verified": False,
               "external_vm_stop_recovery_verified": False, "checks": {}, "observations": {},
               "bounded_console_writer_verified": False, "console_failure_vm_stop_verified": False,
+              "local_event_spool_verified": False, "event_spool_failure_vm_stop_verified": False,
+              "control_plane_commit_verified": False, "generic_filesystem_quota_verified": False,
               "errors": [], "cleanup_errors": [], "milestone_complete": False,
               "dedicated_service_identity_verified": False, "production_egress_verified": False,
               "global_fencing_verified": False, "real_model_calls": 0}
     try:
-        if memory_mode or console_mode: freeze_qualification_limits(reports, result, console_mode=console_mode)
+        if memory_mode or console_mode or event_spool_mode:
+            freeze_qualification_limits(reports, result, console_mode=console_mode, event_spool_mode=event_spool_mode)
+        if event_spool_mode:
+            data_root_identity = event_spool_pressure.prepare_data_root(spool_data_root)
         result["df_before"] = kvm.run(["df", "-h", str(root)])
         for label in ("a", "b"):
             instances.append({"uuid": str(uuid.uuid4()), "name": "harniqo-rb-" + rid + "-" + label,
                               "nonce": uuid.uuid4().hex, "overlay": images / (label + ".raw"),
                               "seed": images / (label + "-seed.img"), "socket": work / (label + ".sock"),
                               "console_socket": work / (label + "-console.sock"), "template_id": "sealed-" + label})
+            if event_spool_mode:
+                instances[-1]['event_scope'] = event_spool_pressure.new_scope(instances[-1]['uuid'])
         if any(i["uuid"] in baseline["domains"] for i in instances): raise RuntimeError("UUID collision")
         save(reports / "ownership.json", {**ownership, "directories": {str(p): v for p, v in directories.items()},
                                           "instances": [{k: str(v) for k, v in i.items()} for i in instances]})
+        sources = [Path(__file__).absolute(), REPO / "scripts/qualification/qualify_kvm.py",
+                   REPO / "scripts/qualification/qualify_kvm_network.py",
+                   REPO / "scripts/qualification/kvm_host_policy.py",
+                   *sorted((REPO / "apps/runner/resource_broker").rglob("*.py"))]
+        sources.append(REPO / 'scripts/qualification/guest_memory_pressure.py')
+        sources += [REPO/'scripts/qualification/console_pressure.py',REPO/'apps/runner/console_store.py']
+        if event_spool_mode:
+            sources += [REPO / 'scripts/qualification/event_spool_pressure.py', REPO / event_spool_pressure.WORKER_RELATIVE,
+                        REPO / 'apps/runner/event-spool/spool.ts', REPO / 'apps/runner/event-spool/types.ts',
+                        REPO / 'apps/runner/event-spool/package.json', REPO / 'apps/runner/event-spool/package-lock.json']
+        snapshots = {p: public_source(p) for p in sources}
+        result["source_sha256"] = {str(p.relative_to(REPO)): hashlib.sha256(data).hexdigest()
+                                   for p, data in snapshots.items()}
+        source_folder = reports / "source"; source_folder.mkdir(mode=0o700)
+        for p, data in snapshots.items():
+            target = source_folder / p.relative_to(REPO); target.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+            kvm.write(target, data.decode("utf-8"))
+        if event_spool_mode:
+            event_spool_pressure.prepare_workers(root, reports, instances, spool_workers, result, data_root_identity)
         for i, other in ((instances[0], instances[1]), (instances[1], instances[0])):
             kvm.run(["qemu-img", "convert", "-f", "qcow2", "-O", "raw", str(base), str(i["overlay"])], timeout=180)
             kvm.run(["qemu-img", "resize", "-f", "raw", str(i["overlay"]), str(DISK_BYTES)])
@@ -648,7 +710,7 @@ def execute(args) -> int:
                     "bytes": metadata.st_size, "allocated_bytes": metadata.st_blocks * 512}
             finally: os.close(disk_fd)
             user, meta, net = [work / (i["template_id"] + "-" + n) for n in ("user", "meta", "network")]
-            kvm.write(user, sealed_guest_config(i, other, root, resource_profile=args.resource_profile, pressure=i is instances[0], guest_memory_pressure=memory_mode, console_pressure_mode=console_mode))
+            kvm.write(user, sealed_guest_config(i, other, root, resource_profile=args.resource_profile, pressure=i is instances[0], guest_memory_pressure=memory_mode, console_pressure_mode=console_mode, event_spool_pressure_mode=event_spool_mode))
             save(meta, {"instance-id": i["uuid"], "local-hostname": i["name"]})
             save(net, {"version": 2, "ethernets": {}})
             kvm.run(["cloud-localds", "--network-config", str(net), str(i["seed"]), str(user), str(meta)])
@@ -669,27 +731,14 @@ def execute(args) -> int:
             k: Path(v) if k in {"disk", "seed", "channel", "console"} else v
             for k, v in item.items()}).configuration_sha256 for item in templates}
         instant = time.time()
-        claims = [{"resource_id": i["uuid"], "organization_id": str(uuid.uuid4()),
-                   "workspace_id": str(uuid.uuid4()), "attempt_id": str(uuid.uuid4()),
+        claims = [{"resource_id": i["uuid"], "organization_id": i['event_scope']['organization_id'] if event_spool_mode else str(uuid.uuid4()),
+                   "workspace_id": str(uuid.uuid4()), "attempt_id": i['event_scope']['attempt_id'] if event_spool_mode else str(uuid.uuid4()),
                    "template_id": i["template_id"], "configuration_sha256": template_hashes[i["template_id"]],
                    "generation": 1, "recovery_generation": 1,
                    "issued_at": instant, "expires_at": instant + 240} for i in instances]
         config = {"templates": templates, "assignments": claims, "state_dir": str(work / "broker"),
                   "issuer_key_file": str(key_file), "images_root": str(images), "channel_root": str(work)}
         save(config_path, config)
-        sources = [Path(__file__).absolute(), REPO / "scripts/qualification/qualify_kvm.py",
-                   REPO / "scripts/qualification/qualify_kvm_network.py",
-                   REPO / "scripts/qualification/kvm_host_policy.py",
-                   *sorted((REPO / "apps/runner/resource_broker").rglob("*.py"))]
-        sources.append(REPO / 'scripts/qualification/guest_memory_pressure.py')
-        sources += [REPO/'scripts/qualification/console_pressure.py',REPO/'apps/runner/console_store.py']
-        snapshots = {p: public_source(p) for p in sources}
-        result["source_sha256"] = {str(p.relative_to(REPO)): hashlib.sha256(data).hexdigest()
-                                   for p, data in snapshots.items()}
-        source_folder = reports / "source"; source_folder.mkdir(mode=0o700)
-        for p, data in snapshots.items():
-            target = source_folder / p.relative_to(REPO); target.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
-            kvm.write(target, data.decode("utf-8"))
         verify_coordination_lock(root, lock_fd)
         broker = broker_from(config)
         watch = spawn_worker(root, config_path, "watch", children, descriptors)
@@ -724,8 +773,8 @@ def execute(args) -> int:
             raise RuntimeError("Independent watch exited during Guest boot")
         if args.resource_profile == "sealed-raw8g-q35-limited-v2":
             if memory_mode: memory_pressure.run_pressure(broker, instances, streams, result)
-            elif not console_mode: resource_pressure(broker, instances, streams, result)
-        a2, b2 = claim(claims[0], 2, 120 if memory_mode or console_mode else 8), claim(claims[1], 2, 120)
+            elif not console_mode and not event_spool_mode: resource_pressure(broker, instances, streams, result)
+        a2, b2 = claim(claims[0], 2, 120 if memory_mode or console_mode or event_spool_mode else 8), claim(claims[1], 2, 120)
         result["observations"]["renewed"] = [asdict(broker.renew(sign_grant(key, **c))) for c in (a2, b2)]
         stale = claim(claims[0], 1, 60)
         result["stale_generation"] = rejected(lambda: broker.renew(sign_grant(key, **stale)), expected="generation_stale")
@@ -734,7 +783,12 @@ def execute(args) -> int:
         result["a_live_after_launcher_exit_at"] = time.time()
         if not result["checks"]["a_live_after_launcher_exit"]:
             raise RuntimeError("A was not live after confirmed launcher exit")
-        if console_mode:
+        if event_spool_mode:
+            event_spool_pressure.run_pressure(broker, instances, streams, result, spool_workers)
+            broker, stopped_a = stop_event_spool_resource(broker, config, instances[0], result,
+                assignments[0], sign_grant(key, **a2))
+            event_spool_pressure.after_stop(instances, streams, result, spool_workers)
+        elif console_mode:
             console_pressure.run_pressure(broker,instances,streams,result)
             broker,stopped_a=stop_console_resource(broker,config,instances[0],result,assignments[0],sign_grant(key,**a2))
             result['console_pressure']['b_after_console_stop_challenge']=memory_pressure.challenge(streams,instances[1])
@@ -785,25 +839,50 @@ def execute(args) -> int:
         workers_stopped = all(process.poll() is not None for process in children)
         result["workers_confirmed_exited"] = workers_stopped
         try:
-            if broker is None and config is not None: broker = broker_from(config)
-            if broker is None:
-                raise RuntimeError("No Broker stop evidence; preserve files and ACL")
-            revocations = []
-            for i in instances:
-                try:
-                    observed = broker.revoke(i["uuid"], "qualification_cleanup")
-                    revocations.append(asdict(observed))
-                except Exception as error:
-                    result["cleanup_errors"].append({"phase": "resource_revoke", "resource_id": i["uuid"],
-                                                     "type": type(error).__name__, "message": str(error)})
-            result["final_revoke"] = revocations
-            stopped = (workers_stopped and len(revocations) == len(instances)
-                       and all(o["state"] == "stopped" and o["stop_evidence"] is not None for o in revocations)
-                       and not any(i["uuid"] in kvm.domain_ids() for i in instances))
-            if not stopped:
-                raise RuntimeError("Stop evidence or creator exit uncertain; preserve files and ACL")
+            if event_spool_mode and broker is None and config is None and not children:
+                # Spool preflight precedes raw-disk allocation and all Broker
+                # submissions. Preserve the failed cohort without attempting
+                # to revoke resources that were never registered. This is
+                # deliberately not a physical-stop receipt.
+                result['event_spool_preflight_failed_before_broker_submission'] = True
+                if any(i['uuid'] in kvm.domain_ids() for i in instances):
+                    raise RuntimeError('Unexpected resource exists before Broker submission')
+                result['unsubmitted_resources_absent'] = True
+            else:
+                if broker is None and config is not None: broker = broker_from(config)
+                if broker is None:
+                    raise RuntimeError("No Broker stop evidence; preserve files and ACL")
+                revocations = []
+                for i in instances:
+                    try:
+                        observed = broker.revoke(i["uuid"], "qualification_cleanup")
+                        revocations.append(asdict(observed))
+                    except Exception as error:
+                        result["cleanup_errors"].append({"phase": "resource_revoke", "resource_id": i["uuid"],
+                                                         "type": type(error).__name__, "message": str(error)})
+                result["final_revoke"] = revocations
+                stopped = (workers_stopped and len(revocations) == len(instances)
+                           and all(o["state"] == "stopped" and o["stop_evidence"] is not None for o in revocations)
+                           and not any(i["uuid"] in kvm.domain_ids() for i in instances))
+                if not stopped:
+                    raise RuntimeError("Stop evidence or creator exit uncertain; preserve files and ACL")
         except Exception as error:
             result["cleanup_errors"].append({"phase": "host_stop", "type": type(error).__name__, "message": str(error)})
+        # Stop state is independent of the queue. A spool pipe/log/close error
+        # cannot bypass the physical resource revocations above.
+        for spool_worker in spool_workers:
+            try: result['cleanup_errors'].extend(spool_worker.close())
+            except Exception as error:
+                result['cleanup_errors'].append({'phase': 'event_spool_worker_cleanup', 'type': type(error).__name__})
+        if event_spool_mode:
+            result['event_spool_workers_confirmed_exited'] = (
+                all(w.process is not None and w.process.poll() is not None for w in spool_workers))
+            if not result['event_spool_workers_confirmed_exited']:
+                result['cleanup_errors'].append({'phase': 'event_spool_worker_exit', 'message': 'Native spool worker exit unconfirmed'})
+            if result.get('event_spool_data') is not None:
+                try: event_spool_pressure.retained_data(result, spool_workers)
+                except Exception as error:
+                    result['cleanup_errors'].append({'phase': 'event_spool_data_preservation', 'type': type(error).__name__})
         if streams is not None and stopped:
             try: streams.finish()
             except Exception as error:
@@ -858,7 +937,15 @@ def execute(args) -> int:
         expected = {"workspace_busy", "repeat_ensure_same_uuids", "only_two_owned_domains", "guest_checks", "runtime_qemu_socket_observed",
                     "independent_watch_survives_launcher", "no_revival_or_replacement", "disks_retained_until_host_stop",
                     "a_live_after_launcher_exit", "a_watch_deadline_stop", "b_restart_deadline_stop"}
-        if console_mode:
+        if event_spool_mode:
+            expected.remove('a_watch_deadline_stop')
+            expected |= event_spool_pressure.REQUIRED_CHECKS | {'qualification_limits_frozen',
+                'event_spool_configuration_frozen', 'console_archives_explicit'}
+            try:
+                result['checks']['event_spool_configuration_frozen'] = event_spool_pressure.verify_configuration(root, reports, result)
+            except (OSError, ValueError, RuntimeError, KeyError):
+                result['checks']['event_spool_configuration_frozen'] = False
+        elif console_mode:
             expected.remove('a_watch_deadline_stop')
             expected |= console_pressure.REQUIRED_CHECKS | {'qualification_limits_frozen','console_archives_explicit','console_retained_archive_matches'}
         elif memory_mode:
@@ -868,11 +955,11 @@ def execute(args) -> int:
                 'b_healthy_after_external_stop'}
         elif args.resource_profile == "sealed-raw8g-q35-limited-v2":
             expected |= {"qemu_cpu_throttled", "b_heartbeat_during_pressure", "host_limits_verified", "normal_memory_within_cap", "resource_pressure_identity_stable"}
-        if memory_mode or console_mode:
+        if memory_mode or console_mode or event_spool_mode:
             expected.add('qualification_limits_frozen')
             try:
                 manifest = reports / 'qualification-limits.json'
-                frozen = (result.get('qualification_limits') == (console_pressure if console_mode else memory_pressure).qualification_limits()
+                frozen = (result.get('qualification_limits') == (event_spool_pressure if event_spool_mode else console_pressure if console_mode else memory_pressure).qualification_limits()
                     and json.loads(manifest.read_text()) == result['qualification_limits']
                     and kvm.sha256(manifest) == result.get('qualification_limits_sha256'))
             except (OSError, ValueError):
@@ -886,6 +973,8 @@ def execute(args) -> int:
         result['external_vm_stop_recovery_verified'] = result['passed'] and memory_mode
         result['bounded_console_writer_verified'] = result['passed'] and console_mode
         result['console_failure_vm_stop_verified'] = result['passed'] and console_mode
+        result['local_event_spool_verified'] = result['passed'] and event_spool_mode
+        result['event_spool_failure_vm_stop_verified'] = result['passed'] and event_spool_mode
         save(reports / "report.json", result)
         print(json.dumps({"qualification": result["qualification"], "passed": result["passed"],
                           "milestone_complete": False, "errors": len(result["errors"]),
@@ -903,11 +992,13 @@ def main() -> int:
     parser.add_argument("--resource-profile", choices=("sealed-raw8g-q35-v1", "sealed-raw8g-q35-limited-v2"), default="sealed-raw8g-q35-v1")
     parser.add_argument("--guest-memory-pressure", action="store_true", help="Explicit limited-v2 Guest OOM and external-stop fault qualification")
     parser.add_argument("--console-pressure", action="store_true", help="Explicit limited-v2 bounded-console overflow and physical-stop qualification")
+    parser.add_argument("--event-spool-pressure", action="store_true", help="Explicit limited-v2 local SQLite spool FULL and physical-stop qualification")
+    parser.add_argument("--spool-data-root", type=Path, help="Operator-owned 0700 data directory with safe ancestors; required only with --event-spool-pressure")
     parser.add_argument("--worker", choices=("launcher", "watch"))
     parser.add_argument("--config", type=Path)
     args = parser.parse_args()
     if args.worker:
-        if args.config is None or args.base_image is not None or args.guest_memory_pressure or args.console_pressure: parser.error("Worker requires only --config")
+        if args.config is None or args.base_image is not None or args.guest_memory_pressure or args.console_pressure or args.event_spool_pressure or args.spool_data_root is not None: parser.error("Worker requires only --config")
         return worker(args.config.absolute(), args.worker, args.root)
     if args.base_image is None or args.config is not None: parser.error("Qualification requires --base-image")
     def terminate(signum, _frame): raise KeyboardInterrupt("Qualification interrupted by signal " + str(signum))

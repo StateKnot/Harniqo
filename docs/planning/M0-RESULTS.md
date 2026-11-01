@@ -1,6 +1,6 @@
 # M0 执行证据索引
 
-日期：2026-10-31 · M0 状态：`IN_PROGRESS`，8 项中 **4 项已验收**。本索引记录已取得的证据及其范围，不表示 M0、应用功能或生产发布已完成。
+日期：2026-11-01 · M0 状态：`IN_PROGRESS`，8 项中 **4 项已验收**。本索引记录已取得的证据及其范围，不表示 M0、应用功能或生产发布已完成。
 
 任务定义见 [BACKLOG](BACKLOG.md)，阶段门槛见 [ROADMAP](ROADMAP.md)，验收规则见 [ACCEPTANCE](ACCEPTANCE.md)。这里只发布脱敏摘要；私有报告位置均为工作区相对路径模式，`<…>` 代表由受控环境记录映射的实际文件名。原始报告、日志、配置、凭据和镜像不随本索引公开。
 
@@ -12,7 +12,7 @@
 | M0-02 机器契约 | `IMPLEMENTED` | 60 个 Schema 定义、18 条 OpenAPI 路径、107 个正反例、15 个生命周期案例通过验证；干净服务器按完整 hash 锁安装后复跑通过 | 结合真实原生 Harness 与生产隔离准入冻结契约 |
 | M0-03 首个 Harness | ✅ `ACCEPTED` · 已开发完成 | 固定四工具组合：两模型实际身份与 HTTP 目标、工具/文件/历史、原生取消、人工拒绝、重启后原生续聊均已验证 | 范围限于本次组合；locked-stream 的断线中断、重启后旧 Run 查询404按实声明，通用工具与生产隔离由后续任务验收 |
 | M0-04 多 Harness | ✅ `ACCEPTED` · 已开发完成 | 正式开发目标Hermes/OpenCode/OpenClaw均有运行证据；OpenCode实际发送、DSH SDK与Octop三身份试验补齐；原版失败、独立修改组合和preview均有具体结论 | 正式Adapter、完整能力套件、生产隔离及更多组合在后续阶段验收，不从技术准入推导已交付支持 |
-| M0-05 执行隔离 | `IN_PROGRESS` | 封闭KVM基线与第三轮真实NIC82项检查通过；临时规则、资源及原有效策略恢复均确认；固定实例组真实期限/进程故障恢复、v2宿主CPU/内存/swap限额与CPU压力对照通过；内部受限HTTPS上游传输已实现并独立验证；固定v2 Guest耗尽与外部停止恢复通过 | 生产Egress代理、专用身份、硬配额、控制面全局fencing、资源耗尽及更广宿主故障恢复等完整准入 |
+| M0-05 执行隔离 | `IN_PROGRESS` | 封闭KVM基线与第三轮真实NIC82项检查通过；临时规则、资源及原有效策略恢复均确认；固定实例组真实期限/进程故障恢复、v2宿主CPU/内存/swap限额与CPU压力对照通过；内部受限HTTPS上游传输已实现并独立验证；固定v2 Guest耗尽与外部停止恢复、有界console及本地事件spool恢复/容量停止通过 | 生产Egress代理、专用身份、硬配额、控制面全局fencing、资源耗尽及更广宿主故障恢复等完整准入 |
 | M0-06 来源与依赖基线 | ✅ `ACCEPTED` | 当前 MIT 自有范围、第三方来源及分发边界已清点；验证工具依赖已精确锁定和校验 | 新增依赖、原生运行包及镜像分发仍须继续核对来源、许可和材料 |
 | M0-07 验收与资源 | `IN_PROGRESS` | [验收基线](../operations/ACCEPTANCE-BASELINE.md) 已形成 | 原生三端 CI/签名、容量、备份和相关外部资源逐项验证 |
 | M0-08 排期与准入 | `TODO` | 67 项任务及阶段依赖已形成 | M0-01～07 全部证据和关键可行性结论到位后，冻结具体投入与排期 |
@@ -81,6 +81,10 @@
 | E56 | [本轮实际资格CI](https://github.com/StateKnot/Harniqo/actions/runs/41177744267)通过：源码`fbb975b5f788`，Python3.12共309项、0失败/错误/跳过，两组Node检查也成功；下载artifact与run/job/source已核。新增42内存helper与22操作者分别计量，原55核心/7压力和183既有组件保留；[三平台契约CI](https://github.com/StateKnot/Harniqo/actions/runs/41177744311)同源通过 | [本轮CI摘要](../operations/qualification-ci-guest-memory-2026-10-31.json)、[工作流](../../.github/workflows/qualification.yml) | 合成组件/契约无VM/模型；E55真实Guest/Host停止独立计量，不替代HostOOM、完整Egress、桌面构建或签名；M0仍4/8 |
 | E57 | 正式有界console Module接入共享收集器：KEEP_SIZE实际预留、整块拒绝超限、逐次fsync、持久/物理前缀分离、归档独立预留及源/目标摘要/身份核对。固定v2真实2KVM/22Guest/22门槛通过，A容量失败触发Broker真实destroy/absence、持久终态重构/旧授权双拒绝；B三分段及故障前后共五个新挑战、watch过期重建链通过。服务器180组件0失败/错误/跳过，errors/cleanup0 | [Module](../../apps/runner/CONSOLE.md)、[原生脱敏报告](../operations/bounded-console-kvm-2026-10-31.json)、[来源/修正/范围](../../research/m0-bounded-console.md)、[复跑](../../scripts/qualification/RESOURCE-BROKER.md) | run74336c2285a8；故障A前缀明确截断并保留，B完整；签名journal及归档摘要已核，本组精确回收，base/既有对象/旧80GiB材料不变。仅可信写者console+固定VM停止VERIFIED，非通用FSquota/SQLite spool/HostOOM/生产权限出口；0模型，M0仍4/8 |
 | E58 | [实际资格CI](https://github.com/StateKnot/Harniqo/actions/runs/41181576301)成功：源码`2d41af6b78f0`，Python3.12共353项0失败/错误/跳过，两组Node检查通过；[同源三平台契约](https://github.com/StateKnot/Harniqo/actions/runs/41181576255)也成功，run/job/下载artifact/源摘要均核对。26存储含真实独立进程锁、11收集器、10新故障操作者与既有回归分别计量 | [CI摘要](../operations/qualification-ci-bounded-console-2026-10-31.json)、[资格工作流](../../.github/workflows/qualification.yml) | 组件/契约无VM/模型，E57双KVM独立计量；最终仅补文档与console文件push/PR触发路径，受测执行源码和步骤不变。不是通用FSquota、SQLite事件spool、HostOOM、完整Egress或桌面构建/签名验收，M0仍4/8 |
+
+| E59 | 正式本地EventSpool已实现：精确字节幂等/缺口/连续ACK事务回收、WAL+FULL、固定Node/SQLite/compile options、页数及有限WAL上限。指定服务器严格tsc、34项真实SQLite和210项Python回归均0失败/错误/跳过；独立进程9门槛、4次SIGKILL、非零提交WAL重放、提交前回滚、第二进程锁拒绝、实际SQLITE_FULL保留及fixture ACK回收复用全部通过，错误/清理0 | [Module](../../apps/runner/event-spool/README.md)、[真实进程证据](../operations/event-spool-native-2026-11-01.json)、[服务器回归](../operations/event-spool-components-2026-11-01.json)、[来源/失败/范围](../../research/m0-event-spool.md) | `.private/qualification/event-spool-native-<run>/report.json`；独立0700数据根身份/原始DB清单已核。首轮0775祖先拒绝FAILED、210回归权限夹具失败均保留。只有本地durable_received，非CP提交/认证、通用FSquota或断电证明 |
+| E60 | 固定v2真实2KVM/22Guest/27宿主门槛全部通过：A15条107487B未确认事件保留，第16条实际SQLITE_FULL后Broker精确destroy/absence、持久终态重构与旧授权双拒绝；B三个阶段/满库后/停止后共5次新挑战与独立落盘通过，原双SIGKILL期限恢复链通过。签名journal、真实SQLite行/摘要、目录和完整console另行核对，errors/cleanup0，当前组精确回收 | [双VM脱敏证据](../operations/event-spool-kvm-2026-11-01.json)、[复跑](../../scripts/qualification/RESOURCE-BROKER.md)、[本轮范围](../../research/m0-event-spool.md) | runc909289f976d；base/既有对象/源码不变，SQLite原件保留。旧80GiB及首轮两块8GiB失败层不删。仅本地spool及固定VM容量停止子项VERIFIED；0模型/新端口/管理员更改，M0仍4/8、M0-05仍IN_PROGRESS |
+
 
 
 OpenCode 当前修复镜像的 image store ID 为 `sha256:ef392b1148602b61ad4ea1e9dcca9b05337adc3c7ef9fc97434d632c69b8373c`；归档499,582,464 bytes，SHA-256 `c50dd9d32477a4fc70a8e4ba0a985e6bb41688b633d77990869f7078e9e194bc`。构建新增非root用户的目录遍历、文件可读及配置目录不可写检查；原有只读根文件系统、非root用户和凭据权限要求保留。实际原生服务已启动，健康检查报告1.19.5，缺失及错误Basic认证均401，原生OpenAPI为3.1。该镜像与旧归档分别保存，功能测试结果独立记录。

@@ -113,6 +113,16 @@ class BrokerInterfaceTests(unittest.TestCase):
         self.assertEqual(fresh.observe(assignments[0].resource_id),stopped)
         self.assertEqual(fresh.observe(assignments[1].resource_id).state,'running')
 
+    def test_event_spool_capacity_stop_persists_while_other_resource_runs(self):
+        assignments=[self.assignment(index) for index in (0,1)]
+        for assignment in assignments:self.broker.ensure(assignment)
+        stopped=self.broker.revoke(assignments[0].resource_id,'event_spool_capacity_exceeded')
+        self.assertEqual(stopped.stop_cause,'event_spool_capacity_exceeded')
+        self.assertEqual(stopped.stop_evidence.method,'libvirt_destroy_then_absent')
+        fresh=self.new_broker()
+        self.assertEqual(fresh.observe(assignments[0].resource_id),stopped)
+        self.assertEqual(fresh.observe(assignments[1].resource_id).state,'running')
+
     def new_broker(self):
         return ResourceBroker(state_dir=self.root/getattr(self, 'state_name', 'state'),templates=self.templates,issuer_key_file=self.key_file,
             images_root=self.images,channel_root=self.channels,max_lease_seconds=300)

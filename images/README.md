@@ -44,3 +44,9 @@ Octop Harness实际image ID为`sha256:714e015d1c1281e1c91bd2ae67f39191b99c408eb7
 2026-10-31 Guest内存故障资格复用同一已核Canonical base与固定v2，不新增可复用镜像或工具链归档，私有manifest仍为12项。三组FAILED及最终通过组各自使用`vm/instances/`下独立8GiB raw/seed；均按本组宿主停止/日志归档证据精确回收，原始失败报告与旧未知派发材料保留。Guest临时监督脚本与log只写各自Guest/run，未写入只读base或其他实例；不能把已回收运行写层登记成生产基础镜像。[实际范围与结果](../research/m0-guest-memory-failure.md)。
 
 2026-10-31有界console资格复用同一Canonical base与固定v2，私有manifest仍12项。两份8GiB raw/seed位于`vm/instances/`本组目录，宿主停止/归档核对后精确回收；不新增基础镜像或工具链。console位于私有运行目录，原始归档留私有报告，源/归档各有独立容量预留；不混入`images/`镜像清单或声称通用文件系统quota通过。[本轮结果](../research/m0-bounded-console.md)。
+
+2026-11-01本地critical-event spool容量资格继续复用同一已核Canonical base、固定v2及既有Node.js v24.22.1工具链归档，不新增基础镜像或工具链，私有manifest仍为12项。执行入口和前置检查见[Resource Broker操作说明](../scripts/qualification/RESOURCE-BROKER.md)。本组双VM的27项宿主门槛/22项Guest检查实际通过，VM层已精确回收，SQLite原件保留；[真实结果](../docs/operations/event-spool-kvm-2026-11-01.json)及[M0证据索引](../docs/planning/M0-RESULTS.md)单独记录，不能扩大为完整M0-05通过。
+
+该模式的VM raw/seed仍必须位于`images/vm/instances/`。SQLite运行数据通过必填`--spool-data-root`显式指定到具有安全祖先的独立私有目录，不属于镜像归档，也不计入镜像manifest；报告、配置、源码快照和最终数据库文件大小/SHA清单留在私有报告。数据根和本轮/A/B目录要求当前操作者拥有的0700、实际数据库文件0600；不对0775共享工作区执行chmod以绕过安全检查，不改动基础镜像。SQLite预检现在先于两份各8GiB raw盘的分配；退出后保留真实SQLite存储及其清单，不能因VM写层已回收便推断数据库也已清理。实际`SQLITE_FULL`和SQLite文件上限不代表宿主通用文件系统quota已启用。
+
+本轮早期FAILED组已分配的两份各8GiB raw盘及对应seed继续保留，原始失败报告不覆盖；此前保留的80GiB诊断写层也不在本轮自动清理范围。后续若恢复该失败组，必须另存精确身份、实际停止、ACL及回收证据，不能把待恢复材料描述为已回收。新组的成功或清理不得覆盖这些旧失败记录。

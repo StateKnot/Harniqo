@@ -35,6 +35,8 @@ TESTS = (
     'test_guest_memory_pressure.py',
     'test_console_store.py',
     'test_console_pressure.py',
+    'test_event_spool_pressure.py',
+    'test_event_spool_operator.py',
 )
 
 

@@ -1,0 +1,88 @@
+{
+  "scope": "affected_local_event_spool_and_runner_components_only",
+  "node": {
+    "tests": 34,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "junit_sha256": "837a5f0c375dcc5403a4c7bb62c6fa706f4b52ff6d205f5b5c81e06b94500aba",
+    "passed": true
+  },
+  "python": {
+    "tests": 210,
+    "suites": {
+      "test_console_store.py": 26,
+      "test_console_pressure.py": 10,
+      "test_qualify_kvm.py": 11,
+      "test_qualify_kvm_network.py": 6,
+      "test_resource_broker.py": 57,
+      "test_resource_broker_operator.py": 22,
+      "test_resource_pressure.py": 7,
+      "test_guest_memory_pressure.py": 42,
+      "test_event_spool_pressure.py": 21,
+      "test_event_spool_operator.py": 8
+    },
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "passed": true,
+    "seconds": 2.6731784919975325,
+    "python": "3.12.3"
+  },
+  "steps": [
+    {
+      "step": "disk",
+      "exit_code": 0
+    },
+    {
+      "step": "filesystem",
+      "exit_code": 0
+    },
+    {
+      "step": "typecheck",
+      "exit_code": 0
+    },
+    {
+      "step": "node_tests",
+      "exit_code": 0
+    }
+  ],
+  "source_sha256": {
+    "apps/runner/event-spool/spool.ts": "88d179a4b534aea5a989a735d228a6b74b4b29fbe6a241b5e71049718ebeb4d9",
+    "apps/runner/event-spool/tsconfig.json": "7a3f8cd19c5b6190583e5c2d6213ef76ab276525f4a44ad389276bc820b981ed",
+    "apps/runner/event-spool/package.json": "1f3fb51a00799f4c6835c5369e21ccc3de6480389aa4b189510ddec582a2eec5",
+    "apps/runner/event-spool/types.ts": "b754fa4ad2b7259391fbe986c8cebd319189d8fed5cb634bdf49f7ef923c1fca",
+    "apps/runner/event-spool/package-lock.json": "f8f6b5c2b485ceec923f904707b64463254076703fb44c7c1f96fd5a66b247df",
+    "apps/runner/event-spool/README.md": "613f3ecf1537e6643ddfeb8aaa3ab94684d76c704028a976aee88577ad80ac22",
+    "apps/runner/event-spool/spool.test.ts": "6294950e0d8027df79b1ebab99e17905010d30614eec569e21f77645ac0f2e90",
+    "scripts/qualification/test_console_store.py": "f1e89e0c5b190b7c8f9a6e27b457df6e5b909361b56da64d8f8bcb36267b60b7",
+    "scripts/qualification/test_console_pressure.py": "97f0407369a839503c14abac9a5b6fb0b8404186bc7c9cc7703650e8dd1050cb",
+    "scripts/qualification/test_qualify_kvm.py": "60306382a585a24c36ba6ba4828ecb81a76e0c928c1babcedaa468a22e96b768",
+    "scripts/qualification/test_qualify_kvm_network.py": "a1a3349f06415635cf35f4a413c4f34c494720f397f62ef905fe8d0e5c01f14f",
+    "scripts/qualification/test_resource_broker.py": "2b5e2dcb1dd3ba1a25cfeb217ac8476dfba6a511ee464eef62ea6bd6788a780f",
+    "scripts/qualification/test_resource_broker_operator.py": "53511f1d58608895db1d43e4776b8430c3922eebc9654dcfd5a42b0806062c6f",
+    "scripts/qualification/test_resource_pressure.py": "2783714a84835c60cac320e8ef0b22f015f917c19246e7ef7549f54575af5418",
+    "scripts/qualification/test_guest_memory_pressure.py": "2c3727da46593b3a13d6aa85c55b0e61e83b5b202c5f654b4b38ef94033d39a7",
+    "scripts/qualification/test_event_spool_pressure.py": "7832279a4fadc0addaf0a2aa4731ca02df6953202428dc617b822103e427d1b2",
+    "scripts/qualification/test_event_spool_operator.py": "fc497cf4cbdb4d66720b82ae12ecbfad2f2d7f256a05b7decc1d125e1b3f2d61",
+    "scripts/qualification/qualify_resource_broker.py": "9117b7f9d1c70a9eb3ebd548f6ceff017f317f9674312a84cef2be8e352a3b1d",
+    "scripts/qualification/qualify_kvm.py": "f49bd3eb3e67fbaf451607b17961582f6398859abe0e57bebab463943e8bc152",
+    "scripts/qualification/event_spool_pressure.py": "6e572e10d8d31850f669ba3e96fa168cd77fcaaa347e2a801a4900ea236b76dd",
+    "scripts/qualification/event_spool_worker.mjs": "e740152a3751b14a2cf687dbe8a373a6562741680398e1f05b1b728f64403c7e",
+    "scripts/qualification/qualify_event_spool.py": "12caa8666148ac4768e537e8645a702ea1c160d36081a8fa996c5f7800360e2c",
+    "apps/runner/resource_broker/__init__.py": "0379a2161fee9867b95db5de20a391fb00181578e58e81d211099687f4218538",
+    "apps/runner/resource_broker/resources.py": "3c3a15339f0440d22c16b5f26ca8310635ce99e08abb2d63b0290b6d536a26b3",
+    "apps/runner/console_store.py": "4fe2ba401ecb7846c2bbbd6008ed680d0fc9a001ee8abb99398ca22a32a8e4f4"
+  },
+  "sources_unchanged": true,
+  "real_model_calls": 0,
+  "vm_started": false,
+  "host_tcp_listener_started": false,
+  "passed": true,
+  "date_local": "2026-11-01",
+  "timezone": "Asia/Shanghai",
+  "control_plane_commit_verified": false,
+  "generic_filesystem_quota_verified": false,
+  "desktop_build_verified": false,
+  "source_control_baseline": "a1344d30a0263867123a673379e8ddb84da4faaa"
+}

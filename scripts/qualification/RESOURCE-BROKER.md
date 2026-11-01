@@ -119,3 +119,70 @@ StopEvidence、同一持久终态重建及旧Assignment/Grant拒绝；B在停止
 私有，本flag不启用文件系统quota、不调整宿主挂载/服务/防火墙，不调用模型。
 它只允许登记有界console和该固定VM的故障停止，不关闭M0-05，也不替代SQLite
 critical-event spool、通用宿主硬配额或磁盘耗尽。[依据与范围](../../research/m0-bounded-console.md)。
+
+## 显式本地 critical-event spool 容量故障资格
+
+`--event-spool-pressure` 使用正式 [EventSpool Module](../../apps/runner/event-spool/README.md)
+及项目内固定的 Node.js v24.22.1 / SQLite3.53.4。它只接受新建的
+`sealed-raw8g-q35-limited-v2` 组，与 Guest 内存、console 故障模式互斥。
+以下是执行要求，实际通过状态以私有原始报告和 [M0 证据索引](../../docs/planning/M0-RESULTS.md)
+为准；本文不将该子项或整个 M0-05 标为已验收。
+
+```sh
+python3 scripts/qualification/qualify_resource_broker.py \
+  --root "$HARNIQO_WORKSPACE" --base-image "$HARNIQO_VERIFIED_BASE_IMAGE" \
+  --resource-profile sealed-raw8g-q35-limited-v2 \
+  --event-spool-pressure --spool-data-root "$HARNIQO_PRIVATE_SPOOL_ROOT" \
+  --timeout 150
+```
+
+`HARNIQO_PRIVATE_SPOOL_ROOT` 是受信操作者显式配置的绝对规范路径，不能来自 Guest。
+应选择具备安全祖先的独立运行数据目录；工作区若有0775等可被同组写入的祖先，
+不得把 SQLite 数据放在该工作区内，也不通过 chmod 共享目录修复验收。
+工具只创建配置路径的最后一级0700目录；已存在的目录必须属于操作者且为0700，
+祖先必须属于操作者或root并禁止group/other写入，root拥有的sticky临时目录除外。
+符号链接、错误mode、替换后的inode均拒绝，不递归创建或放宽既有祖先权限。
+正式 Module 还须核对实际ext4挂载及其策略；仅有目录mode合格不足以通过启动检查。
+
+源码和工具链仍位于工作区，VM raw/seed 仍位于 `images/vm/instances/`；私有报告、
+配置、源码快照和协议日志位于 `.private/qualification/resource-broker-<run-id>`。
+每轮 SQLite 数据分别写入显式数据根下的独占0700运行目录，A/B再各有独立0700存储目录，
+实际数据库文件为0600。目录设备号、inode、owner、mode和A/B配置被固定在私有清单并保存SHA。
+先验证数据根、冻结源码和启动两个独立SQLite进程，确认两者为空且运行时、PRAGMA及编译选项
+均正确，再分配两份各8GiB raw盘、设置临时QEMU ACL并提交Broker。预检失败保留原始报告；
+尚未提交给Broker的资源不会被写成已获得物理停止证明。
+
+容量用例固定每个SQLite数据库32个4096byte页，逻辑pending预算为1MiB/1024条，
+单事件最多16KiB，单批最多1MiB/32条；数据库和WAL均另有实际文件大小上限。
+A完成11项sealed检查后才经virtio-serial响应宿主新token，先发送三条含64byte文本的
+`text.delta` SourceEvent，再发送含8192byte文本的事件，整轮最多32条。宿主保留精确body与摘要，
+由正式Module持久写入并读回本地 `durable_received`。前三阶段各要求B给出新健康应答，
+且B自己的独立SQLite存储完成新写入。
+
+必须实际得到可确认已回滚的 `storage_full`，其来源为SQLite引擎 `SQLITE_FULL`，
+且发生在逻辑pending预算耗尽之前。队列超限、超时、未知是否已提交、B失败均不能替代。
+随后读回A的全部未确认事件，核对顺序、精确字节摘要、条数、字节数及未前进的committed游标；
+B在A耗尽后仍须完成新健康应答和持久写入。正式Broker以
+`event_spool_capacity_exceeded` 撤销A，要求真实 `libvirt_destroy_then_absent`、
+同一持久终态重建、旧Assignment/Grant拒绝和B在A停止后的新应答。
+launcher/watch SIGKILL、B过期期限重建停止、22项Guest检查、完整console及journal归档、
+源码/base/既有libvirt对象不变和精确VM文件清理仍须同时通过。
+
+清理先执行独立于SQLite队列的Broker撤销，再有限关闭、等待或终止本轮已登记的SQLite进程。
+启动被拒绝的进程只核对退出码2，不发送其未进入的请求循环。只有实际进程退出后才遍历数据，
+复核目录身份并生成有界文件清单：最多64MiB、128个普通单硬链接0600文件，逐个保存实际大小和SHA；
+拒绝符号链接及跨文件系统。原始SQLite存储继续保留在私有数据根，清单和协议日志保留在私有报告；
+成功回收VM raw/seed不意味着SQLite数据也被删除。目录或清单变化、退出未确认及留证失败均阻止通过。
+
+该模式没有新增NIC、TCP监听、模型调用、挂载、文件系统quota或管理员操作。
+本地持久接收不能代替控制面持久提交；VM用例不推进控制面committed游标。
+事件中的binding与本地Grant代次对齐只用于fixture关联，不证明控制面认证和授权链。
+SQLite页数和WAL上限也不证明宿主文件系统总配额、任意I/O故障、宿主断电恢复、Host OOM、
+专用服务UID或完整生产Egress。独立的 [SQLite/SIGKILL 操作器](qualify_event_spool.py)
+另行执行重放、fixture ACK及事务故障验收，同样需要显式私有数据根；其fixture ACK也不代表控制面提交。
+
+2026-11-01指定服务器的实际结果为27项宿主门槛、22项Guest检查通过，错误与清理
+错误均为0；独立SQLite操作器9项门槛也通过。见[双VM证据](../../docs/operations/event-spool-kvm-2026-11-01.json)、
+[进程恢复证据](../../docs/operations/event-spool-native-2026-11-01.json)及
+[失败保留和范围](../../research/m0-event-spool.md)。本组VM层已精确回收，SQLite原件保留；
+首轮失败组的层不借此删除，M0-05仍为IN_PROGRESS。
