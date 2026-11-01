@@ -20,11 +20,34 @@ import run_hermes_qualification as operator
 def _worker_still_live(identity):
     try:
         fields = (Path("/proc") / str(identity["pid"]) / "stat").read_text().rsplit(")", 1)[1].split()
-        return int(fields[19]) == identity["start_ticks"] and fields[0] != "Z"
+        return int(fields[19]) == identity["start_ticks"] and fields[0] not in {"Z", "X"}
     except OSError as error:
         if error.errno in (errno.ENOENT, errno.ESRCH):
             return False
         raise
+
+
+def _stop_worker_if_live(identity):
+    """Clean up only the frozen worker; disappearance must not mask assertions."""
+    if not _worker_still_live(identity):
+        return
+    try:
+        descriptor = os.pidfd_open(identity["pid"], 0)
+    except OSError as error:
+        if error.errno == errno.ESRCH:
+            return
+        raise
+    try:
+        # A recycled PID may have been opened after the first /proc check.
+        # Once rebound, a pidfd cannot signal a later process using that PID.
+        if _worker_still_live(identity):
+            try:
+                signal.pidfd_send_signal(descriptor, signal.SIGKILL, None, 0)
+            except OSError as error:
+                if error.errno != errno.ESRCH:
+                    raise
+    finally:
+        os.close(descriptor)
 
 
 class ProcessLivenessTests(unittest.TestCase):
@@ -61,8 +84,98 @@ class ProcessLivenessTests(unittest.TestCase):
             self.assertFalse(_worker_still_live(self.identity))
 
     def test_zombie_is_not_running(self):
-        with patch.object(Path, "read_text", return_value=self.stat(state="Z")):
-            self.assertFalse(_worker_still_live(self.identity))
+        for state in ("Z", "X"):
+            with self.subTest(state=state):
+                with patch.object(Path, "read_text", return_value=self.stat(state=state)):
+                    self.assertFalse(_worker_still_live(self.identity))
+
+
+class WorkerCleanupTests(unittest.TestCase):
+    identity = {"pid": 123, "start_ticks": 456}
+
+    def test_absent_worker_never_opens_or_signals_a_pid(self):
+        with patch(__name__ + '._worker_still_live', return_value=False), \
+                patch.object(os, 'pidfd_open', create=True) as opened, \
+                patch.object(signal, 'pidfd_send_signal', create=True) as sent:
+            _stop_worker_if_live(self.identity)
+            opened.assert_not_called()
+            sent.assert_not_called()
+
+    def test_same_identity_is_signaled_through_pidfd_and_descriptor_is_closed(self):
+        with patch(__name__ + '._worker_still_live', side_effect=[True, True]), \
+                patch.object(os, 'pidfd_open', create=True, return_value=99) as opened, \
+                patch.object(signal, 'pidfd_send_signal', create=True) as sent, \
+                patch.object(os, 'close') as closed, patch.object(os, 'kill') as numeric_kill:
+            _stop_worker_if_live(self.identity)
+            opened.assert_called_once_with(123, 0)
+            sent.assert_called_once_with(99, signal.SIGKILL, None, 0)
+            closed.assert_called_once_with(99)
+            numeric_kill.assert_not_called()
+
+    def test_reused_pid_after_open_is_not_signaled(self):
+        with patch(__name__ + '._worker_still_live', side_effect=[True, False]), \
+                patch.object(os, 'pidfd_open', create=True, return_value=99), \
+                patch.object(signal, 'pidfd_send_signal', create=True) as sent, \
+                patch.object(os, 'close') as closed:
+            _stop_worker_if_live(self.identity)
+            sent.assert_not_called()
+            closed.assert_called_once_with(99)
+
+    def test_worker_disappearing_before_pidfd_open_needs_no_cleanup(self):
+        with patch(__name__ + '._worker_still_live', return_value=True), \
+                patch.object(os, 'pidfd_open', create=True, side_effect=ProcessLookupError(errno.ESRCH, 'gone')), \
+                patch.object(signal, 'pidfd_send_signal', create=True) as sent, \
+                patch.object(os, 'close') as closed:
+            _stop_worker_if_live(self.identity)
+            sent.assert_not_called()
+            closed.assert_not_called()
+
+    def test_worker_disappearing_after_identity_check_does_not_mask_result(self):
+        with patch(__name__ + '._worker_still_live', side_effect=[True, True]), \
+                patch.object(os, 'pidfd_open', create=True, return_value=99), \
+                patch.object(signal, 'pidfd_send_signal', create=True, side_effect=ProcessLookupError(errno.ESRCH, 'gone')), \
+                patch.object(os, 'close') as closed:
+            _stop_worker_if_live(self.identity)
+            closed.assert_called_once_with(99)
+
+    def test_permission_and_io_errors_at_open_or_signal_remain_errors(self):
+        for stage in ('open', 'signal'):
+            for code in (errno.EACCES, errno.EPERM, errno.EIO):
+                with self.subTest(stage=stage, errno=code):
+                    with patch(__name__ + '._worker_still_live', return_value=True), \
+                            patch.object(os, 'pidfd_open', create=True, return_value=99,
+                                         side_effect=OSError(code, 'fixture error') if stage == 'open' else None), \
+                            patch.object(signal, 'pidfd_send_signal', create=True,
+                                         side_effect=OSError(code, 'fixture error') if stage == 'signal' else None), \
+                            patch.object(os, 'close') as closed:
+                        with self.assertRaises(OSError) as caught:
+                            _stop_worker_if_live(self.identity)
+                        self.assertEqual(caught.exception.errno, code)
+                        if stage == 'signal':
+                            closed.assert_called_once_with(99)
+                        else:
+                            closed.assert_not_called()
+
+    def exercise_parent_death_call_site(self, liveness, *, times=None):
+        response = subprocess.CompletedProcess([], 0, json.dumps(self.identity), '')
+        with patch.object(subprocess, 'run', return_value=response), \
+                patch(__name__ + '._worker_still_live', side_effect=liveness), \
+                patch.object(os, 'pidfd_open', create=True, return_value=99), \
+                patch.object(signal, 'pidfd_send_signal', create=True,
+                             side_effect=ProcessLookupError(errno.ESRCH, 'gone')), \
+                patch.object(os, 'close') as closed, \
+                patch.object(os, 'kill', side_effect=AssertionError('numeric PID signal is unsafe')), \
+                patch.object(time, 'monotonic', side_effect=times or [0.0]), \
+                patch.object(time, 'sleep', side_effect=AssertionError('unexpected fixture wait')):
+            ParentDeathTests().test_detached_worker_is_not_left_running_when_probe_parent_dies()
+            closed.assert_called_once_with(99)
+
+    def test_actual_call_site_accepts_only_a_successful_assertion_despite_cleanup_esrch(self):
+        self.exercise_parent_death_call_site([False, False, True, True])
+
+    def test_actual_call_site_keeps_a_surviving_worker_assertion_failed(self):
+        with self.assertRaisesRegex(AssertionError, 'probe worker survived its parent'):
+            self.exercise_parent_death_call_site([True, True, True, True], times=[0.0, 4.0])
 
 
 class OwnershipTests(unittest.TestCase):
@@ -201,8 +314,7 @@ class ParentDeathTests(unittest.TestCase):
                 time.sleep(0.05)
             self.assertFalse(_worker_still_live(identity), "probe worker survived its parent")
         finally:
-            if _worker_still_live(identity):
-                os.kill(identity["pid"], signal.SIGKILL)
+            _stop_worker_if_live(identity)
 
 if __name__ == "__main__":
     unittest.main()
