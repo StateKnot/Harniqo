@@ -40,6 +40,8 @@ TESTS = (
     'test_host_qemu_oom.py',
     'test_broker_ipc.py',
     'test_broker_ipc_operator.py',
+    'test_broker_service.py',
+    'test_broker_deployment.py',
 )
 
 

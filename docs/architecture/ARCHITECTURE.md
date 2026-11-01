@@ -65,7 +65,7 @@ flowchart TB
 - **Execution Agent**在 VM 内运行 Adapter，连接该 VM 内的 stdio/HTTP/WS Harness。平台控制消息通过专用 virtio-serial；消息有长度限制和 Schema，不提供“执行任意宿主命令”。Guest 的状态报告是待核对事实，不能证明宿主已停机。
 - **外部服务连接**的 Adapter 在独立、无虚拟机管理权限的 Connector 执行身份中运行，限定组织、项目、目标地址和 Secret。外部服务是否可共享，依据实际信任域和上游授权验证。
 
-Linux 上的 [Supervisor 本地 IPC Module](../../apps/runner/resource_broker/IPC.md) 已实现四操作 `ensure/renew/observe/revoke`，用连接及逐 packet 内核凭据核对 PID/UID/GID，并在进入原 Broker 前检查资源 UUID、组织、工作区与操作策略。固定 SEQPACKET 帧、剩余预算、有限 backlog、独立 listener 锁及精确 socket 身份负责本地传输；不传宿主路径、XML、密钥或原始限额诊断。断线与进入 Broker 后的错误保持结果未知，不自动重放。指定 Linux 的 14 项真实 IPC 进程门槛及 116 项回归已分别记录，原生进程资格使用持久后端夹具；专用 UID/libvirt 最小委派、真实 VM 经 IPC 的生命周期及完整控制面准入仍需单独验收。
+Linux 上的 [Supervisor 本地 IPC Module](../../apps/runner/resource_broker/IPC.md) 已实现四操作 `ensure/renew/observe/revoke`，用连接及逐 packet 内核凭据核对 PID/UID/GID，并在进入原 Broker 前检查资源 UUID、组织、工作区与操作策略。固定 SEQPACKET 帧、剩余预算、有限 backlog、独立 listener 锁及精确 socket 身份负责本地传输；不传宿主路径、XML、密钥或原始限额诊断。断线与进入 Broker 后的错误保持结果未知，不自动重放。指定 Linux 的 14 项真实 IPC 进程门槛及 116 项回归已分别记录，原生进程资格使用持久后端夹具；后续[严格服务入口](../../apps/runner/resource_broker/SERVICE.md)、独立watch及开发UID下真实VM经IPC的生命周期已通过限定验收，见[E66/E67](../planning/M0-RESULTS.md)。[离线部署包](../../deploy/runner/README.md)仍保持BLOCKED；专用UID/libvirt有效最小委派、生产Supervisor集成及完整控制面准入继续单独验收。
 
 Guest 默认无通往管理网、云 metadata、其他 VM、数据库、OpenBao 或内部存储管理接口的通路。只有声明的模型/工具出口、限定的产物上传入口等可达；域名检查同时约束解析后地址与重定向，防止转入内部地址。所有例外进入运行配置和实验清单。
 

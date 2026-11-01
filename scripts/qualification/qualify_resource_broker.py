@@ -37,6 +37,13 @@ REPO = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO))
 DISK_BYTES = 8 * 1024**3
 MAX_CONFIG_BYTES = 256 * 1024
+SERVICE_MODULE = 'apps.runner.resource_broker.service'
+SERVICE_SOURCES = ('apps/runner/resource_broker/service.py', 'apps/runner/resource_broker/ipc.py')
+SERVICE_CHECKS = frozenset({'service_initialized_explicitly', 'service_operational_readiness',
+    'ipc_scope_denied', 'service_server_killed_with_both_vms_live',
+    'service_restart_preserves_vm_identities', 'service_watch_survives_server_restart',
+    'service_sigterm_closes_admission', 'service_sigterm_preserves_live_vm',
+    'four_operations_over_ipc', 'service_configuration_frozen', 'service_live_revoke_confirmed'})
 
 
 def sealed_guest_config(instance: dict, other: dict, root: Path, *, resource_profile: str = "sealed-raw8g-q35-v1", pressure: bool = False, guest_memory_pressure: bool = False, console_pressure_mode: bool = False, event_spool_pressure_mode: bool = False, host_oom_mode: bool = False) -> str:
@@ -336,7 +343,152 @@ def broker_from(config: dict):
     return ResourceBroker(state_dir=Path(config["state_dir"]), templates=templates,
                           issuer_key_file=Path(config["issuer_key_file"]),
                           images_root=Path(config["images_root"]), channel_root=Path(config["channel_root"]),
-                          max_lease_seconds=300, max_clock_skew_seconds=5)
+                          max_lease_seconds=300, max_clock_skew_seconds=5,
+                          **({'initialize_state': False} if 'service' in config else {}))
+
+
+def ipc_client(config):
+    from apps.runner.resource_broker.ipc import BrokerClient
+    service = config['service']
+    return BrokerClient(directory=Path(service['ipc_directory']),
+        server_uid=service['uid'], server_gid=service['gid'], timeout_seconds=30)
+
+
+class QualificationIPC:
+    """Four production wire operations; limits are trusted local diagnostics."""
+    def __init__(self, config, diagnostic, calls):
+        self.client, self.diagnostic, self.calls = ipc_client(config), diagnostic, calls
+
+    def _call(self, operation, *arguments):
+        observation = getattr(self.client, operation)(*arguments)
+        self.calls[operation] = self.calls.get(operation, 0) + 1
+        return observation
+
+    def ensure(self, assignment): return self._call('ensure', assignment)
+    def renew(self, grant): return self._call('renew', grant)
+    def observe(self, identity): return self._call('observe', identity)
+    def revoke(self, identity, cause='cancelled'): return self._call('revoke', identity, cause)
+    def resource_limits(self, identity): return self.diagnostic.resource_limits(identity)
+
+
+def service_configuration_root(path):
+    if not isinstance(path, Path) or not path.is_absolute():
+        raise RuntimeError('Service requires an explicit absolute private configuration root')
+    private_directory(path)
+    for parent in path.parents:
+        info = parent.lstat()
+        if not stat.S_ISDIR(info.st_mode) or info.st_uid not in {0, os.getuid()} or info.st_mode & 0o022:
+            raise RuntimeError('Service configuration ancestor is writable or foreign owned')
+    info = path.lstat()
+    return info.st_dev, info.st_ino
+
+
+def prepare_service(config, reports, configuration_root, root_identity):
+    """Freeze the actual CLI grammar around these two prepared fixed templates."""
+    directory = reports / 'ipc'; private_directory(directory, create=True)
+    value = {key: config[key] for key in ('state_dir', 'images_root', 'channel_root',
+                                        'issuer_key_file', 'templates')}
+    value.update(schema_version=1, broker_identity={'uid': os.getuid(), 'gid': os.getgid()},
+        ipc_directory=str(directory), lease={'max_seconds': 300, 'max_clock_skew_seconds': 5},
+        peers=[{'uid': os.getuid(), 'gid': os.getgid(), 'resources': [
+            {key: claim[key] for key in ('resource_id', 'organization_id', 'workspace_id')}
+            | {'operations': ['ensure', 'renew', 'observe', 'revoke']}
+            for claim in config['assignments']]}])
+    if service_configuration_root(configuration_root) != root_identity:
+        raise RuntimeError('Service configuration root was replaced')
+    child = configuration_root / reports.name
+    child.mkdir(mode=0o700); private_directory(child)
+    path = child / 'service-config.json'; save(path, value)
+    evidence_copy = reports / 'service-config.json'; save(evidence_copy, value)
+    if private_bytes(path, MAX_CONFIG_BYTES) != private_bytes(evidence_copy, MAX_CONFIG_BYTES):
+        raise RuntimeError('Service configuration evidence copy differs')
+    config['service'] = {'config': str(path), 'sha256': kvm.sha256(path),
+        'evidence_dir': str(reports), 'evidence_config': str(evidence_copy),
+        'configuration_root_identity': root_identity,
+        'configuration_child_identity': (child.stat().st_dev, child.stat().st_ino),
+        'ipc_directory': str(directory), 'uid': os.getuid(), 'gid': os.getgid()}
+    return config['service']
+
+
+def spawn_service(root, config, role, label, children, descriptors):
+    """Register every owned CLI process/log before readiness or exit waits."""
+    service = config['service']; reports = Path(service['evidence_dir'])
+    files = []
+    for suffix in ('.stdout', '.stderr'):
+        stream = open(reports / (label + suffix), 'xb')
+        descriptors.append(stream); files.append(stream); os.fchmod(stream.fileno(), 0o600)
+    previous = signal.pthread_sigmask(signal.SIG_BLOCK, {signal.SIGINT, signal.SIGTERM, signal.SIGHUP})
+    try:
+        def unblock():
+            signal.pthread_sigmask(signal.SIG_SETMASK, previous)
+            resource.setrlimit(resource.RLIMIT_CORE, (0, 0))
+            resource.setrlimit(resource.RLIMIT_FSIZE, (2 * 1024**2, 2 * 1024**2))
+        process = subprocess.Popen([sys.executable, '-m', SERVICE_MODULE, role,
+            '--config', service['config'], '--sha256', service['sha256']], cwd=root,
+            stdin=subprocess.DEVNULL, stdout=files[0], stderr=files[1],
+            env={'PATH': '/usr/sbin:/usr/bin:/sbin:/bin', 'LC_ALL': 'C',
+                 'PYTHONDONTWRITEBYTECODE': '1'}, preexec_fn=unblock)
+        children.append(process)
+    finally:
+        signal.pthread_sigmask(signal.SIG_SETMASK, previous)
+    return process
+
+
+def service_event(process, config, role, label, result, timeout=10):
+    """Accept only the finite actual CLI event, then save its bound receipt."""
+    service = config['service']; reports = Path(service['evidence_dir'])
+    deadline = time.monotonic() + timeout
+    path = reports / (label + '.stdout')
+    while time.monotonic() < deadline:
+        if path.stat().st_size:
+            body = private_bytes(path, 4096)
+            if body.endswith(b'\n'):
+                event = json.loads(body)
+                if role == 'initialize':
+                    if event != {'schema_version': 1, 'event': 'initialized'}:
+                        raise RuntimeError('Service initialization did not report initialized')
+                    if process.wait(timeout=max(.001, deadline-time.monotonic())) != 0:
+                        raise RuntimeError('Service initialization exited unsuccessfully')
+                elif (set(event) != {'schema_version', 'event', 'role', 'pid', 'status'}
+                        or type(event['schema_version']) is not int or event['schema_version'] != 1
+                        or event['event'] != 'ready' or event['role'] != role
+                        or type(event['pid']) is not int or event['pid'] != process.pid
+                        or event['status'] != 'operational' or process.poll() is not None):
+                    raise RuntimeError('Service operational readiness identity differs')
+                digest = hashlib.sha256(private_bytes(Path(service['config']), MAX_CONFIG_BYTES)).hexdigest()
+                if digest != service['sha256']:
+                    raise RuntimeError('Service configuration changed before readiness')
+                receipt = {'actual_cli_event': event, 'pid': process.pid,
+                    'configuration_sha256': digest, 'sources_sha256': {
+                        name: result['source_sha256'][name] for name in SERVICE_SOURCES}}
+                ready(reports / (label + '-ready.json'), receipt)
+                result.setdefault('service_process_receipts', []).append(receipt)
+                return event
+        if process.poll() is not None:
+            raise RuntimeError('Service exited before its CLI event')
+        time.sleep(.05)
+    raise TimeoutError('Service CLI event deadline')
+
+
+def stop_service(process, client, identity):
+    """Observe actual normal CLI shutdown and a subsequent refused admission."""
+    from apps.runner.resource_broker.ipc import IPCError, SOCKET_NAME
+    if process.poll() is not None:
+        raise RuntimeError('Service exited before injected SIGTERM')
+    process.terminate()
+    if process.wait(timeout=10) != 0:
+        raise RuntimeError('Service did not exit successfully after SIGTERM')
+    try:
+        client.observe(identity)
+    except IPCError as error:
+        if error.code != 'ipc_unavailable' or error.outcome != 'not_dispatched':
+            raise RuntimeError('Service admission refusal was not confirmed') from error
+    else:
+        raise RuntimeError('Service accepted a request after shutdown')
+    if (client.directory / SOCKET_NAME).exists() or (client.directory / SOCKET_NAME).is_symlink():
+        raise RuntimeError('Service socket remained after normal shutdown')
+    return {'pid': process.pid, 'signal': 'SIGTERM', 'returncode': process.returncode,
+            'admission_refused_before_dispatch': True, 'socket_removed': True}
 
 
 def rejected(action, *, expected: str | None = None) -> dict:
@@ -365,7 +517,12 @@ def worker(config_path: Path, role: str, root: Path) -> int:
     broker = None
     failure = None
     try:
-        broker = broker_from(config)
+        if 'service' in config:
+            if role != 'launcher':
+                raise RuntimeError('Service mode requires the actual service watch CLI')
+            broker = ipc_client(config)
+        else:
+            broker = broker_from(config)
         key = private_bytes(Path(config["issuer_key_file"]), 32)
         _, _, sign_assignment, _, _ = api()
         stop = threading.Event()
@@ -376,7 +533,8 @@ def worker(config_path: Path, role: str, root: Path) -> int:
             a, b = config["assignments"]
             first = broker.ensure(sign_assignment(key, **a))
             collision = dict(b, organization_id=a["organization_id"], workspace_id=a["workspace_id"])
-            gate = rejected(lambda: broker.ensure(sign_assignment(key, **collision)), expected="workspace_busy")
+            gate = rejected(lambda: broker.ensure(sign_assignment(key, **collision)),
+                            expected='ipc_scope_denied' if 'service' in config else 'workspace_busy')
             second = broker.ensure(sign_assignment(key, **b))
             if first.state != "running" or second.state != "running":
                 raise RuntimeError("Launcher did not observe both fixed resources running")
@@ -477,6 +635,96 @@ def stopped_receipt(broker, resource_id: str):
     if observed.state != "stopped" or observed.stop_evidence is None:
         raise RuntimeError("Host absence did not yield durable Broker StopEvidence")
     return observed
+
+
+def service_live_revoke(broker, key, original_claim, first_stop, instances, streams,
+                        extra_streams, work, console_logs, reports, watch, result):
+    """A newly signed epoch proves that IPC revoke stops a live, same-UUID VM.
+
+    The first epoch's Guest reports and deadline stop remain separate evidence.
+    The second A console uses the existing bounded collector in its own round;
+    observing console bytes is not a second Guest-health qualification.
+    """
+    instance, control = instances
+    identity = instance['uuid']
+    if (not result['checks'].get('a_watch_deadline_stop')
+            or not result['checks'].get('independent_watch_survives_launcher')
+            or first_stop.resource_id != identity or first_stop.state != 'stopped'
+            or first_stop.stop_evidence is None
+            or first_stop.stop_evidence.configuration_sha256 != original_claim['configuration_sha256']
+            or first_stop.generation != original_claim['generation'] + 1
+            or first_stop.recovery_generation != original_claim['recovery_generation']
+            or identity in kvm.domain_ids()):
+        raise RuntimeError('Live IPC revoke requires the verified original deadline stop')
+    deadline = time.monotonic() + kvm.CONSOLE_DRAIN_SECONDS
+    while not streams.logs[identity]['stream_closed']:
+        if time.monotonic() >= deadline:
+            raise TimeoutError('Original A console did not reach EOF before its next epoch')
+        streams._poll(.1)
+    # Keep B and the complete original A archive in their first-round owner.
+    # The retained report channel is already unregistered by GuestStreams.
+    for listener in ('listener', 'console_listener'):
+        streams.selector.unregister(instance[listener])
+    channel = streams.report_channels.pop(identity, None)
+    if channel is not None:
+        streams.connections.remove(channel); channel.close()
+    restarted_streams = kvm.GuestStreams([instance], work, 2, console_logs)
+    extra_streams.append(restarted_streams)
+    restarted_streams.mark_start(instance)
+    fresh = dict(claim(original_claim, first_stop.generation + 1, 30),
+                 recovery_generation=first_stop.recovery_generation + 1, attempt_id=str(uuid.uuid4()))
+    if fresh['attempt_id'] == original_claim['attempt_id']:
+        raise RuntimeError('Live IPC revoke requires fresh explicit authorization')
+    assignment = api()[2](key, **fresh)
+    evidence = {'signed_new_assignment': asdict(assignment), 'first_epoch_stop': asdict(first_stop),
+                'second_boot_guest_health_verified': False, 'same_fixed_resource_uuid': identity}
+    result['service_live_revoke'] = evidence
+    save(reports / 'service-live-revoke-intent.json', evidence)
+    running = broker.ensure(assignment)
+    evidence['new_running'] = asdict(running)
+    if (running.resource_id != identity or running.state != 'running' or running.stop_evidence is not None
+            or running.generation != assignment.generation
+            or running.recovery_generation != assignment.recovery_generation):
+        raise RuntimeError('Freshly authorized A was not observed running over IPC')
+    # Preserve this boot's real console through EOF under the same archive
+    # contract as all other boots; no duplicate first-round frames are accepted.
+    deadline = time.monotonic() + 5
+    while not restarted_streams.logs[identity]['bytes_seen']:
+        if time.monotonic() >= deadline:
+            raise TimeoutError('New A console did not produce bounded boot evidence')
+        restarted_streams._poll(.1)
+    sample = broker.resource_limits(identity)  # Explicit trusted local diagnostic.
+    evidence['before_limits'] = sample
+    evidence['before_time'] = time.time()
+    before = kvm.domain_ids()
+    if (identity not in before or control['uuid'] not in before or watch.poll() is not None
+            or type(sample.get('pid')) is not int or sample['pid'] <= 1
+            or type(sample.get('process_start_time')) is not int or sample['process_start_time'] <= 0
+            or type(sample.get('cgroup_path')) is not str or not Path(sample['cgroup_path']).is_absolute()
+            or not assignment.issued_at <= evidence['before_time'] < assignment.expires_at):
+        raise RuntimeError('Live host QEMU identity before IPC revoke was not confirmed')
+    evidence['host_uuid_present_before'] = True
+    evidence['revoke_started_at'] = time.time()
+    stopped = broker.revoke(identity, 'cancelled')
+    evidence['revoke_after'] = asdict(stopped)
+    stop = stopped.stop_evidence
+    if (stopped.resource_id != identity or stopped.state != 'stopped' or stop is None
+            or stopped.generation != assignment.generation
+            or stopped.recovery_generation != assignment.recovery_generation
+            or stopped.stop_cause != 'cancelled' or stop.resource_id != identity
+            or stop.configuration_sha256 != assignment.configuration_sha256
+            or stop.method != 'libvirt_destroy_then_absent'
+            or not evidence['revoke_started_at'] <= stop.confirmed_at <= time.time()
+            or stop.confirmed_at <= first_stop.stop_evidence.confirmed_at):
+        raise RuntimeError('Live IPC revoke did not return fresh physical StopEvidence')
+    await_absent(identity, 10, restarted_streams)
+    evidence['host_uuid_absent_after'] = identity not in kvm.domain_ids()
+    evidence['control_after'] = asdict(broker.observe(control['uuid']))
+    if (not evidence['host_uuid_absent_after'] or watch.poll() is not None
+            or control['uuid'] not in kvm.domain_ids() or evidence['control_after']['state'] != 'running'):
+        raise RuntimeError('Live IPC revoke did not preserve the independent control VM')
+    restarted_streams.finish()
+    result['checks']['service_live_revoke_confirmed'] = True
 
 
 
@@ -646,8 +894,16 @@ def execute(args) -> int:
     console_mode = getattr(args, 'console_pressure', False)
     event_spool_mode = getattr(args, 'event_spool_pressure', False)
     host_oom_mode = getattr(args, 'host_qemu_oom', False)
-    if sum((memory_mode, console_mode, event_spool_mode, host_oom_mode)) > 1:
-        raise RuntimeError('Choose one fault qualification at a time')
+    service_mode = getattr(args, 'service_processes', False)
+    if sum((memory_mode, console_mode, event_spool_mode, host_oom_mode, service_mode)) > 1:
+        raise RuntimeError('Choose one fault or service qualification at a time' if service_mode
+                           else 'Choose one fault qualification at a time')
+    if service_mode and args.resource_profile != 'sealed-raw8g-q35-limited-v2':
+        raise RuntimeError('Service process qualification requires fixed limited-v2 profile')
+    service_config_root = getattr(args, 'service_config_root', None)
+    if service_mode != (service_config_root is not None):
+        raise RuntimeError('Service mode requires an explicit --service-config-root; other modes cannot use it')
+    service_config_root_identity = service_configuration_root(service_config_root) if service_mode else None
     if memory_mode and args.resource_profile != 'sealed-raw8g-q35-limited-v2':
         raise RuntimeError('Guest memory pressure requires fixed limited-v2 profile')
     if console_mode and args.resource_profile != 'sealed-raw8g-q35-limited-v2':
@@ -665,7 +921,8 @@ def execute(args) -> int:
     for command in ("virsh", "qemu-img", "qemu-system-x86_64", "cloud-localds", "getfacl", "setfacl"):
         if not shutil.which(command): raise RuntimeError("Missing prerequisite: " + command)
     check_base(root, base)
-    if shutil.disk_usage(root).free < 50 * 1024**3 + 2 * DISK_BYTES + 4*kvm.MAX_CONSOLE_BYTES:
+    console_copies = 6 if service_mode else 4
+    if shutil.disk_usage(root).free < 50 * 1024**3 + 2 * DISK_BYTES + console_copies*kvm.MAX_CONSOLE_BYTES:
         raise RuntimeError("Preserve 50 GiB, two fully allocated disks and source/archive console budgets")
     lock_fd = coordination_lock(root)
     parent = root / ".state/resource-broker-qualification"
@@ -681,7 +938,7 @@ def execute(args) -> int:
     work = parent / ("rb-" + rid); private_directory(work, create=True)
     images = root / "images/vm/instances" / ("rb-" + rid); private_directory(images, create=True)
     directories = {p: (p.stat().st_dev, p.stat().st_ino) for p in (work, images)}
-    ownership = {"qualification": "M0-05-host-qemu-memcg-oom-recovery" if host_oom_mode else "M0-05-local-event-spool-stop" if event_spool_mode else "M0-05-bounded-console-stop" if console_mode else "M0-05-guest-memory-external-stop" if memory_mode else "M0-05-resource-limits-lifecycle" if args.resource_profile == "sealed-raw8g-q35-limited-v2" else "M0-05-resource-broker-lifecycle", "run_id": rid}
+    ownership = {"qualification": "M0-05-service-cli-ipc-vm-lifecycle" if service_mode else "M0-05-host-qemu-memcg-oom-recovery" if host_oom_mode else "M0-05-local-event-spool-stop" if event_spool_mode else "M0-05-bounded-console-stop" if console_mode else "M0-05-guest-memory-external-stop" if memory_mode else "M0-05-resource-limits-lifecycle" if args.resource_profile == "sealed-raw8g-q35-limited-v2" else "M0-05-resource-broker-lifecycle", "run_id": rid}
     for p in (work, images): save(p / ".harniqo-m0-owner.json", ownership)
     baseline = inventory(); save(reports / "baseline.json", baseline)
     key_file = reports / "issuer-key"; key = os.urandom(32)
@@ -692,6 +949,8 @@ def execute(args) -> int:
     instances, children, descriptors, console_logs = [], [], [], []
     spool_workers = []
     streams = None; broker = None; config = None
+    service_calls = {}; service_server = None
+    extra_streams = []
     acl = kvm.TemporaryACL("libvirt-qemu")
     result = {"schema_version": 1, "qualification": ownership["qualification"], "run_id": rid,
               "started_at": kvm.now(), "base_sha256": base.stem, "resource_profile": args.resource_profile,
@@ -705,6 +964,14 @@ def execute(args) -> int:
               "errors": [], "cleanup_errors": [], "milestone_complete": False,
               "dedicated_service_identity_verified": False, "production_egress_verified": False,
               "global_fencing_verified": False, "real_model_calls": 0}
+    if service_mode:
+        result.update(service_cli_verified=False, actual_vm_ipc_verified=False,
+            dedicated_service_uid_verified=False, polkit_delegation_verified=False,
+            service_processes_requested=True, service_ipc_successful_calls=service_calls,
+            expected_vm_starts=3, unique_resource_uuids=2,
+            sealed_guest_checks_scope='initial_epoch_of_each_fixed_resource_only',
+            trusted_qualification_local_operations=['resource_limits',
+                'post_watch_exit_reconstruction_and_reconcile', 'cleanup_after_service_process_exit'])
     try:
         if memory_mode or console_mode or event_spool_mode or host_oom_mode:
             freeze_qualification_limits(reports, result, console_mode=console_mode, event_spool_mode=event_spool_mode,
@@ -745,6 +1012,8 @@ def execute(args) -> int:
         snapshots = {p: public_source(p) for p in sources}
         result["source_sha256"] = {str(p.relative_to(REPO)): hashlib.sha256(data).hexdigest()
                                    for p, data in snapshots.items()}
+        if service_mode and not set(SERVICE_SOURCES) <= result['source_sha256'].keys():
+            raise RuntimeError('Service and IPC source snapshots required')
         source_folder = reports / "source"; source_folder.mkdir(mode=0o700)
         for p, data in snapshots.items():
             target = source_folder / p.relative_to(REPO); target.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
@@ -794,17 +1063,35 @@ def execute(args) -> int:
                    "issued_at": instant, "expires_at": instant + 240} for i in instances]
         config = {"templates": templates, "assignments": claims, "state_dir": str(work / "broker"),
                   "issuer_key_file": str(key_file), "images_root": str(images), "channel_root": str(work)}
+        if service_mode:
+            result['service_configuration_sha256'] = prepare_service(config, reports,
+                service_config_root, service_config_root_identity)['sha256']
+            result['retained_private_service_configuration'] = config['service']
         save(config_path, config)
         verify_coordination_lock(root, lock_fd)
-        broker = broker_from(config)
-        watch = spawn_worker(root, config_path, "watch", children, descriptors)
-        wait_ready(watch, reports / "watch-ready.json", 10)
+        if service_mode:
+            initialized = spawn_service(root, config, 'initialize', 'service-initialize', children, descriptors)
+            service_event(initialized, config, 'initialize', 'service-initialize', result)
+            result['checks']['service_initialized_explicitly'] = True
+            diagnostic = broker_from(config)
+            watch = spawn_service(root, config, 'watch', 'service-watch', children, descriptors)
+            service_event(watch, config, 'watch', 'service-watch', result)
+            service_server = spawn_service(root, config, 'serve', 'service-serve', children, descriptors)
+            service_event(service_server, config, 'serve', 'service-serve', result)
+            result['checks']['service_operational_readiness'] = True
+            broker = QualificationIPC(config, diagnostic, service_calls)
+        else:
+            broker = broker_from(config)
+            watch = spawn_worker(root, config_path, "watch", children, descriptors)
+            wait_ready(watch, reports / "watch-ready.json", 10)
         streams = kvm.GuestStreams(instances, work, 1, console_logs,
                                    retain_report_channels=args.resource_profile == "sealed-raw8g-q35-limited-v2")
         for i in instances: streams.mark_start(i)
         launcher = spawn_worker(root, config_path, "launcher", children, descriptors)
         readiness = wait_ready(launcher, reports / "launcher-ready.json", min(args.timeout, 90))
-        result["checks"]["workspace_busy"] = readiness["workspace_conflict"]["rejected"]
+        result["checks"]['ipc_scope_denied' if service_mode else 'workspace_busy'] = (
+            readiness['workspace_conflict']['rejected'] and readiness['workspace_conflict']['code'] ==
+            ('ipc_scope_denied' if service_mode else 'workspace_busy'))
         _, _, sign_assignment, sign_grant, _ = api()
         assignments = [sign_assignment(key, **c) for c in claims]
         result["observations"]["repeat_ensure"] = [asdict(broker.ensure(a)) for a in assignments]
@@ -827,6 +1114,26 @@ def execute(args) -> int:
         result["checks"]["guest_checks"] = len(received) == 2 and all(len(x["checks"]) == 11 and all(x["checks"].values()) for x in received.values())
         if watch.poll() is not None:
             raise RuntimeError("Independent watch exited during Guest boot")
+        if service_mode:
+            before_restart = [asdict(broker.observe(i['uuid'])) for i in instances]
+            owned = {i['uuid'] for i in instances}
+            if not owned <= kvm.domain_ids() or any(o['state'] != 'running' for o in before_restart):
+                raise RuntimeError('Service restart requires both original VMs live')
+            result['service_server_kill'] = kill_worker(service_server)
+            result['checks']['service_server_killed_with_both_vms_live'] = owned <= kvm.domain_ids()
+            if watch.poll() is not None:
+                raise RuntimeError('Service watch exited when server was killed')
+            service_server = spawn_service(root, config, 'serve', 'service-serve-restarted', children, descriptors)
+            service_event(service_server, config, 'serve', 'service-serve-restarted', result)
+            broker = QualificationIPC(config, diagnostic, service_calls)
+            after_restart = [asdict(broker.observe(i['uuid'])) for i in instances]
+            result['service_restart_observations'] = {'before': before_restart, 'after': after_restart}
+            result['checks']['service_restart_preserves_vm_identities'] = before_restart == after_restart
+            result['checks']['service_watch_survives_server_restart'] = watch.poll() is None
+            if not all(result['checks'][name] for name in (
+                    'service_server_killed_with_both_vms_live', 'service_restart_preserves_vm_identities',
+                    'service_watch_survives_server_restart')):
+                raise RuntimeError('Service restart did not preserve independent live resources')
         if args.resource_profile == "sealed-raw8g-q35-limited-v2":
             if memory_mode: memory_pressure.run_pressure(broker, instances, streams, result)
             elif not console_mode and not event_spool_mode and not host_oom_mode: resource_pressure(broker, instances, streams, result)
@@ -868,16 +1175,34 @@ def execute(args) -> int:
                 and stopped_a.stop_evidence.confirmed_at >= a2["expires_at"] - .25)
         result["observations"]["b_survivor"] = asdict(broker.observe(instances[1]["uuid"]))
         result["checks"]["independent_watch_survives_launcher"] = watch.poll() is None and instances[1]["uuid"] in kvm.domain_ids() and result["observations"]["b_survivor"]["state"] == "running"
+        if service_mode:
+            service_live_revoke(broker, key, claims[0], stopped_a, instances, streams,
+                extra_streams, work, console_logs, reports, watch, result)
         b3 = claim(claims[1], 3, 5)
         broker.renew(sign_grant(key, **b3))
+        if service_mode:
+            result['service_sigterm_with_live_b'] = stop_service(service_server, broker.client, instances[1]['uuid'])
+            result['checks']['service_sigterm_closes_admission'] = True
+            result['checks']['service_sigterm_preserves_live_vm'] = (
+                watch.poll() is None and instances[1]['uuid'] in kvm.domain_ids())
+            if not result['checks']['service_sigterm_preserves_live_vm']:
+                raise RuntimeError('Service shutdown did not preserve independently watched live B')
         result["watch_kill"] = kill_worker(watch)
         while time.time() <= b3["expires_at"] + 1: streams._poll(.2)
         if instances[1]["uuid"] not in kvm.domain_ids():
             raise RuntimeError("B was not live before restarted Broker recovery")
         result["b_live_before_broker_restart_at"] = time.time()
-        broker = broker_from(config)
-        result["reconcile"] = [asdict(o) for o in broker.reconcile()]
+        recovery = broker_from(config)
+        if not service_mode:
+            broker = recovery
+        result["reconcile"] = [asdict(o) for o in recovery.reconcile()]
         await_absent(instances[1]["uuid"], 15, streams)
+        if service_mode:
+            service_server = spawn_service(root, config, 'serve', 'service-serve-recovered', children, descriptors)
+            service_event(service_server, config, 'serve', 'service-serve-recovered', result)
+            broker = QualificationIPC(config, recovery, service_calls)
+        else:
+            broker = recovery
         stopped_b = stopped_receipt(broker, instances[1]["uuid"])
         result["observations"]["b_after_broker_restart"] = asdict(stopped_b)
         result["checks"]["b_restart_deadline_stop"] = (stopped_b.stop_evidence.method == "libvirt_destroy_then_absent"
@@ -887,6 +1212,10 @@ def execute(args) -> int:
         result["checks"]["no_revival_or_replacement"] = kvm.domain_ids() == set(baseline["domains"])
         result["checks"]["disks_retained_until_host_stop"] = all(i["overlay"].is_file() and i["overlay"].stat().st_size == DISK_BYTES for i in instances)
         streams.finish()
+        if service_mode:
+            result['service_ipc_final_revoke'] = [asdict(broker.revoke(i['uuid'])) for i in instances]
+            result['checks']['four_operations_over_ipc'] = set(service_calls) == {'ensure', 'renew', 'observe', 'revoke'}
+            result['service_final_sigterm'] = stop_service(service_server, broker.client, instances[1]['uuid'])
     except BaseException as error:
         result["errors"].append({"type": type(error).__name__, "message": str(error)})
     finally:
@@ -911,6 +1240,10 @@ def execute(args) -> int:
                     raise RuntimeError('Unexpected resource exists before Broker submission')
                 result['unsubmitted_resources_absent'] = True
             else:
+                if service_mode and config is not None:
+                    # Trusted operator recovery is deliberately outside the
+                    # four-operation service protocol and survives CLI failure.
+                    broker = broker_from(config)
                 if broker is None and config is not None: broker = broker_from(config)
                 if broker is None:
                     raise RuntimeError("No Broker stop evidence; preserve files and ACL")
@@ -949,6 +1282,12 @@ def execute(args) -> int:
             try: streams.finish()
             except Exception as error:
                 console_ok = False; result["cleanup_errors"].append({"phase": "console_drain", "type": type(error).__name__})
+        for extra in extra_streams:
+            if stopped:
+                try: extra.finish()
+                except Exception as error:
+                    console_ok = False
+                    result['cleanup_errors'].append({'phase': 'service_epoch_console_drain', 'type': type(error).__name__})
         for i in instances:
             for name in ("listener", "console_listener"):
                 if name in i: i[name].close()
@@ -999,6 +1338,22 @@ def execute(args) -> int:
         expected = {"workspace_busy", "repeat_ensure_same_uuids", "only_two_owned_domains", "guest_checks", "runtime_qemu_socket_observed",
                     "independent_watch_survives_launcher", "no_revival_or_replacement", "disks_retained_until_host_stop",
                     "a_live_after_launcher_exit", "a_watch_deadline_stop", "b_restart_deadline_stop"}
+        if service_mode:
+            expected.remove('workspace_busy')
+            expected |= SERVICE_CHECKS
+            try:
+                service = config['service']
+                original = Path(service['config'])
+                private_directory(original.parent)
+                original_info = original.parent.stat()
+                original_bytes = private_bytes(original, MAX_CONFIG_BYTES)
+                result['checks']['service_configuration_frozen'] = (
+                    service_configuration_root(service_config_root) == service_config_root_identity
+                    and (original_info.st_dev, original_info.st_ino) == service['configuration_child_identity']
+                    and hashlib.sha256(original_bytes).hexdigest() == result['service_configuration_sha256']
+                    and original_bytes == private_bytes(Path(service['evidence_config']), MAX_CONFIG_BYTES))
+            except (OSError, TypeError, KeyError, RuntimeError):
+                result['checks']['service_configuration_frozen'] = False
         if host_oom_mode:
             expected.remove('a_watch_deadline_stop')
             expected |= host_oom.REQUIRED_CHECKS | {'qualification_limits_frozen', 'console_archives_explicit',
@@ -1043,6 +1398,9 @@ def execute(args) -> int:
         result['console_failure_vm_stop_verified'] = result['passed'] and console_mode
         result['local_event_spool_verified'] = result['passed'] and event_spool_mode
         result['event_spool_failure_vm_stop_verified'] = result['passed'] and event_spool_mode
+        if service_mode:
+            result['service_cli_verified'] = result['passed']
+            result['actual_vm_ipc_verified'] = result['passed']
         save(reports / "report.json", result)
         print(json.dumps({"qualification": result["qualification"], "passed": result["passed"],
                           "milestone_complete": False, "errors": len(result["errors"]),
@@ -1062,12 +1420,14 @@ def main() -> int:
     parser.add_argument("--console-pressure", action="store_true", help="Explicit limited-v2 bounded-console overflow and physical-stop qualification")
     parser.add_argument("--event-spool-pressure", action="store_true", help="Explicit limited-v2 local SQLite spool FULL and physical-stop qualification")
     parser.add_argument("--host-qemu-oom", action="store_true", help="Explicit A-only host-memcg OOM fault profile with an unchanged limited-v2 control")
+    parser.add_argument('--service-processes', action='store_true', help='Explicit limited-v2 real service CLI, IPC and KVM lifecycle qualification')
+    parser.add_argument('--service-config-root', type=Path, help='Existing owned 0700 directory with trusted ancestors; required only with --service-processes')
     parser.add_argument("--spool-data-root", type=Path, help="Operator-owned 0700 data directory with safe ancestors; required only with --event-spool-pressure")
     parser.add_argument("--worker", choices=("launcher", "watch"))
     parser.add_argument("--config", type=Path)
     args = parser.parse_args()
     if args.worker:
-        if args.config is None or args.base_image is not None or args.guest_memory_pressure or args.console_pressure or args.event_spool_pressure or args.host_qemu_oom or args.spool_data_root is not None: parser.error("Worker requires only --config")
+        if args.config is None or args.base_image is not None or args.guest_memory_pressure or args.console_pressure or args.event_spool_pressure or args.host_qemu_oom or args.service_processes or args.service_config_root is not None or args.spool_data_root is not None: parser.error("Worker requires only --config")
         return worker(args.config.absolute(), args.worker, args.root)
     if args.base_image is None or args.config is not None: parser.error("Qualification requires --base-image")
     def terminate(signum, _frame): raise KeyboardInterrupt("Qualification interrupted by signal " + str(signum))

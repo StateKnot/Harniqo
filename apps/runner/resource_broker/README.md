@@ -7,6 +7,12 @@ repeatedly reconciles from an independently supervised process. The qualificatio
 operator calls these same methods with real libvirt. Component tests replace only
 the libvirt command edge and do not establish VM isolation.
 
+The strict [service entrypoint](SERVICE.md) loads a pinned immutable configuration,
+separates explicit initialization from normal startup, and runs the IPC listener
+and independent watcher as separate processes. The [offline deployment bundle](../../../../deploy/runner/README.md)
+contains systemd and identity/permission artifacts; effective production identity
+and libvirt ACL qualification are required before activation.
+
 ## Trusted configuration
 
 The host administrator supplies an immutable catalog of `Template` objects:

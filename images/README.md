@@ -65,3 +65,11 @@ Octop Harness实际image ID为`sha256:714e015d1c1281e1c91bd2ae67f39191b99c408eb7
 文件系统quota、生产专用UID、完整Egress或M0-05已完成。
 
 2026-11-01 Supervisor/Broker本地IPC资格仅使用Python标准库、UNIX socket与私有metadata，不启动VM或构建镜像，现有12项manifest不变。原有镜像及诊断层继续按既有策略保存；原始IPC报告与运行socket不登记为镜像归档，见[执行证据](../research/m0-broker-local-ipc.md)。
+
+2026-11-01 Broker独立服务/真实VM经IPC资格复用同一Canonical只读base和limited-v2，
+manifest保持12项，无新增基础镜像或工具链归档。两固定UUID共实际启动3次，A新签epoch
+重启后真实IPC撤销；26必需宿主门槛+1console、首轮22Guest通过。本组raw/seed仍位于
+images/vm/instances，确认停止与完整归档后精确回收；原始配置、签名journal、三份console
+及离线部署包留私有metadata，不计镜像条目。旧96GiB诊断层不在本轮清理范围。
+见[真实结果](../docs/operations/broker-service-kvm-2026-11-01.json)与
+[生产部署门槛](../deploy/runner/README.md)，不代表专用UID/有效ACL或完整M0-05完成。

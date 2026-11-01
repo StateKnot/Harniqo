@@ -1,0 +1,113 @@
+{
+  "scope": "broker_service_components_and_offline_bundle_only",
+  "date_local": "2026-11-01",
+  "passed": true,
+  "independent_verified": true,
+  "environment": {
+    "python": "3.12.3",
+    "system": "Linux",
+    "kernel_release": "7.0.0-38-generic",
+    "machine": "x86_64",
+    "node": "v24.22.1"
+  },
+  "tests": 189,
+  "suites": {
+    "test_resource_broker.py": 70,
+    "test_broker_ipc.py": 32,
+    "test_broker_service.py": 20,
+    "test_broker_deployment.py": 26,
+    "test_resource_broker_operator.py": 41
+  },
+  "failures": 0,
+  "errors": 0,
+  "skipped": 0,
+  "sources_sha256": {
+    "apps/runner/resource_broker/__init__.py": "ce2669a86eed247e63f205867bab35361002759c7bf9bf7a03e6614a218112b3",
+    "apps/runner/resource_broker/resources.py": "01a29cf1609dc2348ab22cde2c27d817d465e5cbee61899d274ef7bb95a4963c",
+    "apps/runner/resource_broker/ipc.py": "7f84f0e8ec877be8ad61a90bfeb59785285b20f489b6d62a8d853d97fd32bb79",
+    "apps/runner/resource_broker/service.py": "f6393fd3b16bad9204c786afc7c4565161a5ddaadf0106f02cc270adb0611242",
+    "scripts/deploy/prepare_broker_service.py": "0f59868b9861511d830c166189cfb7c7abf23484ea7d71318fc1deb14a8c86ed",
+    "scripts/qualification/qualify_resource_broker.py": "5b49cb1b60d9d991f93fa73e7a1e4f3312e07029e2238d388a043b1d151dff10",
+    "scripts/qualification/test_resource_broker.py": "124d379f0740ca80300a8ec8bb5e749ea30c0f71b458d13d2bc88bf2ad56121a",
+    "scripts/qualification/test_broker_ipc.py": "5214e8d313535f4206d070c732e44fd40c59652a4bf0ea98433b2be034006cac",
+    "scripts/qualification/test_broker_service.py": "e303de9dfa65f9b1256e21bf1798f8d52260dc9ae823dfdc1ecdff20a3ff0580",
+    "scripts/qualification/test_broker_deployment.py": "1bc41e30cab1a5ee53b05d252031b414b849bfac5e8811146bb281855d0b8a8d",
+    "scripts/qualification/test_resource_broker_operator.py": "c5390d8610cc2cd7c0c9a8b98a676acd6672bfa2b64cd50ba36b10d4d24fbf1f"
+  },
+  "sources_unchanged": true,
+  "component_report_sha256": "98d3d23581f552168fbb5c9c0bdad46dcb7108c4e2ac9bad48d45fc517a3d922",
+  "unittest_log_sha256": "f0ac7aa479e18990a1662684212aa7ca21c745b38d9371b46e110a240cb9d747",
+  "offline_bundle": {
+    "report_sha256": "d8366df13063e4f44a0f2adca765a79f8fa66854e342229f15a8cfcc0ca953e9",
+    "artifact_count": 9,
+    "artifacts": {
+      "00-harniqo-libvirt.rules": {
+        "bytes": 275,
+        "mode": "0600",
+        "sha256": "f82223c33aa6370bca7445fb592b5be1efa4169b37d5f6f89d2d12e4761bb4e7"
+      },
+      "00-harniqo-libvirt.rules.candidate": {
+        "bytes": 1513,
+        "mode": "0600",
+        "sha256": "ed1dfe809b310941f7c81ddb814017aa64168e2f11ae922db3a8aa91b03d1ed0"
+      },
+      "harniqo-broker-watch.service": {
+        "bytes": 1302,
+        "mode": "0600",
+        "sha256": "35d20183d4273f199ae9316019b32c3c2c2d883ab27b7a548c0b87a9b8741f8b"
+      },
+      "harniqo-broker.service": {
+        "bytes": 1345,
+        "mode": "0600",
+        "sha256": "a29bd9bd4627f90ab9596fb7afac951128aeb588c9257090107baf224e8927d8"
+      },
+      "harniqo-sysusers.conf": {
+        "bytes": 298,
+        "mode": "0600",
+        "sha256": "8db7a819e9358047c7aefe96dabfc8b8801cac8ae28e40adb3771c9eb6a06df3"
+      },
+      "harniqo-tmpfiles.conf": {
+        "bytes": 331,
+        "mode": "0600",
+        "sha256": "e4f8310c893b7423380b73fb457300b6e484f8c43ba0b3926daec94c9535f219"
+      },
+      "manifest.json": {
+        "bytes": 6430,
+        "mode": "0600",
+        "sha256": "58991f23347598da76ccbc8ffabaae6018205cb43ea5400c3af2dd2f64ad5ff1"
+      },
+      "required-libvirt-permissions.json": {
+        "bytes": 669,
+        "mode": "0600",
+        "sha256": "9d6fc31dbcb536ea4cf25aaaf2f90dccc2272f7a96d4d05a5445269dbd220904"
+      },
+      "resource-broker.json": {
+        "bytes": 2207,
+        "mode": "0600",
+        "sha256": "79052ee56bce9be2fe2ff42751cb6c345a577870c4e1ce48db40889a8c8bf841"
+      }
+    },
+    "sources_sha256": {
+      "apps/runner/resource_broker/__init__.py": "ce2669a86eed247e63f205867bab35361002759c7bf9bf7a03e6614a218112b3",
+      "apps/runner/resource_broker/ipc.py": "7f84f0e8ec877be8ad61a90bfeb59785285b20f489b6d62a8d853d97fd32bb79",
+      "apps/runner/resource_broker/resources.py": "01a29cf1609dc2348ab22cde2c27d817d465e5cbee61899d274ef7bb95a4963c",
+      "apps/runner/resource_broker/service.py": "f6393fd3b16bad9204c786afc7c4565161a5ddaadf0106f02cc270adb0611242",
+      "scripts/deploy/prepare_broker_service.py": "0f59868b9861511d830c166189cfb7c7abf23484ea7d71318fc1deb14a8c86ed",
+      "scripts/qualification/test_broker_deployment.py": "1bc41e30cab1a5ee53b05d252031b414b849bfac5e8811146bb281855d0b8a8d"
+    },
+    "activation_status": "BLOCKED",
+    "native_rule_cases": 101,
+    "native_unit_count": 2,
+    "actual_installation_verified": false,
+    "effective_libvirt_acl_verified": false,
+    "dedicated_production_identity_verified": false,
+    "synthetic_identities_and_catalog": true
+  },
+  "real_model_calls": 0,
+  "virtual_machines_started": 0,
+  "tcp_listeners_started": 0,
+  "administrator_changes": 0,
+  "dedicated_production_identity_verified": false,
+  "effective_libvirt_acl_verified": false,
+  "milestone_complete": false
+}

@@ -249,3 +249,35 @@ SIGKILL、B过期时实际存活、重建Broker期限停止与拒绝复活链。
 见[实际脱敏证据](../../docs/operations/host-qemu-oom-kvm-2026-11-01.json)。通过范围为A的
 显式768MiB/0 swap故障profile及自然停止恢复，不能据此宣称默认v2 Host OOM、全宿主内存
 耗尽、通用文件系统quota或完整M0-05已验收；M0-05仍为IN_PROGRESS。
+
+## 独立服务与真实 VM 的 IPC 资格
+
+显式 `--service-processes` 使用正式 [服务 CLI](../../apps/runner/resource_broker/SERVICE.md)
+的 `initialize`、独立 `watch`、独立 `serve`。仅接受 `limited-v2`，与各故障模式互斥。
+必须指定已存在、当前账号拥有的 `0700` 配置根，全部祖先由 root/当前账号拥有且
+不可组/其他写、无 symlink；不能以 chmod 共享源码目录绕过准入。镜像及 raw/seed
+仍位于工作区 `images`，每轮私有配置与完整副本保留以核对摘要。
+
+```sh
+python3 -B scripts/qualification/qualify_resource_broker.py \
+  --root "$HARNIQO_WORKSPACE" --base-image "$HARNIQO_VERIFIED_BASE_IMAGE" \
+  --resource-profile sealed-raw8g-q35-limited-v2 --service-processes \
+  --service-config-root "$HARNIQO_SERVICE_CONFIG_ROOT" --timeout 150
+```
+
+预检、现有 libvirt 对象保护、磁盘空间及固定 ACL 要求沿用上述原生资格。
+该模式要求26项宿主门槛和初始两次 boot 的22项 Guest 检查：四操作真实 IPC、服务
+SIGKILL 后两台 VM 与独立 watch 连续性、listener 重启观察、SIGTERM 关闭准入而 B
+继续运行，以及原 launcher/watch 故障、期限停止与持久恢复链。原操作者的限额诊断
+及 watch 被杀后的显式本地恢复是可信宿主操作，报告单独登记，不伪装成 IPC fallback。
+
+A 的初始租约期限停止后，操作者签发新 attempt/generation/recovery epoch，重启
+同一 UUID，再通过 IPC 撤销**实际运行的** VM。必须核对活 QEMU 身份、固定限额、
+fresh StopEvidence、宿主 UUID absence 和 B/watch 存活。第二次 A 使用独立的有界
+console 归档；不宣称其 Guest 健康通过。故为2个资源 UUID、3次实际启动，不能将
+22项初始 Guest 检查写成第三次启动也通过。配置、源码、完整 console、签名 journal、
+原件保留及精确清理缺一不可。
+
+实际开发 UID 下的服务/VM 资格与生产专用 UID、有效 libvirt/polkit ACL、Supervisor
+权限隔离及系统服务安装分别验收。离线包生成保持 `BLOCKED`，该模式不创建账号、
+安装 unit、修改全局 daemon/规则或新增 TCP/NIC；不需要模型凭据。

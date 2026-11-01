@@ -427,11 +427,16 @@ def _clock() -> dict:
 class ResourceBroker:
     def __init__(self, *, state_dir: Path, templates: Sequence[Template], issuer_key_file: Path,
                  images_root: Path, channel_root: Path, max_lease_seconds=120,
-                 max_clock_skew_seconds=5):
+                 max_clock_skew_seconds=5, initialize_state: bool = True):
+        if type(initialize_state) is not bool:
+            raise BrokerError('state_initialization_policy_invalid')
         self._state = Path(state_dir); self._images = Path(images_root); self._channels = Path(channel_root)
         for directory in (self._images, self._channels):
             _directory(directory)
-        _directory(self._state, create=True, private=True)
+        try:
+            _directory(self._state, create=initialize_state, private=True)
+        except FileNotFoundError:
+            raise BrokerError('state_not_initialized') from None
         _directory(Path(issuer_key_file).parent, private=True)
         self._key = _read_private(Path(issuer_key_file), limit=32, exact=32)
         if type(max_lease_seconds) not in (int, float) or not math.isfinite(max_lease_seconds) or not 1 <= max_lease_seconds <= 600:
@@ -471,15 +476,23 @@ class ResourceBroker:
         self._lock_path = self._state / 'broker.lock'
         created = False
         try:
-            fd = os.open(self._lock_path, os.O_RDWR | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW | os.O_CLOEXEC, 0o600)
-            created = True
+            flags = os.O_RDWR | os.O_NOFOLLOW | os.O_CLOEXEC
+            if initialize_state:
+                fd = os.open(self._lock_path, flags | os.O_CREAT | os.O_EXCL, 0o600)
+                created = True
+            else:
+                fd = os.open(self._lock_path, flags)
         except FileExistsError:
             fd = os.open(self._lock_path, os.O_RDWR | os.O_NOFOLLOW | os.O_CLOEXEC)
+        except FileNotFoundError:
+            raise BrokerError('state_not_initialized') from None
         info = os.fstat(fd); self._lock_identity = (info.st_dev, info.st_ino)
         os.close(fd)
         with self._locked():
             marker = self._state / 'anchor.json'; journal = self._state / 'journal.json'
             if not marker.exists():
+                if not initialize_state:
+                    raise BrokerError('state_not_initialized')
                 if not created or set(p.name for p in self._state.iterdir()) != {'broker.lock'}:
                     raise BrokerError('state_anchor_missing')
                 self._anchor = secrets.token_hex(32)

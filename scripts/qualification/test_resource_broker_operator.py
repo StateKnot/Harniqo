@@ -1,6 +1,7 @@
 """Host filesystem guardrails only; no VM, native libvirt, model or privilege use."""
 from pathlib import Path
 import fcntl
+import hashlib
 import json
 import os
 import stat
@@ -59,6 +60,276 @@ class WorkerLogCleanupTests(unittest.TestCase):
         self.assertTrue(all(log.closed for log in logs))
         self.assertEqual(sync.call_count, 2)
         self.assertEqual(errors, [{'phase': 'worker_log_sync', 'type': 'OSError'}])
+
+
+class ServiceProcessQualificationTests(unittest.TestCase):
+    """Operator grammar, routing and process receipts only; no VM or service."""
+    def setUp(self):
+        temporary = tempfile.TemporaryDirectory(dir=Path('/private/tmp' if sys.platform == 'darwin' else '/tmp').resolve())
+        self.addCleanup(temporary.cleanup)
+        self.root = Path(temporary.name)
+        self.reports = self.root / 'resource-broker-fixture'; self.reports.mkdir(mode=0o700)
+        self.configuration_root = self.root / 'private-config'; self.configuration_root.mkdir(mode=0o700)
+        info = self.configuration_root.stat(); self.root_identity = (info.st_dev, info.st_ino)
+        self.config = {'state_dir': str(self.root/'runtime/broker'),
+            'issuer_key_file': str(self.reports/'issuer-key'), 'images_root': str(self.root/'images'),
+            'channel_root': str(self.root/'runtime'), 'templates': [], 'assignments': []}
+        for index, label in enumerate(('a', 'b'), 1):
+            identity = '00000000-0000-4000-8000-' + str(index).zfill(12)
+            self.config['templates'].append({'template_id': 'sealed-'+label, 'resource_id': identity,
+                'name': 'harniqo-rb-fixture-'+label, 'disk': str(self.root/'images'/(label+'.raw')),
+                'seed': str(self.root/'images'/(label+'.img')), 'channel': str(self.root/'runtime'/(label+'.sock')),
+                'console': str(self.root/'runtime'/(label+'-console.sock')), 'source_base_sha256': 'a'*64,
+                'resource_profile': 'sealed-raw8g-q35-limited-v2'})
+            self.config['assignments'].append({'resource_id': identity,
+                'organization_id': 'org-'+label, 'workspace_id': 'workspace-'+label})
+
+    def prepare(self):
+        # Only serialization is under test here. Actual unsafe shared /tmp
+        # ancestry is exercised separately and cannot qualify deployment.
+        with patch.object(operator, 'service_configuration_root', return_value=self.root_identity):
+            return operator.prepare_service(self.config, self.reports,
+                self.configuration_root, self.root_identity)
+
+    def event(self, role='serve', **changes):
+        service = self.prepare()
+        value = dict(schema_version=1, event='ready', role=role, pid=123, status='operational')
+        value.update(changes)
+        operator.save(self.reports/'service-test.stdout', value)
+        process = SimpleNamespace(pid=123, poll=lambda: None)
+        result = {'source_sha256': {name: 'b'*64 for name in operator.SERVICE_SOURCES}}
+        return service, process, result, value
+
+    def test_service_configuration_matches_real_grammar_and_pins_two_scopes(self):
+        from apps.runner.resource_broker.service import parse_configuration
+        service = self.prepare()
+        path, copy = Path(service['config']), Path(service['evidence_config'])
+        self.assertEqual(path.read_bytes(), copy.read_bytes())
+        self.assertEqual(hashlib.sha256(path.read_bytes()).hexdigest(), service['sha256'])
+        parsed = parse_configuration(path.read_bytes())
+        self.assertEqual([t.resource_id for t in parsed.templates],
+                         [t['resource_id'] for t in self.config['templates']])
+        self.assertEqual(parsed.broker_identity.uid, os.getuid())
+        self.assertEqual(parsed.broker_identity.gid, os.getgid())
+        self.assertEqual(len(parsed.peers[0].resources), 2)
+        self.assertTrue(all(access.operations == {'ensure', 'renew', 'observe', 'revoke'}
+                            for access in parsed.peers[0].resources))
+        self.assertNotIn('assignments', json.loads(path.read_bytes()))
+        self.assertEqual(stat.S_IMODE(path.stat().st_mode), 0o600)
+        self.assertEqual(stat.S_IMODE(path.parent.stat().st_mode), 0o700)
+        self.assertEqual(stat.S_IMODE(self.configuration_root.stat().st_mode), 0o700)
+        with self.assertRaises(FileExistsError):
+            self.prepare()
+
+    def test_configuration_root_rejects_writable_ancestors_and_never_chmods(self):
+        with self.assertRaisesRegex(RuntimeError, 'ancestor'):
+            operator.service_configuration_root(self.configuration_root)
+        self.configuration_root.chmod(0o750)
+        with self.assertRaisesRegex(RuntimeError, 'Private directory'):
+            operator.service_configuration_root(self.configuration_root)
+        self.assertEqual(stat.S_IMODE(self.configuration_root.stat().st_mode), 0o750)
+        with self.assertRaisesRegex(RuntimeError, 'absolute'):
+            operator.service_configuration_root(Path('relative'))
+
+    def test_actual_operational_cli_event_is_bound_to_pid_config_and_sources(self):
+        service, process, result, value = self.event()
+        self.assertEqual(operator.service_event(process, self.config, 'serve', 'service-test', result), value)
+        receipt = json.loads((self.reports/'service-test-ready.json').read_bytes())
+        self.assertEqual(receipt['actual_cli_event'], value)
+        self.assertEqual(receipt['pid'], process.pid)
+        self.assertEqual(receipt['configuration_sha256'], service['sha256'])
+        self.assertEqual(receipt['sources_sha256'], result['source_sha256'])
+
+    def test_degraded_wrong_identity_and_oversized_stdout_cannot_be_ready(self):
+        for changes in ({'status': 'degraded', 'error_code': 'state_corrupt'},
+                        {'pid': 124}, {'role': 'watch'}, {'schema_version': True}):
+            with self.subTest(changes=changes):
+                with tempfile.TemporaryDirectory(dir=self.root) as temporary:
+                    prior = self.reports
+                    self.reports = Path(temporary)
+                    try:
+                        _, process, result, _ = self.event(**changes)
+                        with self.assertRaisesRegex(RuntimeError, 'readiness'):
+                            operator.service_event(process, self.config, 'serve', 'service-test', result)
+                        self.assertFalse((self.reports/'service-test-ready.json').exists())
+                    finally:
+                        self.reports = prior
+        _, process, result, _ = self.event()
+        path = self.reports/'service-test.stdout'; path.write_bytes(b'x'*4097)
+        with self.assertRaisesRegex(RuntimeError, 'Private file'):
+            operator.service_event(process, self.config, 'serve', 'service-test', result)
+
+    def test_changed_pinned_config_cannot_create_a_readiness_receipt(self):
+        service, process, result, _ = self.event()
+        Path(service['config']).write_text('{}\n')
+        with self.assertRaisesRegex(RuntimeError, 'configuration changed'):
+            operator.service_event(process, self.config, 'serve', 'service-test', result)
+        self.assertFalse((self.reports/'service-test-ready.json').exists())
+
+    def test_spawn_owns_process_and_both_logs_before_event_waits(self):
+        service = self.prepare()
+        children, descriptors = [], []
+        self.addCleanup(lambda: [stream.close() for stream in descriptors])
+        process = SimpleNamespace(pid=123)
+        def created(arguments, **kwargs):
+            self.assertEqual(len(descriptors), 2)
+            self.assertTrue(all(not stream.closed for stream in descriptors))
+            self.assertEqual(arguments, [sys.executable, '-m', operator.SERVICE_MODULE, 'serve',
+                '--config', service['config'], '--sha256', service['sha256']])
+            self.assertEqual(kwargs['cwd'], self.root)
+            return process
+        with patch.object(operator.subprocess, 'Popen', side_effect=created):
+            self.assertIs(operator.spawn_service(self.root, self.config, 'serve', 'owned', children, descriptors), process)
+        self.assertEqual(children, [process])
+
+    def test_four_operation_proxy_has_no_local_authority_fallback(self):
+        invoked = []
+        client = SimpleNamespace(**{name: lambda *args, name=name: invoked.append((name, args)) or name
+                                    for name in ('ensure', 'renew', 'observe', 'revoke')})
+        diagnostic = SimpleNamespace(resource_limits=lambda identity: ('diagnostic', identity))
+        calls = {}
+        with patch.object(operator, 'ipc_client', return_value=client):
+            broker = operator.QualificationIPC({}, diagnostic, calls)
+        self.assertEqual(broker.ensure('assignment'), 'ensure')
+        self.assertEqual(broker.renew('grant'), 'renew')
+        self.assertEqual(broker.observe('uuid'), 'observe')
+        self.assertEqual(broker.revoke('uuid'), 'revoke')
+        self.assertEqual(calls, dict(ensure=1, renew=1, observe=1, revoke=1))
+        self.assertEqual(broker.resource_limits('uuid'), ('diagnostic', 'uuid'))
+        self.assertEqual(len(invoked), 4)
+        self.assertFalse(hasattr(broker, 'reconcile'))
+
+    def test_only_service_mode_diagnostic_reconstruction_refuses_state_initialization(self):
+        self.config['service'] = {'marker': True}
+        native = unittest.mock.Mock()
+        with patch.object(operator, 'api', return_value=(lambda **values: values, native)):
+            operator.broker_from(self.config)
+            self.assertIs(native.call_args.kwargs['initialize_state'], False)
+            del self.config['service']
+            operator.broker_from(self.config)
+            self.assertNotIn('initialize_state', native.call_args.kwargs)
+
+    def test_graceful_stop_requires_clean_exit_and_not_dispatched_admission_refusal(self):
+        from apps.runner.resource_broker.ipc import IPCError
+        process = SimpleNamespace(pid=123, returncode=0, poll=lambda: None,
+                                  terminate=lambda: None, wait=lambda **kwargs: 0)
+        for outcome in ('not_dispatched', 'unconfirmed'):
+            def refused(_identity): raise IPCError('ipc_unavailable', outcome=outcome)
+            client = SimpleNamespace(directory=self.reports, observe=refused)
+            if outcome == 'not_dispatched':
+                self.assertTrue(operator.stop_service(process, client, 'uuid')['admission_refused_before_dispatch'])
+            else:
+                with self.assertRaisesRegex(RuntimeError, 'admission refusal'):
+                    operator.stop_service(process, client, 'uuid')
+
+    def test_service_flag_requires_v2_exclusive_mode_and_explicit_config_root_before_allocation(self):
+        base = dict(root=self.root, base_image=self.root/'base.qcow2', timeout=120,
+            resource_profile='sealed-raw8g-q35-limited-v2', service_processes=True,
+            service_config_root=None, guest_memory_pressure=False, console_pressure=False,
+            event_spool_pressure=False, host_qemu_oom=False, spool_data_root=None)
+        cases = [({}, 'service-config-root'),
+                 ({'resource_profile': 'sealed-raw8g-q35-v1'}, 'limited-v2'),
+                 ({'service_processes': False, 'service_config_root': self.configuration_root}, 'service-config-root')]
+        cases += [({mode: True}, 'one fault or service') for mode in
+                  ('guest_memory_pressure', 'console_pressure', 'event_spool_pressure', 'host_qemu_oom')]
+        with patch.object(operator.sys, 'platform', 'linux'), \
+                patch.object(operator.sys, 'version_info', (3, 12, 0)), \
+                patch.object(operator.platform, 'machine', return_value='x86_64'), \
+                patch.object(operator, 'coordination_lock') as allocated:
+            for changes, message in cases:
+                with self.subTest(changes=changes), self.assertRaisesRegex(RuntimeError, message):
+                    operator.execute(SimpleNamespace(**(base | changes)))
+        allocated.assert_not_called()
+
+
+class ServiceLiveRevokeTests(unittest.TestCase):
+    """Live/terminal receipt guard tests with no native backend or process."""
+    def invoke(self, fault=None):
+        from apps.runner.resource_broker import Observation, StopEvidence, sign_assignment
+        from dataclasses import asdict, replace
+        temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        reports = Path(temporary.name)
+        key = b'k'*32
+        identity, control = ('00000000-0000-4000-8000-00000000000' + str(i) for i in (1, 2))
+        original = dict(resource_id=identity, organization_id='org-a', workspace_id='workspace-a',
+            attempt_id='00000000-0000-4000-8000-000000000003', template_id='sealed-a',
+            configuration_sha256='a'*64, generation=1, recovery_generation=1,
+            issued_at=10, expires_at=250)
+        first_stop = Observation(identity, 'stopped', 2, 1,
+            StopEvidence(identity, 90, 'libvirt_destroy_then_absent', 'a'*64))
+        initial_receipt = asdict(first_stop)
+        instance = dict(uuid=identity, listener=object(), console_listener=object())
+        selector = unittest.mock.Mock()
+        streams = SimpleNamespace(logs={identity: {'stream_closed': True}}, selector=selector,
+                                  report_channels={}, connections=set())
+        second = SimpleNamespace(logs={identity: {'bytes_seen': 1}},
+            mark_start=unittest.mock.Mock(), finish=unittest.mock.Mock())
+        watch = SimpleNamespace(poll=lambda: None)
+        result = {'checks': {'a_watch_deadline_stop': fault != 'unverified_first_stop',
+                             'independent_watch_survives_launcher': True}}
+        state = dict(live=False, ensure_calls=0, revoke_calls=0)
+        extras = []
+        class Broker:
+            def ensure(inner, assignment):
+                state['ensure_calls'] += 1
+                self.assertIn(second, extras)  # The collector is owned before dispatch.
+                fields = asdict(assignment); fields.pop('signature')
+                self.assertEqual(assignment, sign_assignment(key, **fields))
+                self.assertEqual((assignment.generation, assignment.recovery_generation), (3, 2))
+                self.assertNotEqual(assignment.attempt_id, original['attempt_id'])
+                self.assertEqual(assignment.expires_at - assignment.issued_at, 30)
+                state['live'] = True
+                if fault == 'terminal_ensure': return first_stop
+                return Observation(identity, 'running', 2 if fault == 'old_epoch' else 3, 2)
+            def resource_limits(inner, resource_id):
+                self.assertEqual(resource_id, identity)
+                return {'pid': 0 if fault == 'invalid_pid' else 123,
+                        'process_start_time': 88, 'cgroup_path': '/sys/fs/cgroup/owned-qemu'}
+            def revoke(inner, resource_id, cause):
+                state['revoke_calls'] += 1
+                self.assertTrue(state['live'])
+                self.assertEqual((resource_id, cause), (identity, 'cancelled'))
+                state['live'] = fault == 'host_remains'
+                stop = StopEvidence(identity, 90 if fault == 'stale_stop' else 100,
+                    'libvirt_absent_after_confirmed_start' if fault == 'wrong_method' else 'libvirt_destroy_then_absent',
+                    ('b' if fault == 'wrong_config' else 'a')*64)
+                return Observation(identity, 'stopped', 2 if fault == 'wrong_stop_epoch' else 3, 2,
+                    stop, stop_cause='lease_expired_or_clock_changed' if fault == 'wrong_cause' else 'cancelled')
+            def observe(inner, resource_id):
+                self.assertEqual(resource_id, control)
+                return Observation(control, 'running', 2, 1)
+        def domains():
+            return {control, identity} if state['live'] and fault != 'no_host' else {control}
+        with patch.object(operator.kvm, 'GuestStreams', return_value=second), \
+                patch.object(operator.kvm, 'domain_ids', side_effect=domains), \
+                patch.object(operator, 'await_absent'), \
+                patch.object(operator.time, 'time', return_value=100):
+            operator.service_live_revoke(Broker(), key, original, first_stop,
+                [instance, {'uuid': control}], streams, extras, reports, [], reports, watch, result)
+        self.assertEqual(asdict(first_stop), initial_receipt)
+        return result, state, second, selector
+
+    def test_fresh_signed_epoch_proves_live_ipc_revoke_and_retains_original_stop(self):
+        result, state, second, selector = self.invoke()
+        self.assertEqual((state['ensure_calls'], state['revoke_calls']), (1, 1))
+        self.assertTrue(result['checks']['service_live_revoke_confirmed'])
+        evidence = result['service_live_revoke']
+        self.assertTrue(evidence['host_uuid_present_before'])
+        self.assertTrue(evidence['host_uuid_absent_after'])
+        self.assertEqual(evidence['new_running']['resource_id'], evidence['same_fixed_resource_uuid'])
+        self.assertGreater(evidence['revoke_after']['stop_evidence']['confirmed_at'],
+                           evidence['first_epoch_stop']['stop_evidence']['confirmed_at'])
+        self.assertFalse(evidence['second_boot_guest_health_verified'])
+        self.assertEqual(selector.unregister.call_count, 2)
+        second.finish.assert_called_once_with()
+
+    def test_terminal_old_epoch_missing_live_host_and_stale_stop_cannot_pass(self):
+        for fault in ('unverified_first_stop', 'terminal_ensure', 'old_epoch', 'no_host',
+                      'invalid_pid', 'stale_stop', 'wrong_method', 'wrong_config',
+                      'wrong_stop_epoch', 'wrong_cause', 'host_remains'):
+            with self.subTest(fault=fault), self.assertRaises(RuntimeError):
+                self.invoke(fault)
 
 
 class CoordinationPathTests(unittest.TestCase):

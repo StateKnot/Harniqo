@@ -155,6 +155,50 @@ class BrokerInterfaceTests(unittest.TestCase):
         return ResourceBroker(state_dir=self.root/getattr(self, 'state_name', 'state'),templates=self.templates,issuer_key_file=self.key_file,
             images_root=self.images,channel_root=self.channels,max_lease_seconds=300)
 
+    def test_normal_service_construction_never_creates_missing_state_or_lock(self):
+        settings = dict(templates=self.templates, issuer_key_file=self.key_file,
+                        images_root=self.images, channel_root=self.channels,
+                        initialize_state=False)
+        missing = self.root / 'uninitialized'
+        with self.assertRaisesRegex(BrokerError, 'state_not_initialized'):
+            ResourceBroker(state_dir=missing, **settings)
+        self.assertFalse(missing.exists())
+        missing.mkdir(mode=0o700)
+        with self.assertRaisesRegex(BrokerError, 'state_not_initialized'):
+            ResourceBroker(state_dir=missing, **settings)
+        self.assertEqual(list(missing.iterdir()), [])
+
+    def test_initialize_state_policy_is_strict_and_precedes_filesystem_access(self):
+        for invalid in (0, 1, None, 'false'):
+            with self.subTest(value=invalid), patch.object(native, '_directory') as directory:
+                with self.assertRaisesRegex(BrokerError, 'state_initialization_policy_invalid'):
+                    ResourceBroker(state_dir=self.root / 'missing', templates=self.templates,
+                        issuer_key_file=self.key_file, images_root=self.images,
+                        channel_root=self.channels, initialize_state=invalid)
+                directory.assert_not_called()
+
+    def test_existing_only_construction_preserves_authenticated_emergency_stop(self):
+        assignment = self.assignment()
+        self.broker.ensure(assignment)
+        journal = self.root / 'state' / 'journal.json'
+        journal.unlink()
+        with self.assertRaises(BrokerError):
+            ResourceBroker(state_dir=self.root / 'state', templates=self.templates,
+                issuer_key_file=self.key_file, images_root=self.images,
+                channel_root=self.channels, initialize_state=False)
+        self.assertNotIn(assignment.resource_id, self.libvirt.domains)
+        self.assertFalse(journal.exists())
+
+    def test_existing_only_construction_refuses_missing_anchor_without_reinitializing(self):
+        state = self.root / 'state'
+        (state / 'anchor.json').unlink()
+        before = {p.name: p.read_bytes() for p in state.iterdir()}
+        with self.assertRaisesRegex(BrokerError, 'state_not_initialized'):
+            ResourceBroker(state_dir=state, templates=self.templates,
+                issuer_key_file=self.key_file, images_root=self.images,
+                channel_root=self.channels, initialize_state=False)
+        self.assertEqual({p.name: p.read_bytes() for p in state.iterdir()}, before)
+
     def limited_broker(self):
         self.templates[0] = replace(self.templates[0], resource_profile=native.LIMITED_PROFILE)
         self.state_name = 'limited-state'

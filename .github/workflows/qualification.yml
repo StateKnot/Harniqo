@@ -3,9 +3,9 @@ name: Qualification component regression
 on:
   push:
     branches: [main]
-    paths: ['apps/runner/resource_broker/**', 'apps/runner/console_store.py', 'scripts/qualification/**', 'deploy/qualification/**', 'scripts/ci/qualification_components.py', '.github/workflows/qualification.yml', '.gitattributes']
+    paths: ['apps/runner/resource_broker/**', 'apps/runner/console_store.py', 'scripts/qualification/**', 'scripts/deploy/**', 'deploy/qualification/**', 'scripts/ci/qualification_components.py', '.github/workflows/qualification.yml', '.gitattributes']
   pull_request:
-    paths: ['apps/runner/resource_broker/**', 'apps/runner/console_store.py', 'scripts/qualification/**', 'deploy/qualification/**', 'scripts/ci/qualification_components.py', '.github/workflows/qualification.yml', '.gitattributes']
+    paths: ['apps/runner/resource_broker/**', 'apps/runner/console_store.py', 'scripts/qualification/**', 'scripts/deploy/**', 'deploy/qualification/**', 'scripts/ci/qualification_components.py', '.github/workflows/qualification.yml', '.gitattributes']
   workflow_dispatch:
 
 permissions:
@@ -37,9 +37,10 @@ jobs:
           df -h .
           umask 077
           mkdir -p .private/validation
+          mkdir -p "$HOME/.harniqo-service-tests"
           node --version
       - name: Run standard-library permission, budget and cleanup regressions
-        run: python scripts/ci/qualification_components.py
+        run: HARNIQO_SERVICE_TEST_ROOT="$HOME/.harniqo-service-tests" python scripts/ci/qualification_components.py
       - name: Run native protocol and private profile component checks
         run: node --test scripts/qualification/test_openclaw_profile.mjs scripts/qualification/test_openclaw_probe.mjs
       - name: Run transparent provider observer component checks
