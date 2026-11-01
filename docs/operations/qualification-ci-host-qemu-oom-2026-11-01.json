@@ -1,0 +1,165 @@
+{
+  "scope": "synthetic_qualification_components_only",
+  "date_local": "2026-11-01",
+  "timezone": "Asia/Shanghai",
+  "source_commit": "a5d8554e02e3326570f392346ea13d70e1342bf8",
+  "run_url": "https://github.com/StateKnot/Harniqo/actions/runs/41284686380",
+  "job_url": "https://github.com/StateKnot/Harniqo/actions/runs/41284686380/job/124783488929",
+  "conclusion": "success",
+  "runner": "ubuntu-24.04",
+  "python": "3.12.15",
+  "python_tests": 460,
+  "failures": 0,
+  "errors": 0,
+  "skipped": 0,
+  "expected_failures": 0,
+  "report_sha256": "77cabb98fbb320e8a1a5f5a65498e192beb555db90c47fef12109b45d57fed75",
+  "node_checks": [
+    {
+      "step": "Run native protocol and private profile component checks",
+      "conclusion": "success"
+    },
+    {
+      "step": "Run transparent provider observer component checks",
+      "conclusion": "success"
+    }
+  ],
+  "real_model_calls": 0,
+  "native_harness_verified": false,
+  "vm_isolation_verified": false,
+  "desktop_build_verified": false,
+  "prior_failed_runs": [
+    {
+      "source_commit": "37e1bd7408233dd159e5fd0ed5a3e55feb04001e",
+      "run_url": "https://github.com/StateKnot/Harniqo/actions/runs/41282918646",
+      "job_url": "https://github.com/StateKnot/Harniqo/actions/runs/41282918646/job/124778325723",
+      "conclusion": "failure",
+      "python_tests": 451,
+      "failures": 0,
+      "errors": 2,
+      "skipped": 0,
+      "failed_tests": [
+        "test_run_octop.OperatorMainTests.test_stop_timeout_preserves_final_report",
+        "test_run_octop.OperatorMainTests.test_unknown_run_outcome_reconciles_and_preserves_report"
+      ],
+      "node_checks": [
+        {
+          "step": "Run native protocol and private profile component checks",
+          "conclusion": "skipped"
+        },
+        {
+          "step": "Run transparent provider observer component checks",
+          "conclusion": "skipped"
+        }
+      ],
+      "report_sha256": "333b062de387008f99b8522bd72c26f63ead8959b0e5be4ac9afc74ef7c0a66a",
+      "original_failed_evidence_retained": true
+    },
+    {
+      "source_commit": "4b4b0ddfd958a708bc15ffab7d5705230dc3408f",
+      "run_url": "https://github.com/StateKnot/Harniqo/actions/runs/41283960739",
+      "job_url": "https://github.com/StateKnot/Harniqo/actions/runs/41283960739/job/124781368047",
+      "conclusion": "failure",
+      "python_tests": 452,
+      "failures": 0,
+      "errors": 1,
+      "skipped": 0,
+      "failed_tests": [
+        "test_run_hermes_qualification.ParentDeathTests.test_detached_worker_is_not_left_running_when_probe_parent_dies"
+      ],
+      "node_checks": [
+        {
+          "step": "Run native protocol and private profile component checks",
+          "conclusion": "skipped"
+        },
+        {
+          "step": "Run transparent provider observer component checks",
+          "conclusion": "skipped"
+        }
+      ],
+      "report_sha256": "8474a32c7a7d01213b74091c87530bda082d3acd74011928166bcfc905041e7b",
+      "original_failed_evidence_retained": true
+    }
+  ],
+  "fixture_only_changes": {
+    "base_source_commit": "37e1bd7408233dd159e5fd0ed5a3e55feb04001e",
+    "qualified_source_commit": "a5d8554e02e3326570f392346ea13d70e1342bf8",
+    "changed_qualification_paths": [
+      "scripts/qualification/test_run_hermes_qualification.py",
+      "scripts/qualification/test_run_octop.py"
+    ],
+    "production_and_native_qualification_runtime_unchanged": true,
+    "fixes": [
+      {
+        "test_file": "scripts/qualification/test_run_octop.py",
+        "cause": "Positive fixture inherited the hosted runner disk reserve instead of mocking sufficient space",
+        "positive_fixture_free_bytes": 64424509440,
+        "production_minimum_free_bytes_unchanged": 53687091200,
+        "new_regression_test": "OperatorMainTests.test_low_disk_rejects_before_docker_dispatch",
+        "negative_fixture_free_bytes": 52613349376,
+        "negative_case_has_no_docker_dispatch": true
+      },
+      {
+        "test_file": "scripts/qualification/test_run_hermes_qualification.py",
+        "cause": "Worker disappeared between the fixture cleanup liveness check and signal; original CI mechanism was not observed directly",
+        "cleanup_signal_binding": "pidfd_open_then_pid_start_ticks_recheck_then_pidfd_send_signal",
+        "ignored_cleanup_errno": [
+          "ESRCH"
+        ],
+        "permission_and_io_errors_remain_errors": true,
+        "surviving_worker_assertion_remains_required": true,
+        "new_deterministic_tests": 8
+      }
+    ]
+  },
+  "contracts_ci": {
+    "source_commit": "37e1bd7408233dd159e5fd0ed5a3e55feb04001e",
+    "run_url": "https://github.com/StateKnot/Harniqo/actions/runs/41282918652",
+    "conclusion": "success",
+    "jobs": [
+      {
+        "runner": "ubuntu-24.04",
+        "conclusion": "success",
+        "job_url": "https://github.com/StateKnot/Harniqo/actions/runs/41282918652/job/124778325786",
+        "python": "3.12.15",
+        "definitions": 60,
+        "paths": 18,
+        "fixtures": 107,
+        "transition_cases": 15,
+        "report_sha256": "e705ca702c619ce0a36d8636b62437a36982f8f5c3b30a02a2caca7fbaba2c91"
+      },
+      {
+        "runner": "macos-15",
+        "conclusion": "success",
+        "job_url": "https://github.com/StateKnot/Harniqo/actions/runs/41282918652/job/124778325960",
+        "python": "3.12.10",
+        "definitions": 60,
+        "paths": 18,
+        "fixtures": 107,
+        "transition_cases": 15,
+        "report_sha256": "e705ca702c619ce0a36d8636b62437a36982f8f5c3b30a02a2caca7fbaba2c91"
+      },
+      {
+        "runner": "windows-2025",
+        "conclusion": "success",
+        "job_url": "https://github.com/StateKnot/Harniqo/actions/runs/41282918652/job/124778326022",
+        "python": "3.12.10",
+        "definitions": 60,
+        "paths": 18,
+        "fixtures": 107,
+        "transition_cases": 15,
+        "report_sha256": "24d8e22f016df7935ea1ff912277c66e30c2e80cdafed31d56d433cbc1df0aeb"
+      }
+    ],
+    "scope": "contract_verification_only",
+    "desktop_build_verified": false,
+    "inputs_unchanged_to_qualification_commit": "a5d8554e02e3326570f392346ea13d70e1342bf8",
+    "unchanged_input_paths": [
+      "packages/contracts",
+      "scripts/contracts",
+      "scripts/ci",
+      ".github/workflows/contracts.yml"
+    ],
+    "same_commit_as_qualification": false
+  }
+}

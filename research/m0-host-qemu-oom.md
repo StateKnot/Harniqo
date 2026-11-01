@@ -71,7 +71,7 @@ A最后确认11步/352MiB真实触页，继续下一步时发生Host memcg OOM�
 
 源码`37e1bd7408233dd159e5fd0ed5a3e55feb04001e`的[首轮资格CI](https://github.com/StateKnot/Harniqo/actions/runs/41282918646)保持FAILED：Python3.12.15共451项，0失败、2错误、0跳过；两组后续Node检查因前序失败而跳过。错误均来自旧OCTOP启动测试：模拟了df输出，却没有模拟shutil.disk_usage，托管runner不足50GiB时在预检提前退出，未走到预定的停止超时/未知结果对账场景。Host OOM新增测试未失败。[三平台契约](https://github.com/StateKnot/Harniqo/actions/runs/41282918652)该轮成功，另行留证。
 
-已仅调整测试夹具：足量场景明确60GiB，增加独立49GiB拒绝、无Docker派发/无attempt目录的负例。生产run_octop.py与Host OOM运行代码均未变，50GiB准入不降低。先在外层模拟49GiB复现原2错误，再于本机和指定Linux服务器以相同低空间外层复验14项OCTOP测试全部通过；没有启动监听、Docker或模型调用。首次CI原始日志/产物及复现报告保持原样，不能改写为通过。修正后的完整CI待实际运行，不用本次14项代替完整套件。
+已仅调整测试夹具：足量场景明确60GiB，增加独立49GiB拒绝、无Docker派发/无attempt目录的负例。生产run_octop.py与Host OOM运行代码均未变，50GiB准入不降低。先在外层模拟49GiB复现原2错误，再于本机和指定Linux服务器以相同低空间外层复验14项OCTOP测试全部通过；没有启动监听、Docker或模型调用。首次CI原始日志/产物及复现报告保持原样，不能改写为通过。这14项只证明夹具隔离；后续完整CI结果另列于末节。
 
 ## 第二轮实际资格CI与清理竞态
 
@@ -80,3 +80,9 @@ A最后确认11步/352MiB真实触页，继续下一步时发生Host memcg OOM�
 原测试在指定Linux服务器连续30轮均通过，**没有自然复现该竞态**。随后仅在实际测试方法调用处注入“观测已退出、断言通过、清理又观察live、信号返回ESRCH”的确定序列，成功复现finally异常。此负例证明检查与信号之间的消失会破坏测试结果，不证明CI当时具体经历了哪种进程状态。Linux7.0的proc状态表确实区分X（dead）与Z（zombie），因此夹具不应把X当live；不能据此断言CI已观测到X。[Linux7 proc状态实现](https://github.com/torvalds/linux/blob/v7.0/fs/proc/array.c#L127)
 
 第二次修正也仅涉及测试夹具：清理先核对PID/start ticks，打开pidfd后再次核对同身份，再经pidfd发送信号，避免数值PID复用时误杀；始终关闭已打开描述符。只有ESRCH视为已消失，EACCES、EPERM与EIO继续报错，原“worker存活超过期限”的断言保持失败。新增8项确定性回归覆盖实际调用处的ESRCH、仍然存活的负例、PID复用、成功信号与描述符关闭及权限/I/O错误；本机收集29项，28通过，原Linux专属集成1项明确跳过。指定Linux服务器已按修正来源完整通过29项，0失败/错误/跳过，并另做30轮真实ParentDeath检查全部通过；预计460项完整资格CI仍待实际运行，不能用注入测试、原样或修正后的30轮检查替代。Host OOM生产Module、压力helper、操作者及原生报告均未改变，无需把夹具修复写成再次原生OOM通过。
+
+## 最终CI与证据闭合
+
+源码`a5d8554e02e3326570f392346ea13d70e1342bf8`的[实际资格CI](https://github.com/StateKnot/Harniqo/actions/runs/41284686380)成功：Python3.12.15共460项，0失败/错误/跳过，两组Node检查也成功；实际run/job与下载的单一合成报告、源码和摘要已核对。[公开CI摘要](../docs/operations/qualification-ci-host-qemu-oom-2026-11-01.json)保留两次失败及修复后的独立结果。两次修正均限测试夹具，生产Host OOM与Broker源码未改，E62真实验收的源码绑定仍成立，没有为测试修正重复运行故障VM。
+
+[三平台契约CI](https://github.com/StateKnot/Harniqo/actions/runs/41282918652)实际受测提交为`37e1bd7408233dd159e5fd0ed5a3e55feb04001e`，不是本次资格CI的提交。其60定义/18路径/107样例/15生命周期案例及三份artifact、完整锁和源摘要已核验；显式Git比较确认`packages/contracts`、`scripts/contracts`、`scripts/ci`及契约workflow至本次资格提交没有差异。最终证据提交仅更新文档与CI摘要，受测运行代码和工作流保持不变。合成组件/契约与E62真实VM分别计量，M0仍4/8、M0-05仍IN_PROGRESS。
