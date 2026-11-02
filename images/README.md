@@ -73,3 +73,9 @@ images/vm/instances，确认停止与完整归档后精确回收；原始配置�
 及离线部署包留私有metadata，不计镜像条目。旧96GiB诊断层不在本轮清理范围。
 见[真实结果](../docs/operations/broker-service-kvm-2026-11-01.json)与
 [生产部署门槛](../deploy/runner/README.md)，不代表专用UID/有效ACL或完整M0-05完成。
+
+2026-11-02专用身份/跨UID资格未启动VM，未下载或构建镜像。新raw/seed身份canary位于
+images/idq-<本轮标识>，raw是8GiB稀疏、不可启动的资格文件，保留诊断；不登记为可复用镜像，
+12项manifest不变。私有key/state与恢复审计按服务身份策略存储，不进入Git或镜像归档。
+[实际身份上下文证据](../docs/operations/broker-identities-native-2026-11-02.json)与此前真实VM
+资格分别计量，旧96GiB诊断层未纳入本轮清理。

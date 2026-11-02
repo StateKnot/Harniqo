@@ -1,0 +1,34 @@
+{
+  "scope": "identity_provisioning_and_operator_components_only",
+  "date_local": "2026-11-02",
+  "timezone": "Asia/Shanghai",
+  "passed": true,
+  "independent_verified": true,
+  "python": "3.12.3",
+  "system": "Linux",
+  "kernel_release": "7.0.0-38-generic",
+  "machine": "x86_64",
+  "tests": 64,
+  "suites": {
+    "identity_provisioner": 37,
+    "identity_operator": 27
+  },
+  "failures": 0,
+  "errors": 0,
+  "skipped": 0,
+  "sources_sha256": {
+    "scripts/deploy/provision_broker_identities.py": "56b379376710f969cbaf3b29df465144e3111bd3a51fa52ce715e467f7583080",
+    "scripts/qualification/test_broker_identities.py": "24d40520c3436f5683fa517895d190bd55d4dc0714aea8105a383fd431d2fffb",
+    "scripts/qualification/qualify_broker_identities.py": "5da45604ebe21360e2ec1f4221fdeac3736843ba008842901c569605a340ed46",
+    "scripts/qualification/test_broker_identity_operator.py": "f0952b416e85c28d75f9a22d02b8640aad218c1969e893c7fcc6ae4712179429"
+  },
+  "report_sha256": "7e946fc1358180b5733b27ad1e85e01dbf6b533ad56cc8654038db6c5a45a439",
+  "unittest_log_sha256": "db31e4d2a1aaae328fbca97da588ddc633f035cdabb67324aa65c0bd30a56866",
+  "administrator_actions": 0,
+  "accounts_created": 0,
+  "virtual_machines_started": 0,
+  "tcp_listeners_started": 0,
+  "real_model_calls": 0,
+  "production_activation_verified": false,
+  "milestone_complete": false
+}

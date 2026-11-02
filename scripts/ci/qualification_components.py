@@ -42,6 +42,8 @@ TESTS = (
     'test_broker_ipc_operator.py',
     'test_broker_service.py',
     'test_broker_deployment.py',
+    'test_broker_identities.py',
+    'test_broker_identity_operator.py',
 )
 
 

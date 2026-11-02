@@ -187,3 +187,10 @@ systemd-analyze verify /absolute/rendered/harniqo-broker.service /absolute/rende
 同一源码的[三平台契约CI](https://github.com/StateKnot/Harniqo/actions/runs/41294642207)成功，每个平台通过60定义、18路径、107样例及15生命周期；只证明契约，不代表三端桌面构建。5份实际artifact已下载，实际run/head/workflow/job/步骤、报告、源码、锁和SHA核验完毕，见[CI索引](../docs/operations/broker-service-ci-2026-11-01.json)。CI的组件/进程夹具与E67指定服务器的真实VM分别计量。
 
 最终文档增补E68和CI索引，修正4处服务文档相对链接并逐一核对目标存在；受测运行代码、测试、工作流保持上述受测提交字节，未为文档重复执行VM或模型任务。M0继续4/8、M0-05仍IN_PROGRESS；专用生产身份/有效ACL与系统安装不继承本次CI通过状态。
+
+## 10. 专用身份阶段的后续结果
+
+2026-11-02：[独立身份部署与实际跨UID服务上下文](m0-broker-dedicated-identities.md)已按E69/E70完成限定验收。
+两个稳定账号/三组及实际生产CLI空状态、DAC与namespace策略现在有独立证据；本文件先前
+PENDING与E66/E67/E68保持其原日期范围，不回填旧来源。专用UID真实VM、有效libvirt逐API
+授权、正式生产激活和Supervisor集成继续待验。

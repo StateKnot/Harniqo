@@ -6,6 +6,9 @@
 
 原理和证据门槛见 [服务身份研究](../../research/m0-broker-service-identities.md)、[Broker 文件/目录策略](../../apps/runner/resource_broker/README.md)、[IPC](../../apps/runner/resource_broker/IPC.md)。文档和静态规则测试不能证明生产身份或 VM 经 IPC 已验收。
 
+独立的[专用身份创建与实际服务上下文验收](IDENTITIES.md)可在不激活本包的情况下完成。
+它不安装本包中的委派规则或正式 unit，结果按自身范围登记。
+
 ## 准备输入
 
 先准备与 `apps.runner.resource_broker.service` 相同语法的完整配置 JSON，包含固定 broker UID/GID、各目录、key **路径引用**、固定 Template catalog、租约策略和唯一 Supervisor peer。使用实际发行配置的原始字节摘要；重新排版也会改变 SHA-256。不能把开发账号持有的 journal/磁盘 chown 后当作新专用身份的已准入 catalog。

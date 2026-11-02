@@ -1,6 +1,6 @@
 # Harniqo 开发任务清单
 
-日期：2026-11-01 · 67 项 · M0 的 8 项中已验收完成 4 项（M0-01、M0-03、M0-04、M0-06）；M0-02 已实现，M0-05/07 开发验证中，其余待执行。逐项状态见下表，M0 尚未完成。
+日期：2026-11-02 · 67 项 · M0 的 8 项中已验收完成 4 项（M0-01、M0-03、M0-04、M0-06）；M0-02 已实现，M0-05/07 开发验证中，其余待执行。逐项状态见下表，M0 尚未完成。
 
 计划基线见 [ROADMAP](ROADMAP.md)，实现设计见 [ARCHITECTURE](../architecture/ARCHITECTURE.md)，详细验收方法见 [ACCEPTANCE](ACCEPTANCE.md)，本轮脱敏结果见 [M0 执行证据索引](M0-RESULTS.md)。每行是后续开发与验收单元，可按实现需要继续拆成子任务；拆分不能删除原验收条件。交付物是否已存在及通过验收，以状态和对应证据为准。
 
@@ -30,7 +30,7 @@
 | M0-02 | 契约 | 定义资源归属、Deployment/RuntimeInstance、Trial→Run→Attempt、状态、命令、事件、能力、文件授权及组件握手；审阅深模块 Interface | 技术架构、Schema/OpenAPI 初稿、状态与时序图、契约测试清单 | 重复命令、断线、取消竞态、未知执行、过期审批和不兼容组件均有确定行为；客户端与 Runner 无需了解内部表结构；文档不替代 Schema 与真实准入 | IMPLEMENTED（契约测试通过，准入冻结待完成） |
 | M0-03 | 首个 Harness | 在真实环境固定 Hermes 候选版本，使用两个获准的可替换模型端点，验证工具闭环、拒绝、取消和原生续聊；不满足则记录替代决定 | 可重复验证脚本/测试、原始日志、版本及模型证据 | 实际模型 ID/endpoint 与配置一致；任务真调用工具并产生文件；停止得到执行端确认；缺失能力没有被模拟成成功 | ✅ ACCEPTED · 已开发完成（固定受控组合；能力限制见证据索引） |
 | M0-04 | 多 Harness | 对 OpenClaw、OpenCode、Octop 服务、Octop Harness 和 DSH 做最小能力验证；比较 HarnessRouter 复用成本；锁定 3 个正式目标和 Octop 交付边界 | 能力矩阵、接入顺序、复用/自建决策及各候选证据 | 完整服务、底层 Harness、外部 ACP 委派分别记身份；每个正式目标有运行证据；淘汰或预览有具体原因 | ✅ 已开发完成（ACCEPTED；三个正式开发目标及Octop/DSH具体范围已锁定，非正式Adapter交付） |
-| M0-05 | 执行隔离 | 验证 KVM/libvirt 权限、实际 VM 启停、网络、文件、镜像、资源限制和回收；确定控制面与执行面的实际部署位置 | 一种真实可用的隔离后端、验证报告、执行拓扑 | VM 内 Agent 无法访问宿主控制身份、Docker socket、管理网和其他组织数据；VM 故障可确认并回收；不能只检查设备存在 | IN_PROGRESS（封闭基线通过；前两轮NIC失败保留，第三轮82检查通过且精确临时策略已恢复；固定实例组期限/进程恢复、v2实际CPU/内存/swap+CPU压力、有界console及本地SQLite事件spool恢复/容量停止、显式Host QEMU OOM恢复与四操作本地IPC身份/ACL通过；完整生产执行边界未验收） |
+| M0-05 | 执行隔离 | 验证 KVM/libvirt 权限、实际 VM 启停、网络、文件、镜像、资源限制和回收；确定控制面与执行面的实际部署位置 | 一种真实可用的隔离后端、验证报告、执行拓扑 | VM 内 Agent 无法访问宿主控制身份、Docker socket、管理网和其他组织数据；VM 故障可确认并回收；不能只检查设备存在 | IN_PROGRESS（封闭基线通过；前两轮NIC失败保留，第三轮82检查通过且精确临时策略已恢复；固定实例组期限/进程恢复、v2实际CPU/内存/swap+CPU压力、有界console及本地SQLite事件spool恢复/容量停止、显式Host QEMU OOM恢复与四操作本地IPC身份/ACL及专用稳定账号/跨UID实际服务上下文通过；完整生产执行边界未验收） |
 | M0-06 | 开源与供应链 | 按已确定的 MIT 保留/补齐正式 LICENSE 与作者声明，清点拟复用代码、依赖、任务数据、图标、字体和二进制；形成版本策略 | MIT LICENSE、第三方来源清单、依赖基线与关键 ADR | 许可证覆盖拟分发范围；非商业/附加授权项目没有进入默认商用发行；无未经确认来源的拷贝 | ✅ 已开发完成（ACCEPTED，当前来源与依赖基线） |
 | M0-07 | 验收与资源 | 锁定正式支持 OS/架构/版本、原生 CI 与签名资源、目标并发、事件延迟、RPO/RTO、保留期、预算渠道和备份位置 | 验收基线、容量/SLO 表、外部资源阻塞表 | 所有阈值有数字、负载条件和验证方法；缺少签名、模型、存储或隔离资源时有明确解除条件；不假定 Ubuntu 可替代三端 | IN_PROGRESS（基线已固定，外部资源待验证） |
 | M0-08 | 排期与准入 | 汇总验证结果，锁定具体技术版本、首批模型与 Harness、主评测执行器试选方法；估算 67 项任务并识别关键路径 | 决策记录、更新后的本清单、投入与排期 | M0-01～07 有验收证据；关键可行性问题已解决；后续任务的负责人/工作面、前置条件和估时可执行 | TODO |
@@ -193,3 +193,5 @@
 | 2026-11-01 | M0-05 Broker独立服务与离线部署包 | 已开发完成并验证（VERIFIED，限定子项）；M0-05仍IN_PROGRESS | 严格配置/SHA/身份、显式初始化、独立serve/watch及正常启动拒绝空状态；189组件全通过；9产物、101规则正反例及2真实unit语法核验。E66 | signal死锁真实RED后修正；旧失败保留。合成部署计划激活BLOCKED，实际专用UID/有效ACL/安装待验，未扩大管理权限 |
 | 2026-11-01 | M0-05 真实VM经服务IPC | 已开发完成并验证（VERIFIED，开发UID固定组子项）；M0-05仍IN_PROGRESS | 正式CLI/独立watch/四IPC操作，26必需门槛+1归档/22首轮Guest，2UUID/3启动；真实live revoke、服务SIGKILL/重启、SIGTERM与期限故障链通过，独立原件核验，错误/清理0。E67 | 新签epoch重启同A；第二A仅console不计Guest健康；限额诊断/显式恢复本地单列。3既有domain/base保护，本组层回收，旧96GiB不清理；生产身份/ACL/Egress/CP权限预算仍待验，M0仍4/8 |
 | 2026-11-01 | M0-05/07 服务入口实际CI | 已开发完成并验证（VERIFIED，组件/进程/契约CI子项） | 源码`dfc0dea86ae6`的[完整资格CI](https://github.com/StateKnot/Harniqo/actions/runs/41294642335)572Python/两组Node、[实际IPC进程](https://github.com/StateKnot/Harniqo/actions/runs/41294642215)14门槛/33进程、同源三平台契约全部通过；5份artifact/source/锁/hash已核。E68 | 各自范围与E67指定服务器真实VM分开；受测代码/测试/工作流保持不变，4处文档链接已修；专用UID/有效ACL/生产安装与桌面构建仍待验，M0仍4/8 |
+| 2026-11-02 | M0-05 专用身份部署与恢复 | 已开发完成并验证（VERIFIED，限定子项）；M0-05仍IN_PROGRESS | 固定计划/NSS碰撞/锁定身份、原始receipt、未知效果阻断与显式root CAS确认；64项Linux组件全过，关键旧RED及原件分别保留。E69 | 确认不写NSS，不由absence推断可重试；组件不代替E70真实管理员验收或全M0准入 |
+| 2026-11-02 | M0-05 实际跨UID服务上下文 | 已开发完成并验证（VERIFIED，身份与空核心子项）；M0-05仍IN_PROGRESS | 2稳定账号/3组，10unit/172probe检查、6成功oneshot/9进程快照及独立collector通过；DAC/沙箱分开，真实四IPC操作、watch保活/空journal重开。E70 | 初次apply留下unknown后通过带原件/audit的显式确认恢复；全部unit停止，3既有domain及XML/network/filter不变。未发有效授权/启动VM，非生产Supervisor/有效libvirtACL或UID全局权限证明，M0仍4/8 |
