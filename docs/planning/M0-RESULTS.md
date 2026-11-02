@@ -99,6 +99,7 @@
 | E71 | 源码`f7775b6d181d`的[完整资格CI](https://github.com/StateKnot/Harniqo/actions/runs/41375990700)636Python/两组Node及[同源三平台契约](https://github.com/StateKnot/Harniqo/actions/runs/41375990757)全部成功；4份artifact实际下载并核验run/job/步骤/source/锁/hash | [CI索引](../operations/broker-identities-ci-2026-11-02.json)、[身份阶段来源](../../research/m0-broker-dedicated-identities.md) | CI为组件与契约，未创建实际账号或启动特权服务；与E70宿主结果分别计量，非桌面构建/libvirt授权/完整M0-05通过，M0仍4/8 |
 | E72 | 只读原生 ACL 资格工具完成：固定 RW URI/FD、父 `/proc` 身份握手、caps0/NNP、精确 API88/55、WNOWAIT 后组清理及完整失败上下文；指定 Linux34回归全部通过，0失败/错误/跳过 | [组件索引](../operations/libvirt-acl-components-2026-11-02.json)、[运行入口](../../deploy/runner/LIBVIRT-ACL.md) | 组件不连接真实 daemon，不代替 E73；两轴原始缺口与回归来源留存，M0仍4/8 |
 | E73 | 有效 bootstrap driver 原生资格及独立核验通过：Broker同RW连接 hostname+/capabilities88,55-/hostname+，Supervisor rawRW+/open88,55-；13组审计/707原件、一次准确daemon重启、3既有QEMU及2network/24filter不变、原socket ACL恢复 | [原生索引](../operations/libvirt-acl-native-2026-11-02.json)、[研究与实际范围](../../research/m0-libvirt-acl-activation.md) | 原始ready前失败/目录修复与独立审计失败保留；非服务API YES仅保留旧none兼容宽权限。未授VM写/持久socket授权或生产激活、0VM生命周期写/模型/新TCP；完整M0-05仍IN_PROGRESS |
+| E74 | 源码`6115898459b2`的[完整资格CI](https://github.com/StateKnot/Harniqo/actions/runs/41389364911)670Python/两组Node及[同源三平台契约](https://github.com/StateKnot/Harniqo/actions/runs/41389364897)全部成功；4份实际artifact/run/job/步骤/source/锁/hash已核 | [CI索引](../operations/libvirt-acl-ci-2026-11-02.json)、[来源与边界](../../research/m0-libvirt-acl-activation.md) | CI不连接真实driver或启动VM，不继承E73原生授权结果，非桌面构建；运行输入字节不变，M0仍4/8 |
 
 
 

@@ -1,0 +1,94 @@
+{
+  "scope": "libvirt_acl_components_and_contracts_ci_only",
+  "date_local": "2026-11-02",
+  "timezone": "Asia/Shanghai",
+  "source_commit": "6115898459b2037804bf153317028afc5d58de6e",
+  "qualification_ci": {
+    "scope": "synthetic_qualification_components_only",
+    "date_local": "2026-11-02",
+    "timezone": "Asia/Shanghai",
+    "source_commit": "6115898459b2037804bf153317028afc5d58de6e",
+    "run_url": "https://github.com/StateKnot/Harniqo/actions/runs/41389364911",
+    "job_url": "https://github.com/StateKnot/Harniqo/actions/runs/41389364911/job/125097130734",
+    "conclusion": "success",
+    "runner": "ubuntu-24.04",
+    "python": "3.12.15",
+    "python_tests": 670,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "expected_failures": 0,
+    "report_sha256": "613f5af0f71c220228a3be7ab0f8121fa5ef39942c52e8d648cf1c1195d8a39b",
+    "node_checks": [
+      {
+        "step": "Run native protocol and private profile component checks",
+        "conclusion": "success"
+      },
+      {
+        "step": "Run transparent provider observer component checks",
+        "conclusion": "success"
+      }
+    ],
+    "real_model_calls": 0,
+    "native_harness_verified": false,
+    "vm_isolation_verified": false,
+    "desktop_build_verified": false
+  },
+  "contracts_ci": {
+    "source_commit": "6115898459b2037804bf153317028afc5d58de6e",
+    "run_url": "https://github.com/StateKnot/Harniqo/actions/runs/41389364897",
+    "conclusion": "success",
+    "jobs": [
+      {
+        "runner": "ubuntu-24.04",
+        "conclusion": "success",
+        "job_url": "https://github.com/StateKnot/Harniqo/actions/runs/41389364897/job/125097130540",
+        "python": "3.12.15",
+        "definitions": 60,
+        "paths": 18,
+        "fixtures": 107,
+        "transition_cases": 15,
+        "report_sha256": "e705ca702c619ce0a36d8636b62437a36982f8f5c3b30a02a2caca7fbaba2c91"
+      },
+      {
+        "runner": "macos-15",
+        "conclusion": "success",
+        "job_url": "https://github.com/StateKnot/Harniqo/actions/runs/41389364897/job/125097130798",
+        "python": "3.12.10",
+        "definitions": 60,
+        "paths": 18,
+        "fixtures": 107,
+        "transition_cases": 15,
+        "report_sha256": "e705ca702c619ce0a36d8636b62437a36982f8f5c3b30a02a2caca7fbaba2c91"
+      },
+      {
+        "runner": "windows-2025",
+        "conclusion": "success",
+        "job_url": "https://github.com/StateKnot/Harniqo/actions/runs/41389364897/job/125097130962",
+        "python": "3.12.10",
+        "definitions": 60,
+        "paths": 18,
+        "fixtures": 107,
+        "transition_cases": 15,
+        "report_sha256": "24d8e22f016df7935ea1ff912277c66e30c2e80cdafed31d56d433cbc1df0aeb"
+      }
+    ],
+    "scope": "contract_verification_only",
+    "desktop_build_verified": false
+  },
+  "artifact_count_verified": 4,
+  "sources_sha256": {
+    "scripts/qualification/qualify_libvirt_acl.py": "c37fdede6c15fb9b64bdd2da705ea7d28fbd04e33eb19abdbf69c954842aacfc",
+    "scripts/qualification/test_libvirt_acl.py": "dd205292c45721c00e734abf659a01d7fb21c31a173e7d0826409ae207a62a02",
+    "scripts/ci/qualification_components.py": "494b98bb8f8c24e92b24341945ce156bbac3b0471f967a28cbf79ac7c940c657",
+    ".github/workflows/qualification.yml": "84c9368dc1929ce0e49297c51749045f54d4014698138001f85458498e73f3db",
+    ".github/workflows/contracts.yml": "ccb8ae0938273b81c3fb05d606e5de8ff3b216889423b226724a36e0b3b1ea46"
+  },
+  "real_model_calls": 0,
+  "virtual_machines_started": 0,
+  "effective_libvirt_acl_verified_in_ci": false,
+  "dedicated_uid_real_vm_ipc_verified": false,
+  "production_activation_verified": false,
+  "desktop_build_verified": false,
+  "milestone_complete": false
+}

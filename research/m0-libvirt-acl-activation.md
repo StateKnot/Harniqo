@@ -120,3 +120,9 @@ L0 只读检查不足时，不能卸载/重载正在承载既有 VM 的 KVM 模�
 首次 native worker 在 ready 前因本任务 root 发行目录受 umask 变成 0700 而退出，尚未执行 API 调用；失败与 ACL 恢复原件保留。只对已核对来源/dev/inode 的三个公开代码目录改为 0755，并实际以 Broker 读取固定源摘要；新的独立目录复测通过，未覆盖失败或第二次重启 daemon。首个只读 collector 误把 QEMU 拥有的 runtime pidfile 当作 root 源码目录拒绝；仅观察读取改用有界稳定文件检查，并先绑定冻结 PID/start/owner/cgroup/native UUID，其他源码/配置/规则仍严格 root 控制。失败审计同样保留，宿主目录权限未因此放宽。
 
 当前 driver 与 bootstrap 收窄规则保持启用；socket DAC 已恢复，未交付持久生产 socket 准入，没有 VM 创建/启动/停止、模型调用或新 TCP 监听。固定 UUID/name 写委派、专用 UID 真实 VM 经 IPC、正式 Supervisor 与服务激活仍须后续独立验收，原包保持 BLOCKED，M0 仍 4/8、M0-05 仍 IN_PROGRESS。CI 发布后的实际原件另行登记，不由本轮服务器成功推断。
+
+## 实际 GitHub CI
+
+源码`6115898459b2037804bf153317028afc5d58de6e`的[完整资格CI](https://github.com/StateKnot/Harniqo/actions/runs/41389364911)670 项 Python 回归、0失败/错误/跳过，两组 Node 检查全部成功；[同源三平台契约CI](https://github.com/StateKnot/Harniqo/actions/runs/41389364897)各60定义/18路径/107样例/15生命周期成功。4份实际 artifact 已下载，运行/步骤、报告、源码与锁摘要已核对，见[CI索引](../docs/operations/libvirt-acl-ci-2026-11-02.json)。CI 是组件/进程夹具与契约范围，不启用实际 libvirt driver，不继承 E73 指定服务器原生授权结果，也不是三端桌面构建。
+
+最终增补 E74 仅改变证据与文档；运行代码、测试、工作流、契约均保持此受测提交的字节，不重复管理员变更或 VM 操作。M0 仍4/8、M0-05仍 IN_PROGRESS，服务包继续 BLOCKED。
