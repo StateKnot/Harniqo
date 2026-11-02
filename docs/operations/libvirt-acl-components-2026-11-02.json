@@ -1,0 +1,29 @@
+{
+  "scope": "effective_libvirt_acl_qualification_components_only",
+  "date_local": "2026-11-02",
+  "timezone": "Asia/Shanghai",
+  "passed": true,
+  "independent_verified": true,
+  "tests": 34,
+  "failures": 0,
+  "errors": 0,
+  "skipped": 0,
+  "python": "3.12.3",
+  "system": "Linux",
+  "kernel": "7.0.0-38-generic",
+  "machine": "x86_64",
+  "seconds": 0.7976548020378686,
+  "sources_sha256": {
+    "scripts/qualification/qualify_libvirt_acl.py": "c37fdede6c15fb9b64bdd2da705ea7d28fbd04e33eb19abdbf69c954842aacfc",
+    "scripts/qualification/test_libvirt_acl.py": "dd205292c45721c00e734abf659a01d7fb21c31a173e7d0826409ae207a62a02"
+  },
+  "report_sha256": "ff94b149fb29f25bbe6de51c60ba8060df83b3cfc7db62e0f40e39fe887559ee",
+  "unittest_log_sha256": "6953eacd3bfe794960e474c7ce3f768802698038ba4c1d66e2ceb181731c86b6",
+  "linux_process_regressions": 14,
+  "pure_contract_regressions": 20,
+  "native_acl_verified": false,
+  "virtual_machine_lifecycle_exercised": false,
+  "real_model_calls": 0,
+  "production_activation_verified": false,
+  "milestone_complete": false
+}

@@ -1,0 +1,122 @@
+{
+  "scope": "effective_libvirt_bootstrap_api_acl_only",
+  "date_local": "2026-11-02",
+  "timezone": "Asia/Shanghai",
+  "passed": true,
+  "independent_verified": true,
+  "bootstrap_acl_only": true,
+  "checks": {
+    "broker_same_rw_hostname_denial_hostname": true,
+    "components_34_clean": true,
+    "current_config_and_rule": true,
+    "current_daemon_invocation": true,
+    "existing_domains_networks_filters_unchanged": true,
+    "managed_processes_zero": true,
+    "no_new_domains": true,
+    "policy_load_barriers_verified": true,
+    "root_and_legacy_rw_positive": true,
+    "root_controlled_source_and_binding": true,
+    "service_identity_capabilities_nnp": true,
+    "socket_exactly_restored": true,
+    "supervisor_raw_rw_then_open_denial": true
+  },
+  "component_log_sha256": "6953eacd3bfe794960e474c7ce3f768802698038ba4c1d66e2ceb181731c86b6",
+  "component_report_sha256": "ff94b149fb29f25bbe6de51c60ba8060df83b3cfc7db62e0f40e39fe887559ee",
+  "components_passed": 34,
+  "config_sha256": "d005cf30144930248eb14b8502883338fa5091348ccd6052399dd27ad15c091a",
+  "domains_preserved": 3,
+  "error_codes": [],
+  "evidence_file_count": 707,
+  "evidence_files_sha256": {
+    "driver_enabled": "a984fd30925a59c0ff62682042204a0bb154c15e2102c8ab2234ebc16fc311c3",
+    "first_attempt_failed": "5135fc8a0761564680de29d16ed18de9af37826a2a72d5c7bf9852887e4f2b35",
+    "first_attempt_restored": "f0f0eb6a8b7a06e9de8189b35b258a59a1f4e654d3b709006331bd9f84f5a0b0",
+    "native": "3decb86397d5df2fff7a309d8ddf0d5d047f8cd1753f4ef23add50b0c61daa79",
+    "native_complete": "1559bbb4aff3e2013682619574584b9877bef65ae0c2e5aa7e6dc5304d74656a",
+    "native_verified": "debe687fd5640ca13cbd620e33300bd115236785374a68f4f59d6867593ff3c4",
+    "plan": "f728d8ef78d3f0f32b3be0fc2bb9659a7d35106d32cf7412ad2b202a9d90f472",
+    "socket_restored": "c6f495eed4f9f45c717a2526bd0ab49a491511bd4668a57098d6fb6ddf776f27"
+  },
+  "filters_preserved": 24,
+  "first_attempt_status": "FAILED",
+  "independent_report_sha256": "bbd12754ede6c6466026d71175072b653b7a469e874ae8ce78ac51795f8c952f",
+  "m0_complete": false,
+  "managed_process_count": 0,
+  "model_calls": 0,
+  "native_api_results": {
+    "broker": {
+      "capabilities_denial": {
+        "code": 88,
+        "domain": 55
+      },
+      "hostname_before_and_after": true,
+      "same_rw_connection": true
+    },
+    "supervisor": {
+      "open_denial": {
+        "code": 88,
+        "domain": 55
+      },
+      "raw_rw_connected": true
+    }
+  },
+  "native_report_sha256": "3decb86397d5df2fff7a309d8ddf0d5d047f8cd1753f4ef23add50b0c61daa79",
+  "networks_preserved": 2,
+  "persistent_socket_authorization_verified": false,
+  "plan_sha256": "f728d8ef78d3f0f32b3be0fc2bb9659a7d35106d32cf7412ad2b202a9d90f472",
+  "policy_results": {
+    "broker_connect_read": "NO",
+    "broker_qemu_connect_getattr": "YES",
+    "legacy_domain_write": "YES",
+    "legacy_rw_capabilities_positive": true,
+    "non_service_api_compatibility": "preserve_none",
+    "root_rw_capabilities_positive": true,
+    "supervisor_connect_getattr": "NO"
+  },
+  "production_activation_verified": false,
+  "qualification": "M0-05-independent-libvirt-bootstrap-acl-audit",
+  "raw_evidence_manifest_sha256": "e5874121706bd4d0d5a6d4fc03de37e57184d3033a068645e2e7ca49a0b4bcaf",
+  "rule_sha256": "e58060eb2bbf7d9057665c23ea443eb83bf5fab4ca96055ee4c8e36c9d55b365",
+  "source_sha256": "c37fdede6c15fb9b64bdd2da705ea7d28fbd04e33eb19abdbf69c954842aacfc",
+  "status": "PASSED",
+  "versions": {
+    "libvirt-clients": "10.0.0-2ubuntu8.19",
+    "libvirt-daemon-system": "10.0.0-2ubuntu8.19",
+    "libvirt0": "10.0.0-2ubuntu8.19",
+    "polkitd": "124-2ubuntu1.24.04.4",
+    "python3-libvirt": "10.0.0-1build1",
+    "systemd": "255.4-1ubuntu8.18"
+  },
+  "virtual_machine_lifecycle_writes": 0,
+  "vm_lifecycle_exercised": false,
+  "sources_sha256": {
+    "scripts/qualification/qualify_libvirt_acl.py": "c37fdede6c15fb9b64bdd2da705ea7d28fbd04e33eb19abdbf69c954842aacfc",
+    "scripts/qualification/test_libvirt_acl.py": "dd205292c45721c00e734abf659a01d7fb21c31a173e7d0826409ae207a62a02"
+  },
+  "collector_source_sha256": "e26949af29c8177e2f6d3d3082b05f567219e186837bd078b6db540e7fbca1d7",
+  "daemon_restarts": 1,
+  "virtual_machines_started": 0,
+  "tcp_listeners_started": 0,
+  "real_model_calls": 0,
+  "socket_acl_restored": true,
+  "first_attempt": {
+    "status": "FAILED",
+    "error": "worker_exited_before_ready",
+    "cause": "root_created_public_source_directories_were_0700_after_umask",
+    "recovery": "only_three_task_owned_source_directories_verified_and_changed_to_0755_then_new_independent_native_attempt",
+    "original_socket_acl_restored": true,
+    "native_report_sha256": "5135fc8a0761564680de29d16ed18de9af37826a2a72d5c7bf9852887e4f2b35"
+  },
+  "independent_audit_first_attempt": {
+    "status": "FAILED",
+    "error": "ancestor_not_root_controlled",
+    "report_sha256": "8ee690399aecfed2e3e40752ddde3f0c0b8c4d83d1cbd8ee731f75f0fbddc2b3",
+    "fix": "treat_QEMU_owned_pidfiles_as_bounded_observation_data_then_bind_frozen_PID_start_UID_cgroup_and_native_UUID",
+    "host_permissions_changed": false
+  },
+  "legacy_api_compatibility": "all_non_service_api_yes_preserve_previous_none_permissions_not_host_wide_least_privilege",
+  "fixed_domain_delegation_verified": false,
+  "dedicated_uid_real_vm_ipc_verified": false,
+  "production_supervisor_integrated": false,
+  "milestone_complete": false
+}
