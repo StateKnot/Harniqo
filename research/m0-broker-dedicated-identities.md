@@ -48,4 +48,10 @@ PrivateNetwork 和 AF_UNIX 限制，并直接运行连接负例；文件路径�
 
 独立只读collector不导入producer，另验六份root发行源码、NSS/锁定状态/receipt/恢复审计、配置与路径、HMAC空journal/anchor/锁inode、原始probe、实际unit/进程快照及停止状态；三份既有domain XML、network/filter摘要与执行前基线一致。raw/seed位于项目images下，raw为8GiB稀疏且不可启动的canary，实际未启动VM；未新增镜像/工具链归档，manifest仍12项。新canary及私有状态保留用于审计，旧96GiB诊断层不在清理范围。
 
-本阶段实际使用了授权管理员创建身份和自有临时unit；未改共享libvirt、polkit、sudoers、SSH或既有VM。仅证明所测服务上下文及列出的权限策略，UID在namespace外的全局授权、有效libvirt逐API权限、专用UID真实VM和生产Supervisor常驻集成继续PENDING；M0仍4/8。实际GitHub CI发布后单列登记。
+本阶段实际使用了授权管理员创建身份和自有临时unit；未改共享libvirt、polkit、sudoers、SSH或既有VM。仅证明所测服务上下文及列出的权限策略，UID在namespace外的全局授权、有效libvirt逐API权限、专用UID真实VM和生产Supervisor常驻集成继续PENDING；M0仍4/8。实际GitHub CI按下节分别登记。
+
+## 实际 GitHub CI
+
+源码`f7775b6d181d4aca7bfeeead8be816f78bc67adf`的[完整资格CI](https://github.com/StateKnot/Harniqo/actions/runs/41375990700)通过636项Python回归，0失败/错误/跳过，两组Node检查成功；[同源三平台契约CI](https://github.com/StateKnot/Harniqo/actions/runs/41375990757)各通过60定义、18路径、107样例和15生命周期。共4份实际artifact已下载，run/job/步骤、报告、源码、锁与SHA核对完成，见[CI索引](../docs/operations/broker-identities-ci-2026-11-02.json)。CI没有创建实际服务账号或启动本轮特权服务，不能从组件成功继承E70的宿主身份结果，也不是三端桌面构建。
+
+最终证据增补E71，并将本轮生成的images/idq-*/canary目录纳入Git忽略规则；实际canary、key/state和原件均保留，不移动或重写已验证catalog。运行代码、测试、工作流与契约保持该受测提交的字节，不因文档重复执行VM或管理员部署。M0仍4/8、M0-05仍IN_PROGRESS。

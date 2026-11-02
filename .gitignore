@@ -23,6 +23,8 @@ __pycache__/
 images/containers/
 images/sources/
 images/vm/
+# Non-bootable dedicated-identity qualification canaries
+images/idq-*/
 images/manifest.local.json
 
 # Project-scoped runtime distribution archives

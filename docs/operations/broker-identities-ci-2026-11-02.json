@@ -1,0 +1,87 @@
+{
+  "scope": "dedicated_identity_components_and_contracts_ci_only",
+  "date_local": "2026-11-02",
+  "timezone": "Asia/Shanghai",
+  "source_commit": "f7775b6d181d4aca7bfeeead8be816f78bc67adf",
+  "qualification_ci": {
+    "scope": "synthetic_qualification_components_only",
+    "date_local": "2026-11-02",
+    "timezone": "Asia/Shanghai",
+    "source_commit": "f7775b6d181d4aca7bfeeead8be816f78bc67adf",
+    "run_url": "https://github.com/StateKnot/Harniqo/actions/runs/41375990700",
+    "job_url": "https://github.com/StateKnot/Harniqo/actions/runs/41375990700/job/125056225428",
+    "conclusion": "success",
+    "runner": "ubuntu-24.04",
+    "python": "3.12.15",
+    "python_tests": 636,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "expected_failures": 0,
+    "report_sha256": "777d8e3a62b6154d9e34ec881f8eb4e055407d026be094b659b6615f45146566",
+    "node_checks": [
+      {
+        "step": "Run native protocol and private profile component checks",
+        "conclusion": "success"
+      },
+      {
+        "step": "Run transparent provider observer component checks",
+        "conclusion": "success"
+      }
+    ],
+    "real_model_calls": 0,
+    "native_harness_verified": false,
+    "vm_isolation_verified": false,
+    "desktop_build_verified": false
+  },
+  "contracts_ci": {
+    "source_commit": "f7775b6d181d4aca7bfeeead8be816f78bc67adf",
+    "run_url": "https://github.com/StateKnot/Harniqo/actions/runs/41375990757",
+    "conclusion": "success",
+    "jobs": [
+      {
+        "runner": "ubuntu-24.04",
+        "conclusion": "success",
+        "job_url": "https://github.com/StateKnot/Harniqo/actions/runs/41375990757/job/125056226016",
+        "python": "3.12.15",
+        "definitions": 60,
+        "paths": 18,
+        "fixtures": 107,
+        "transition_cases": 15,
+        "report_sha256": "e705ca702c619ce0a36d8636b62437a36982f8f5c3b30a02a2caca7fbaba2c91"
+      },
+      {
+        "runner": "macos-15",
+        "conclusion": "success",
+        "job_url": "https://github.com/StateKnot/Harniqo/actions/runs/41375990757/job/125056226058",
+        "python": "3.12.10",
+        "definitions": 60,
+        "paths": 18,
+        "fixtures": 107,
+        "transition_cases": 15,
+        "report_sha256": "e705ca702c619ce0a36d8636b62437a36982f8f5c3b30a02a2caca7fbaba2c91"
+      },
+      {
+        "runner": "windows-2025",
+        "conclusion": "success",
+        "job_url": "https://github.com/StateKnot/Harniqo/actions/runs/41375990757/job/125056225769",
+        "python": "3.12.10",
+        "definitions": 60,
+        "paths": 18,
+        "fixtures": 107,
+        "transition_cases": 15,
+        "report_sha256": "24d8e22f016df7935ea1ff912277c66e30c2e80cdafed31d56d433cbc1df0aeb"
+      }
+    ],
+    "scope": "contract_verification_only",
+    "desktop_build_verified": false
+  },
+  "artifact_count_verified": 4,
+  "real_model_calls": 0,
+  "virtual_machines_started": 0,
+  "dedicated_account_runtime_ci_verified": false,
+  "production_supervisor_integrated": false,
+  "libvirt_acl_verified": false,
+  "desktop_build_verified": false,
+  "milestone_complete": false
+}
