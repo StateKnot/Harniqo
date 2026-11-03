@@ -1,0 +1,38 @@
+{
+  "scope": "dedicated_vm_qualification_workers_components_only",
+  "date_local": "2026-11-03",
+  "timezone": "Asia/Shanghai",
+  "source_base_commit": "e83d2a345e7fc1ee7a0b62e0d96770223d441a73",
+  "environment": {
+    "system": "Linux",
+    "python": "3.12.3"
+  },
+  "suites": {
+    "broker_peer": 35,
+    "broker_vm_fixture": 19
+  },
+  "tests": 54,
+  "failures": 0,
+  "errors": 0,
+  "skipped": 0,
+  "passed": true,
+  "report_sha256": "4783fab4aa4911b64b89656b0434fe4cdce0033bb1523faee0da43ee9267a9a4",
+  "log_sha256": "51264723ca46f70f3ddce5ebc5835dc3b00cbfc7b376cddb1532efe27df47271",
+  "sources_sha256": {
+    "apps/runner/resource_broker/__init__.py": "ce2669a86eed247e63f205867bab35361002759c7bf9bf7a03e6614a218112b3",
+    "apps/runner/resource_broker/resources.py": "01a29cf1609dc2348ab22cde2c27d817d465e5cbee61899d274ef7bb95a4963c",
+    "apps/runner/resource_broker/service.py": "f6393fd3b16bad9204c786afc7c4565161a5ddaadf0106f02cc270adb0611242",
+    "apps/runner/resource_broker/ipc.py": "7f84f0e8ec877be8ad61a90bfeb59785285b20f489b6d62a8d853d97fd32bb79",
+    "apps/runner/console_store.py": "4fe2ba401ecb7846c2bbbd6008ed680d0fc9a001ee8abb99398ca22a32a8e4f4",
+    "scripts/qualification/qualify_libvirt_acl.py": "c37fdede6c15fb9b64bdd2da705ea7d28fbd04e33eb19abdbf69c954842aacfc",
+    "scripts/qualification/broker_peer.py": "23bc37aac7eb3cf1e34a497084480cb16d2243ca5fcdfad9f40f94e7dda691e7",
+    "scripts/qualification/broker_vm_fixture.py": "9971c71530cdcba25220bdfc0a562d490328ebd9a1b6366091cc04f511a39057",
+    "scripts/qualification/test_broker_peer.py": "5b468f4c7c08e810b87b3a482fb8fece0759a5e89a779b90d61e7e881514a3e9",
+    "scripts/qualification/test_broker_vm_fixture.py": "1b35a147439212e47a89d7e4fa5fa5eeef237eaf183f9d8ebd18489f8249032c"
+  },
+  "real_model_calls": 0,
+  "native_vm_verified": false,
+  "production_activation_verified": false,
+  "persistent_socket_authorization_verified": false,
+  "desktop_build_verified": false
+}

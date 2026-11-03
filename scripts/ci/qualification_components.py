@@ -45,6 +45,8 @@ TESTS = (
     'test_broker_identities.py',
     'test_broker_identity_operator.py',
     'test_libvirt_acl.py',
+    'test_broker_peer.py',
+    'test_broker_vm_fixture.py',
 )
 
 
