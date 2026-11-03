@@ -1,0 +1,69 @@
+{
+  "base_sha256": "04e8f2461a16a44e78a370284471f29616cdd9baf1893df25807b71f985b6c94",
+  "baseline_preserved": {
+    "domains": 3,
+    "filters": 24,
+    "networks": 2
+  },
+  "checks": {
+    "base_digest_and_retained_raw_identity": true,
+    "daemon_socket_epoch_unchanged": true,
+    "exact_existing_baseline": true,
+    "exact_temporary_access_restored": true,
+    "fixture_durable_archive_and_exit": true,
+    "guest_nonce_boot_and_limits": true,
+    "qemu_physically_absent": true,
+    "root_report_complete": true,
+    "sdk_peer_receipts_and_events": true,
+    "source_and_configuration_pins": true,
+    "units_and_dedicated_writers_absent": true
+  },
+  "dedicated_identity_writers_remaining": 0,
+  "fixture_receipt_sha256": "a536cce9471d8b3fae970be9e937915fd48c7e9594a2b0a13feb402875dbeb43",
+  "limitations": [
+    "No multi-VM interference or full fault-recovery qualification.",
+    "No production Supervisor or persistent service activation qualification."
+  ],
+  "limits": {
+    "cpu_period_usec": 100000,
+    "cpu_quota_usec": 100000,
+    "memory_max_bytes": 2147483648,
+    "swap_max_bytes": 2147483648
+  },
+  "model_calls": 0,
+  "owned_units_running": 0,
+  "persistent_socket_authorization_verified": false,
+  "plan_sha256": "20488f80ff6db112c0df780d5ce1db525fc10e8491b302d5c15c17a12f001b77",
+  "production_activation_verified": false,
+  "production_supervisor_integrated": false,
+  "qualification": "dedicated-identity-single-vm-ipc",
+  "raw_evidence_visibility": "private-only",
+  "report_sha256": "63586a8a7c9e000c2ec3d361aef04fcbcbfbfc2e93f50d4ea561dc30390d5945",
+  "schema_version": 1,
+  "scope": "One fixed limited-v2 VM; ensure/observe/renew/revoke, stale authorization rejection, durable fixture archive and restoration.",
+  "sources_sha256": {
+    "apps/runner/console_store.py": "4fe2ba401ecb7846c2bbbd6008ed680d0fc9a001ee8abb99398ca22a32a8e4f4",
+    "apps/runner/resource_broker/__init__.py": "ce2669a86eed247e63f205867bab35361002759c7bf9bf7a03e6614a218112b3",
+    "apps/runner/resource_broker/ipc.py": "7f84f0e8ec877be8ad61a90bfeb59785285b20f489b6d62a8d853d97fd32bb79",
+    "apps/runner/resource_broker/resources.py": "01a29cf1609dc2348ab22cde2c27d817d465e5cbee61899d274ef7bb95a4963c",
+    "apps/runner/resource_broker/service.py": "f6393fd3b16bad9204c786afc7c4565161a5ddaadf0106f02cc270adb0611242",
+    "scripts/qualification/broker_peer.py": "23bc37aac7eb3cf1e34a497084480cb16d2243ca5fcdfad9f40f94e7dda691e7",
+    "scripts/qualification/broker_vm_fixture.py": "9971c71530cdcba25220bdfc0a562d490328ebd9a1b6366091cc04f511a39057",
+    "scripts/qualification/qualify_broker_identities.py": "5da45604ebe21360e2ec1f4221fdeac3736843ba008842901c569605a340ed46",
+    "scripts/qualification/qualify_libvirt_acl.py": "c37fdede6c15fb9b64bdd2da705ea7d28fbd04e33eb19abdbf69c954842aacfc"
+  },
+  "status": "PASSED",
+  "virtual_machines_observed": 1,
+  "date_local": "2026-11-03",
+  "timezone": "Asia/Shanghai",
+  "source_commit": "771aa56ca6d826c05950ea7bd6e543e070a75815",
+  "independent_collector_sha256": "f7231b7f2f57c84fa264f985bd8f157ee4584532ac05a3c637f9d98a2773c90d",
+  "failure_history": {
+    "preparation_owner_mismatch_retained": true,
+    "fixture_pre_dispatch_traversal_failure_retained": true,
+    "wrong_guest_channel_run_retained": true,
+    "late_guest_boot_run_retained": true,
+    "both_dispatched_failed_runs_recovered": true,
+    "failed_run_statuses_rewritten": false
+  }
+}

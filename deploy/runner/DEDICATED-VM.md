@@ -51,3 +51,11 @@ watch 的运行时限必须覆盖全部租约和停止余量，不能沿用较�
 PYTHONDONTWRITEBYTECODE=1 python3 -B scripts/qualification/test_broker_peer.py -v
 PYTHONDONTWRITEBYTECODE=1 python3 -B scripts/qualification/test_broker_vm_fixture.py -v
 ```
+
+## 已执行范围
+
+[实际原生与独立核验索引](../../docs/operations/dedicated-vm-native-2026-11-03.json)记录一个固定v2 VM经真实专用Broker/Supervisor身份完成四操作、Guest新启动回执、原生资源读取、固定对象ACL、运行中撤销、旧代次拒绝和持久归档。原生10项门槛、独立11组与准入检查均通过；8个本任务unit停止、专用身份无遗留写者，临时ACL与规则恢复，原3domain/2network/24filter及daemon/socket代次不变。
+
+准备UID假设、首组目录权限、第二组错误通道及第三组晚期Guest启动超时均保留失败证据；两组已派发VM的恢复单独记录，不改原FAILED。成功第四组使用与生产CHANNEL绑定的早期bootcmd及180秒有限Guest等待，仍由原独立watch和短期租约停止。raw诊断层留在指定images目录，原始配置、身份与业务数据仅保存在受控存储。
+
+该结果只接受本次临时固定对象授权下的资格子项。持久socket启动准入、生产Supervisor、完整服务安装及更广故障/出网/控制面授权预算仍未通过，不据此激活服务。组件和[实际CI索引](../../docs/operations/dedicated-vm-ci-2026-11-03.json)与本次真实宿主结果分别计量。

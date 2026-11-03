@@ -1,6 +1,6 @@
 # M0 执行证据索引
 
-日期：2026-11-01 · M0 状态：`IN_PROGRESS`，8 项中 **4 项已验收**。本索引记录已取得的证据及其范围，不表示 M0、应用功能或生产发布已完成。
+日期：2026-11-03 · M0 状态：`IN_PROGRESS`，8 项中 **4 项已验收**。本索引记录已取得的证据及其范围，不表示 M0、应用功能或生产发布已完成。
 
 任务定义见 [BACKLOG](BACKLOG.md)，阶段门槛见 [ROADMAP](ROADMAP.md)，验收规则见 [ACCEPTANCE](ACCEPTANCE.md)。这里只发布脱敏摘要；私有报告位置均为工作区相对路径模式，`<…>` 代表由受控环境记录映射的实际文件名。原始报告、日志、配置、凭据和镜像不随本索引公开。
 
@@ -12,7 +12,7 @@
 | M0-02 机器契约 | `IMPLEMENTED` | 60 个 Schema 定义、18 条 OpenAPI 路径、107 个正反例、15 个生命周期案例通过验证；干净服务器按完整 hash 锁安装后复跑通过 | 结合真实原生 Harness 与生产隔离准入冻结契约 |
 | M0-03 首个 Harness | ✅ `ACCEPTED` · 已开发完成 | 固定四工具组合：两模型实际身份与 HTTP 目标、工具/文件/历史、原生取消、人工拒绝、重启后原生续聊均已验证 | 范围限于本次组合；locked-stream 的断线中断、重启后旧 Run 查询404按实声明，通用工具与生产隔离由后续任务验收 |
 | M0-04 多 Harness | ✅ `ACCEPTED` · 已开发完成 | 正式开发目标Hermes/OpenCode/OpenClaw均有运行证据；OpenCode实际发送、DSH SDK与Octop三身份试验补齐；原版失败、独立修改组合和preview均有具体结论 | 正式Adapter、完整能力套件、生产隔离及更多组合在后续阶段验收，不从技术准入推导已交付支持 |
-| M0-05 执行隔离 | `IN_PROGRESS` | 封闭KVM基线与第三轮真实NIC82项检查通过；临时规则、资源及原有效策略恢复均确认；固定实例组真实期限/进程故障恢复、v2宿主CPU/内存/swap限额与CPU压力对照通过；内部受限HTTPS上游传输已实现并独立验证；固定v2 Guest耗尽与外部停止恢复、有界console、本地事件spool恢复/容量停止、显式Host QEMU OOM恢复与本地IPC身份/ACL通过 | 生产Egress代理、专用身份、硬配额、控制面全局fencing、资源耗尽及更广宿主故障恢复等完整准入 |
+| M0-05 执行隔离 | `IN_PROGRESS` | 封闭KVM基线与第三轮真实NIC82项检查通过；临时规则、资源及原有效策略恢复均确认；固定实例组真实期限/进程故障恢复、v2宿主CPU/内存/swap限额与CPU压力对照通过；内部受限HTTPS上游传输已实现并独立验证；固定v2 Guest耗尽与外部停止恢复、有界console、本地事件spool恢复/容量停止、显式Host QEMU OOM恢复与本地IPC身份/ACL通过 | 生产Egress代理、持久服务权限与生产Supervisor、其余硬配额、控制面全局fencing及更广宿主故障恢复等完整准入 |
 | M0-06 来源与依赖基线 | ✅ `ACCEPTED` | 当前 MIT 自有范围、第三方来源及分发边界已清点；验证工具依赖已精确锁定和校验 | 新增依赖、原生运行包及镜像分发仍须继续核对来源、许可和材料 |
 | M0-07 验收与资源 | `IN_PROGRESS` | [验收基线](../operations/ACCEPTANCE-BASELINE.md) 已形成 | 原生三端 CI/签名、容量、备份和相关外部资源逐项验证 |
 | M0-08 排期与准入 | `TODO` | 67 项任务及阶段依赖已形成 | M0-01～07 全部证据和关键可行性结论到位后，冻结具体投入与排期 |
@@ -101,6 +101,8 @@
 | E73 | 有效 bootstrap driver 原生资格及独立核验通过：Broker同RW连接 hostname+/capabilities88,55-/hostname+，Supervisor rawRW+/open88,55-；13组审计/707原件、一次准确daemon重启、3既有QEMU及2network/24filter不变、原socket ACL恢复 | [原生索引](../operations/libvirt-acl-native-2026-11-02.json)、[研究与实际范围](../../research/m0-libvirt-acl-activation.md) | 原始ready前失败/目录修复与独立审计失败保留；非服务API YES仅保留旧none兼容宽权限。未授VM写/持久socket授权或生产激活、0VM生命周期写/模型/新TCP；完整M0-05仍IN_PROGRESS |
 | E74 | 源码`6115898459b2`的[完整资格CI](https://github.com/StateKnot/Harniqo/actions/runs/41389364911)670Python/两组Node及[同源三平台契约](https://github.com/StateKnot/Harniqo/actions/runs/41389364897)全部成功；4份实际artifact/run/job/步骤/source/锁/hash已核 | [CI索引](../operations/libvirt-acl-ci-2026-11-02.json)、[来源与边界](../../research/m0-libvirt-acl-activation.md) | CI不连接真实driver或启动VM，不继承E73原生授权结果，非桌面构建；运行输入字节不变，M0仍4/8 |
 | E75 | 专用身份真实 VM 资格工具组件通过：Supervisor 签名 envelope 的四操作 SDK 调用者与 Broker Guest/console 夹具；指定 Linux/Python3.12.3 共54项（35+19），0失败/错误/跳过。覆盖派发前实际报告空间预留、未知结果留证、原始失败帧、停止排空与持久归档；组件本身未启动 VM | [工具运行方法](../../deploy/runner/DEDICATED-VM.md)、[脱敏组件报告](../operations/dedicated-vm-components-2026-11-03.json) | `.private/validation/<dedicated-vm-components>/` 的源 pin、report 和 unittest log；原失败及修正前批次分别保留 |
+| E76 | 临时固定对象授权下的专用身份真实 VM/IPC 通过：1台新 KVM，正式 Broker CLI/独立watch及Supervisor四操作SDK、Guest新nonce/boot、真实Broker限额读取、own普通XML成功与secure/已存在foreign拒绝、live revoke/实际QEMU消失、fresh旧代次拒绝、console EOF持久归档与fixture退出0全部通过。原生10门槛，独立11组加准入核验通过；0错误/清理错误，原3VM/2net/24filter及daemon/socket代次不变，临时权限全部恢复 | [固定范围与执行方法](../../deploy/runner/DEDICATED-VM.md)、[脱敏原生与独立核验](../operations/dedicated-vm-native-2026-11-03.json) | root受控 `<dedicated-vm-run>/` 的plan/report、8unit的Invocation绑定日志、4peer收据/events、Guest/console归档及独立collector；3个原生失败及2次显式恢复记录保留；完整raw层仅在指定images目录 |
+| E77 | 受测源码`771aa56ca6d8`的[实际资格CI](https://github.com/StateKnot/Harniqo/actions/runs/41586462976)724项Python和两组Node、[同源三平台契约](https://github.com/StateKnot/Harniqo/actions/runs/41586462939)各60定义/18路径/107样例/15生命周期全部成功；4份实际artifact的run/job/步骤、源码/锁与SHA已核验。最终证据增补不改变受测运行输入，CI与E76真实宿主结果分别计量 | [CI及三平台契约索引](../operations/dedicated-vm-ci-2026-11-03.json) | `.private/validation/<dedicated-vm-ci-run>/` 的实际报告、环境和下载archive；0模型/VM，非桌面构建或生产服务激活 |
 
 
 
@@ -121,6 +123,8 @@ E26–28仅覆盖固定Octop Harness SDK组合。供应商返回model_name不独
 OpenClaw配置首轮因已退役`logging.redactSensitive`被拒，按固定上游强制脱敏语义删除旧开关后通过；两次零模型握手在原生`startup-sidecars`未就绪状态失败，随后仅对该明确无提交状态进行有界等待，缺失/错误token门槛保持不变。所有旧报告保留，未在启动失败时消耗模型任务。
 
 ## 失败历史与证据保留
+
+本轮专用身份 VM 验收先后保留三组失败：首组在派发前因镜像父目录未准入 Broker 而失败；第二组 Guest 通道常量错误；第三组修正通道后仍受镜像无网卡网络等待和晚期 runcmd 时序影响，超过130秒回执门槛。另有更早的准备脚本账号UID假设错误。修正只涉及受控准备/夹具执行：按实际NSS核对账号；精确父目录 named-user execute 保持原mask，按身份与完整ACL恢复；Guest沿用既有密封夹具的早期bootcmd，绑定生产通道常量并设180秒有限等待。两组已派发失败均用原Supervisor及原签MAC停止journal确认停止，实际QEMU消失、失败console EOF归档后停止精确units并恢复权限；恢复独立记为RECOVERED，原报告仍FAILED。成功第四组另记E76，不覆盖失败；失败层和旧诊断材料保留。
 
 前两次 KVM 运行的 Guest 检查已通过，但整体结果均为失败：第一次 console 文件被 libvirt 改变所有者后归档读取失败；第二次发现 libvirt/virtlogd 更换了日志 inode，完整性检查拒绝通过。两次原始失败报告及所保留的诊断材料继续存在于各自的私有运行目录；第三次成功没有覆盖或改写这些记录。
 
