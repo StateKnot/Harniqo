@@ -1,0 +1,5 @@
+{
+  "extends": "./tsconfig.main.json",
+  "compilerOptions": { "rootDir": ".", "outDir": ".test-build" },
+  "include": ["tests/**/*.ts", "src/main/policy.ts", "src/shared/interface.ts"]
+}

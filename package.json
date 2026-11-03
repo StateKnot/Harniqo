@@ -1,0 +1,22 @@
+{
+  "name": "@harniqo/workspace",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "packageManager": "pnpm@11.5.2",
+  "engines": {
+    "node": "24.22.1",
+    "pnpm": "11.5.2"
+  },
+  "scripts": {
+    "typecheck": "pnpm -r --if-present typecheck",
+    "test": "pnpm -r --if-present test",
+    "build:desktop": "pnpm --filter @harniqo/desktop build",
+    "package:desktop": "pnpm --filter @harniqo/desktop package",
+    "smoke:desktop": "pnpm --filter @harniqo/desktop smoke"
+  },
+  "devDependencies": {
+    "typescript": "6.0.3"
+  }
+}

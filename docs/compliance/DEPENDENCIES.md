@@ -217,3 +217,21 @@ pip/npm 包、宿主工具安装或二进制归档。未复制这些项目的实
 或修改全局 swap/cgroup。原始 kernel journal、PID/cgroup/boot 身份和签名密钥
 只留私有证据，公开仅提供已核验的摘要与有限指标。该 profile 的持久状态须由
 认识它的匹配版本恢复，不能静默降级为其他 profile。
+
+
+## M1-01 客户端工程依赖（2026-11-03）
+
+根 [package.json](../../package.json)、[workspace 定义](../../pnpm-workspace.yaml)、[完整性锁](../../pnpm-lock.yaml) 与 [客户端依赖](../../apps/desktop/package.json) 共同固定本轮可重建输入；原有两个 Node 模块保留其 npm 锁及独立检查。当前产物仅为原生工程内测包，不是正式安装/签名发行。
+
+| 组件 | 固定版本与来源 | 许可与本轮处理 |
+| --- | --- | --- |
+| Node.js | 24.22.1；[官方固定发行](https://nodejs.org/dist/v24.22.1/) | Node MIT 与所带组件；开发工具链归档按官方 SHA256 核对，Electron 所带 Node 单独按实际运行版本记录 |
+| pnpm | 11.5.2；[官方 registry](https://registry.npmjs.org/pnpm/11.5.2) | MIT；复用受 Node24 支持的固定工具，不随 latest 改版本 |
+| Electron | 45.2.1；[官方发行](https://github.com/electron/electron/releases/tag/v45.2.1) | MIT，Chromium/其他所带组件另有条款；使用包内 checksums 验证原生归档，保留 Electron/Chromium 上游许可 |
+| React / react-dom | 19.3.1；[React](https://registry.npmjs.org/react/19.3.1)、[react-dom](https://registry.npmjs.org/react-dom/19.3.1) | MIT；bundled React/react-dom/scheduler 的实际 LICENSE 一起进入内测包 |
+| Vite | 8.3.5；[官方 registry](https://registry.npmjs.org/vite/8.3.5) | MIT；仅构建工具，renderer 使用本地产物 |
+| TypeScript | 6.0.3；[官方 registry](https://registry.npmjs.org/typescript/6.0.3) | Apache-2.0；沿用已有两个 Node 模块版本 |
+| @electron/packager | 20.3.0；[官方 registry](https://registry.npmjs.org/@electron%2fpackager/20.3.0) | BSD-2-Clause；仅用于当前原生 OS/架构的工程打包 |
+| @types/node、@types/react、@types/react-dom | 24.19.2、19.3.0、19.3.0；锁中固定 SRI | MIT；类型/开发依赖，不作为应用授权声明 |
+
+workspace 默认严格引擎、peer 与 store 完整性，安装脚本权限限定精确 Electron 版本；Electron45 的原生安装使用官方 `install-electron` 显式入口，不关闭 TLS/校验或沙箱。完整原生归档同时保留 Harniqo 根 MIT 与实际第三方 notices。M8 仍按最终发行包内容完成 SBOM/NOTICE 与分发核验；本记录不把所有传递依赖或未来插件一概改标 MIT。

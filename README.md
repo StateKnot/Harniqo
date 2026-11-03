@@ -6,7 +6,26 @@
 
 ## 项目状态
 
-目前在执行 M0，8 项中 4 项已验收：产品规格、固定 Hermes 组合、多 Harness 技术准入、当前来源/依赖基线。OpenCode实际发送已补证；DSH最小SDK任务与历史恢复通过并保持preview；Octop原生服务、Harness和ACP组合分别验证，原版ACP缺陷及独立修正组合均有记录。KVM网络第三轮82项真实检查通过，临时规则与资源已回收；前两次失败保留。三平台契约CI已通过。M0 尚未完成，尚无可安装应用或正式生产 Adapter；固定实例组的真实期限停止及进程故障恢复已通过；显式v2的QEMU全域CPU、内存/swap硬边界与CPU压力对照已验证；内部受限HTTPS上游传输通过14项回归与30项服务器资格检查；固定v2 Guest内存耗尽及外部终止后的持久恢复也已通过真实验收；正式有界console的实际预留、失败锁存、归档核对与超限后的VM停止/第二实例健康通过双VM验收；本地SQLite事件spool的真实SIGKILL恢复、精确重放/回收，以及缓冲耗尽后的VM停止与独立实例写入也已通过验收；显式故障profile下的Host QEMU memcg OOM、自然停止持久恢复与B并行响应也已通过真实验收；Supervisor/Broker 的四操作本地 IPC、逐消息身份与固定资源权限也已通过 Linux 真实进程资格；其持久后端夹具保持原计量范围。后续严格服务入口、独立watch和开发UID下真实VM四操作IPC及运行中撤销已通过验收，离线生产部署包保持BLOCKED；专用稳定账号与实际跨UID文件/IPC服务上下文也已通过限定验收；临时固定对象授权下的专用UID真实VM四操作、Guest/限额读取、运行中撤销及持久归档也已通过验收；持久socket授权、生产Supervisor与完整生产服务安装继续单独验收。完整生产选择性出网、专用服务身份、其余硬配额和控制面全局fencing仍待验证。结果、失败历史和能力限制见 [M0 执行证据索引](docs/planning/M0-RESULTS.md)。
+开发主线是 **M0 技术准入 → M1 客户端与控制面底座 → M2 首个 Harness 真实闭环 → 多 Harness、比较与批量评测**。[会话执行规则](AGENTS.md)要求每轮核对原任务、交付、退出条件和最小验证；[当前主线](docs/planning/MAINLINE.md)列出有限的 M0 收尾项与本轮范围。
+
+M0 的 8 项中 4 项已验收，完整生产执行准入仍在进行。M1-01 的独立工程工作面已开始：固定 workspace/工具链、Electron/React/TypeScript 可构建入口、只读桌面 Interface 与原生打包检查。本机 macOS arm64 的实际渲染与内测包启动已验证；跨平台 CI 结果单独登记。登录、平台连接及真实 Harness 会话尚未实现，工程入口不代表可用产品或正式支持。
+
+既有 Harness、VM、网络、限额和故障回收的结果、失败历史及范围见 [M0 执行证据索引](docs/planning/M0-RESULTS.md)。已有 Runner/transport/spool 实现按原 M2/M7 任务复用，整项和阶段状态以 [BACKLOG](docs/planning/BACKLOG.md) 为准。
+
+## 客户端工程
+
+使用 [.node-version](.node-version) 和 [package.json](package.json) 中固定的 Node/pnpm，运行：
+
+```sh
+pnpm install --frozen-lockfile
+pnpm --filter @harniqo/desktop exec install-electron
+pnpm --filter @harniqo/desktop typecheck
+pnpm --filter @harniqo/desktop test
+pnpm build:desktop
+pnpm --filter @harniqo/desktop start
+```
+
+打包、实际原生 smoke、构建来源及限制见 [桌面工程说明](apps/desktop/README.md)。内测归档未做发行签名/公证，尚无 Windows11/Linux 桌面安装及完整用户流程验收。
 
 生产目标同时覆盖团队私有部署和多租户 SaaS；执行环境首版限定为 Linux，客户端覆盖三端。
 
@@ -15,6 +34,7 @@
 | [产品规格](docs/product/PRD.md) | 首版权限、导航、六条完整用户流程和验收口径 |
 | [机器契约](packages/contracts/README.md) | JSON Schema、OpenAPI、状态迁移和可复现验证 |
 | [技术架构](docs/architecture/ARCHITECTURE.md) | 技术栈、七个业务 Module、数据与接口、执行隔离、双部署和关键决策 |
+| [开发主线与收尾清单](docs/planning/MAINLINE.md) | 每轮任务选择、退出条件、资源约束及已有代码复用归属 |
 | [开发方案与里程碑](docs/planning/ROADMAP.md) | 产品范围、架构、阶段依赖与发布门槛 |
 | [开发任务清单](docs/planning/BACKLOG.md) | 67 项任务，含交付物和验收条件 |
 | [M0 执行证据索引](docs/planning/M0-RESULTS.md) | 已验收状态、真实验证摘要、失败历史和未覆盖边界 |

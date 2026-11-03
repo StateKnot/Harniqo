@@ -1,0 +1,14 @@
+packages:
+  - apps/desktop
+  - apps/model-egress
+  - apps/runner/event-spool
+
+saveExact: true
+engineStrict: true
+strictPeerDependencies: true
+verifyStoreIntegrity: true
+strictDepBuilds: true
+# Keep any lifecycle permission bounded to the exact Electron release.
+# Electron 45's explicit native installer is invoked separately by desktop CI.
+allowBuilds:
+  electron@45.2.1: true

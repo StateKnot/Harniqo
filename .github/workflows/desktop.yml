@@ -1,0 +1,144 @@
+name: Desktop native build
+
+on:
+  push:
+    branches: [main]
+    paths: ['package.json', 'pnpm-lock.yaml', 'pnpm-workspace.yaml', '.npmrc', '.node-version', 'apps/desktop/**', 'scripts/ci/desktop.mjs', '.github/workflows/desktop.yml']
+  pull_request:
+    paths: ['package.json', 'pnpm-lock.yaml', 'pnpm-workspace.yaml', '.npmrc', '.node-version', 'apps/desktop/**', 'scripts/ci/desktop.mjs', '.github/workflows/desktop.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: desktop-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  native:
+    name: ${{ matrix.os }} / ${{ matrix.arch }} (unsigned internal build)
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      # Native host labels, verified against GitHub's hosted runner reference.
+      # Windows Server is build/launch evidence, not Windows 11 installation.
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            platform: linux
+            arch: x64
+          - os: windows-2025
+            platform: win32
+            arch: x64
+          - os: macos-15-intel
+            platform: darwin
+            arch: x64
+          - os: macos-26
+            platform: darwin
+            arch: arm64
+    env:
+      HARNIQO_SOURCE_SHA: ${{ github.sha }}
+      HARNIQO_EXPECTED_PLATFORM: ${{ matrix.platform }}
+      HARNIQO_EXPECTED_ARCH: ${{ matrix.arch }}
+      HARNIQO_RUNNER_LABEL: ${{ matrix.os }}
+      ELECTRON_CACHE: ${{ runner.temp }}/harniqo-electron-cache
+      electron_config_cache: ${{ runner.temp }}/harniqo-electron-cache
+      electron_use_remote_checksums: ''
+      npm_config_electron_use_remote_checksums: ''
+      ELECTRON_OVERRIDE_DIST_PATH: ''
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout exact revision
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up pinned Node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .node-version
+      - name: Provision pinned pnpm in runner temporary storage
+        run: |
+          df -h .
+          npm install --prefix "$RUNNER_TEMP/harniqo-pnpm" --ignore-scripts --no-fund --no-audit --package-lock=false pnpm@11.5.2
+          echo "$RUNNER_TEMP/harniqo-pnpm/node_modules/.bin" >> "$GITHUB_PATH"
+      - name: Verify native environment, source identity and available disk
+        run: |
+          export HARNIQO_PNPM_VERSION="$(pnpm --version)"
+          node scripts/ci/desktop.mjs environment
+      - name: Install integrity-locked workspace dependencies
+        id: install
+        run: |
+          set -o pipefail
+          pnpm install --frozen-lockfile --store-dir "$RUNNER_TEMP/harniqo-pnpm-store" 2>&1 | tee ci-evidence/desktop/install.log
+          # Electron 45 exposes an explicit installer instead of postinstall.
+          # It verifies the native download against its pinned checksums.json.
+          unset electron_use_remote_checksums npm_config_electron_use_remote_checksums ELECTRON_OVERRIDE_DIST_PATH
+          pnpm --filter @harniqo/desktop exec install-electron 2>&1 | tee ci-evidence/desktop/electron-install.log
+          pnpm list -r --depth 0 --json > ci-evidence/desktop/packages.json
+      - name: Typecheck the desktop boundary
+        id: typecheck
+        run: |
+          set -o pipefail
+          pnpm --filter @harniqo/desktop typecheck 2>&1 | tee ci-evidence/desktop/typecheck.log
+      - name: Run desktop security and build regressions
+        id: test
+        run: |
+          set -o pipefail
+          pnpm --filter @harniqo/desktop test 2>&1 | tee ci-evidence/desktop/test.log
+      - name: Build desktop from the pinned checkout
+        id: build
+        run: |
+          df -h .
+          set -o pipefail
+          pnpm build:desktop 2>&1 | tee ci-evidence/desktop/build.log
+      - name: Package for this native OS and architecture
+        id: package
+        run: |
+          df -h .
+          set -o pipefail
+          pnpm package:desktop 2>&1 | tee ci-evidence/desktop/package.log
+      - name: Prepare the Linux display and Chromium sandbox
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y xvfb libgtk-3-0t64 libnss3 libasound2t64 libgbm1
+          node scripts/ci/desktop.mjs linux-sandbox
+      - name: Launch packaged Electron and verify rendered isolation
+        id: smoke
+        run: |
+          set -o pipefail
+          receipt="$GITHUB_WORKSPACE/ci-evidence/desktop/smoke.json"
+          if [ "$RUNNER_OS" = "Linux" ]; then
+            xvfb-run -a pnpm smoke:desktop -- --packaged --receipt "$receipt" 2>&1 | tee ci-evidence/desktop/smoke.log
+          else
+            pnpm smoke:desktop -- --packaged --receipt "$receipt" 2>&1 | tee ci-evidence/desktop/smoke.log
+          fi
+      - name: Archive native app and hash the exact deliverable
+        id: archive
+        run: |
+          df -h .
+          node scripts/ci/desktop.mjs archive
+      - name: Verify trace, retained receipt and original lock identity
+        if: always()
+        env:
+          HARNIQO_INSTALL_OUTCOME: ${{ steps.install.outcome }}
+          HARNIQO_TYPECHECK_OUTCOME: ${{ steps.typecheck.outcome }}
+          HARNIQO_TEST_OUTCOME: ${{ steps.test.outcome }}
+          HARNIQO_BUILD_OUTCOME: ${{ steps.build.outcome }}
+          HARNIQO_PACKAGE_OUTCOME: ${{ steps.package.outcome }}
+          HARNIQO_SMOKE_OUTCOME: ${{ steps.smoke.outcome }}
+          HARNIQO_ARCHIVE_OUTCOME: ${{ steps.archive.outcome }}
+        run: node scripts/ci/desktop.mjs summary
+      - name: Retain bounded native evidence and internal archive
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: desktop-${{ matrix.platform }}-${{ matrix.arch }}-${{ github.sha }}
+          path: ci-evidence/desktop/
+          compression-level: 0
+          if-no-files-found: warn
+          retention-days: 14

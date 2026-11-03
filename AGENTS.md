@@ -1,3 +1,13 @@
+# 开发主线与偏离检查
+
+用户指令（2026-11-03）：交付 macOS/Windows/Linux 客户端，连接和管理云端 Harness、持续对话、单任务比较与批量评测。按原里程碑推进，生产级要求在对应阶段验收。
+
+1. 每轮开始读取 [开发主线](docs/planning/MAINLINE.md)，选定一个原 BACKLOG 任务 ID，写清本轮交付、必要前置、完成条件及它解锁的下一项。主线是 M0 有限技术准入 → M1 客户端/控制面底座 → M2 首个 Harness 真实闭环 → M3/M4 工作台与多 Harness → M5/M6 比较与批测 → M7/M8 运营与发行。
+2. 每完成一个子任务、出现新失败或准备扩大范围时，重新核对原任务退出条件。满足后推进下一任务；需要后续阶段实现的能力，登记到对应原任务。基础设施工作必须说明它解除的当前阻塞，完整生产 Runner 的成熟度不自动成为 M0 的新增前置。
+3. 在 VM、模型、管理员操作、全量 CI、大构建或额外评审前，明确待解决的具体问题和最小充分验证。复用同源已通过的证据；仅在相关源码/环境改变、真实失败或未决风险需要时补测。任务与所有代理共用同一范围和退出条件。
+4. 若连续两批工作仍只增加同一底层主题的子项或测试数量，且未关闭原任务条件、交付产品能力或解除明确阻塞，先纠正任务分配与范围，再继续执行。
+5. 每轮进度报告列出原任务 ID、实际交付、验收结果、父任务状态和下一项。测试/证据数量单独计量；子项完成不改变父任务或阶段的未通过状态。外部资源缺失明确记录影响，只推进依赖已满足的独立工作。
+
 # Development workflow
 
 1. Select the next task whose prerequisites are satisfied in `docs/planning/BACKLOG.md`. Read `GLOSSARY.md` for domain terms and `docs/architecture/ARCHITECTURE.md` when changing module interfaces, data ownership, execution or deployment.
