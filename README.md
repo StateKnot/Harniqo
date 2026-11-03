@@ -8,7 +8,7 @@
 
 开发主线是 **M0 技术准入 → M1 客户端与控制面底座 → M2 首个 Harness 真实闭环 → 多 Harness、比较与批量评测**。[会话执行规则](AGENTS.md)要求每轮核对原任务、交付、退出条件和最小验证；[当前主线](docs/planning/MAINLINE.md)列出有限的 M0 收尾项与本轮范围。
 
-M0 的 8 项中 4 项已验收，完整生产执行准入仍在进行。M1-01 的独立工程工作面已开始：固定 workspace/工具链、Electron/React/TypeScript 可构建入口、只读桌面 Interface 与原生打包检查。本机 macOS arm64 的实际渲染与内测包启动已验证；跨平台 CI 结果单独登记。登录、平台连接及真实 Harness 会话尚未实现，工程入口不代表可用产品或正式支持。
+M0 的 8 项中 4 项已验收，完整生产执行准入仍在进行。M1-01 的独立工程工作面已开始：固定 workspace/工具链、Electron/React/TypeScript 可构建入口、只读桌面 Interface 与原生打包检查。本机 macOS arm64 与四组合[实际原生 CI](https://github.com/StateKnot/Harniqo/actions/runs/41595744654)的打包启动/渲染已验证，指定服务器构建通过；[工程结果](docs/operations/m1-engineering-2026-11-03.json)和[CI范围](docs/operations/m1-desktop-ci-2026-11-03.json)分别记录。登录、平台连接及真实 Harness 会话尚未实现，工程入口不代表可用产品或正式支持。
 
 既有 Harness、VM、网络、限额和故障回收的结果、失败历史及范围见 [M0 执行证据索引](docs/planning/M0-RESULTS.md)。已有 Runner/transport/spool 实现按原 M2/M7 任务复用，整项和阶段状态以 [BACKLOG](docs/planning/BACKLOG.md) 为准。
 

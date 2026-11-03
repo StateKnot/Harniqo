@@ -1,0 +1,94 @@
+{
+  "schema_version": 1,
+  "date_local": "2026-11-03",
+  "timezone": "Asia/Shanghai",
+  "task": "M1-01",
+  "task_status": "IN_PROGRESS",
+  "engineering_scope_verified": true,
+  "source_commit": "b2c953701878679abd401678122241272c86cc5b",
+  "source_input_sha256": "a23b8cb788c5fbcf4a3cd5b423dc296179162ebb1ae7d277cd274340ba49e4d4",
+  "scope": "workspace_toolchain_desktop_entry_typecheck_native_packaged_render_ci",
+  "session_rules": {
+    "project_file": "AGENTS.md",
+    "mainline_file": "docs/planning/MAINLINE.md",
+    "workspace_entry_configured": true,
+    "checkpoints": [
+      "turn_start",
+      "subtask_complete",
+      "new_failure",
+      "scope_change",
+      "expensive_validation"
+    ]
+  },
+  "local_native": {
+    "source_commit": "abdcdb1fc0f8889246c7099310b18b6f17125d81",
+    "source_dirty": false,
+    "platform": "darwin",
+    "arch": "arm64",
+    "os_version": "26.6.2",
+    "is_packaged": true,
+    "rendered": true,
+    "receipt_sha256": "ba44a9e62d8201c45016c2e5e1b5864341fb0f728678327781be1162108adcb8",
+    "security": {
+      "sandbox": true,
+      "contextIsolation": true,
+      "nodeIntegration": false,
+      "webSecurity": true,
+      "requireUnavailable": true,
+      "processUnavailable": true
+    }
+  },
+  "designated_server": {
+    "source_commit": "abdcdb1fc0f8889246c7099310b18b6f17125d81",
+    "passed": true,
+    "clean": true,
+    "node": "v24.22.1",
+    "pnpm": "11.5.2",
+    "report_sha256": "49decc658edc4362e45f6148a405fe0f2bd761e39b0a09a6d12e22be26ae8c39",
+    "steps": [
+      {
+        "step": "install-pnpm",
+        "exit_code": 0
+      },
+      {
+        "step": "frozen-install",
+        "exit_code": 0
+      },
+      {
+        "step": "desktop-typecheck",
+        "exit_code": 0
+      },
+      {
+        "step": "desktop-regressions",
+        "exit_code": 0
+      },
+      {
+        "step": "desktop-build",
+        "exit_code": 0
+      }
+    ],
+    "native_launch_verified": false
+  },
+  "native_ci": {
+    "run_url": "https://github.com/StateKnot/Harniqo/actions/runs/41595744654",
+    "native_jobs": 4,
+    "evidence_method": "authenticated_run_jobs_native_job_logs_and_sealed_artifact_metadata",
+    "job_log_bytes": 181767,
+    "full_artifact_bytes_independently_downloaded": false,
+    "archive_sha256_validation": "computed_and_checked_inside_each_pinned_ci_job; independently_reread_from_authenticated_job_logs"
+  },
+  "resource_decisions": [
+    "Existing backend/Harness/VM evidence reused; no new VM or model work.",
+    "Full native artifact redownload stopped after mainline review; job logs and sealed metadata used for engineering trace."
+  ],
+  "production_signing_verified": false,
+  "target_os_installation_verified": false,
+  "platform_login_implemented": false,
+  "platform_connection_implemented": false,
+  "harness_session_implemented": false,
+  "m0_accepted_tasks": 4,
+  "m0_total_tasks": 8,
+  "m1_accepted_tasks": 0,
+  "m1_total_tasks": 8,
+  "next_task": "M0-02 bounded contract closure before dependent M1 platform/data implementation"
+}

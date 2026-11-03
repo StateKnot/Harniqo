@@ -1,0 +1,212 @@
+{
+  "schema_version": 1,
+  "date_local": "2026-11-03",
+  "timezone": "Asia/Shanghai",
+  "task": "M1-01",
+  "task_status": "IN_PROGRESS",
+  "stage_accepted_tasks": 0,
+  "stage_total_tasks": 8,
+  "source_commit": "b2c953701878679abd401678122241272c86cc5b",
+  "source_dirty": false,
+  "source_input_sha256": "a23b8cb788c5fbcf4a3cd5b423dc296179162ebb1ae7d277cd274340ba49e4d4",
+  "pinned_input_sha256": {
+    "package.json": "3807636345aa18b0d3fa02889091d639c22a95ff9df83eceb3dd819b1f34790c",
+    "pnpm-lock.yaml": "3aca2aeb8c3854c76837d8d39909ad0ea0cc8daa91c10e654a115df553b10ea6",
+    "pnpm-workspace.yaml": "6dd730b1f70d47cd943e10cf557d4876a0c56502e4a9eeccd3547f60f3f18b13",
+    ".npmrc": "b9873fd9a88edd9fbe0e1e6015258e937cd667dca0c3cc323febd20a340f23d6",
+    ".node-version": "d9f318747a126ce2247661af67852b185def7789492eabfad7bba322be087c33",
+    "apps/desktop/package.json": "330668cdc0eaa8094fdc14c7ca27d7f781e4cfe259d9462eeec0df9f873ca9df"
+  },
+  "run_id": 41595744654,
+  "run_url": "https://github.com/StateKnot/Harniqo/actions/runs/41595744654",
+  "conclusion": "success",
+  "evidence_method": "authenticated_run_jobs_native_job_logs_and_sealed_artifact_metadata",
+  "platforms": [
+    {
+      "platform": "linux",
+      "arch": "x64",
+      "runner_label": "ubuntu-24.04",
+      "actual_os": {
+        "type": "Linux",
+        "release": "7.0.0-1017-azure",
+        "version": "#17~24.04.1-Ubuntu SMP PREEMPT Thu Sep 24 18:46:57 UTC 2026",
+        "systemDetail": "PRETTY_NAME=\"Ubuntu 24.04.5 LTS\"\nNAME=\"Ubuntu\"\nVERSION_ID=\"24.04\"\nVERSION=\"24.04.5 LTS (Noble Numbat)\"\nVERSION_CODENAME=noble\nID=ubuntu\nID_LIKE=debian\nHOME_URL=\"https://www.ubuntu.com/\"\nSUPPORT_URL=\"https://help.ubuntu.com/\"\nBUG_REPORT_URL=\"https://bugs.launchpad.net/ubuntu/\"\nPRIVACY_POLICY_URL=\"https://www.ubuntu.com/legal/terms-and-policies/privacy-policy\"\nUBUNTU_CODENAME=noble\nLOGO=ubuntu-logo"
+      },
+      "job_id": 125782571041,
+      "job_url": "https://github.com/StateKnot/Harniqo/actions/runs/41595744654/job/125782571041",
+      "job_log_sha256": "246aeebd05a58ed089914eee497a7b24387a2e6dbae21443b5f84bbca21e3a0b",
+      "job_log_bytes": 48508,
+      "artifact_id": 13212615971,
+      "artifact_name": "desktop-linux-x64-b2c953701878679abd401678122241272c86cc5b",
+      "artifact_service_digest": "sha256:bedd0543cf6bbf02d0bbb2d7ef2bc2c1375053eb2927f7b84da2b360259e0b24",
+      "artifact_metadata_bytes": 123862240,
+      "archive_ci_report": {
+        "name": "harniqo-linux-x64-b2c953701878.tar.gz",
+        "bytes": 123841196,
+        "sha256": "a56b5ef39ce4a62b70ba7133575839796e448e6436c1ec66326b8580f084ae91"
+      },
+      "archive_independent_download_verified": false,
+      "packaged_render_verified": true,
+      "renderer_security": {
+        "sandbox": true,
+        "contextIsolation": true,
+        "nodeIntegration": false,
+        "webSecurity": true,
+        "requireUnavailable": true,
+        "processUnavailable": true
+      },
+      "security_regressions": 3,
+      "runtime": {
+        "electron": "45.2.1",
+        "chrome": "156.0.8078.75",
+        "node": "24.22.1",
+        "appVersion": "0.1.0",
+        "isPackaged": true
+      }
+    },
+    {
+      "platform": "win32",
+      "arch": "x64",
+      "runner_label": "windows-2025",
+      "actual_os": {
+        "type": "Windows_NT",
+        "release": "10.0.26100",
+        "version": "Windows Server 2025 Datacenter",
+        "systemDetail": "Microsoft Windows Server 2025 Datacenter"
+      },
+      "job_id": 125782570329,
+      "job_url": "https://github.com/StateKnot/Harniqo/actions/runs/41595744654/job/125782570329",
+      "job_log_sha256": "4f63d01799246fb35d89aff27350c0fee54a6fcda4f7a55a3b3c3755ff831d5e",
+      "job_log_bytes": 43996,
+      "artifact_id": 13212341396,
+      "artifact_name": "desktop-win32-x64-b2c953701878679abd401678122241272c86cc5b",
+      "artifact_service_digest": "sha256:a565f7b53eeecbf952f247f017848bfa8428a1e4015c6063f03907dc786ce236",
+      "artifact_metadata_bytes": 158111012,
+      "archive_ci_report": {
+        "name": "harniqo-win32-x64-b2c953701878.zip",
+        "bytes": 158091183,
+        "sha256": "e387955baedf3828c354ad03d2d2da4892c8fbc743d7aff41bd08999e4bd3222"
+      },
+      "archive_independent_download_verified": false,
+      "packaged_render_verified": true,
+      "renderer_security": {
+        "sandbox": true,
+        "contextIsolation": true,
+        "nodeIntegration": false,
+        "webSecurity": true,
+        "requireUnavailable": true,
+        "processUnavailable": true
+      },
+      "security_regressions": 3,
+      "runtime": {
+        "electron": "45.2.1",
+        "chrome": "156.0.8078.75",
+        "node": "24.22.1",
+        "appVersion": "0.1.0",
+        "isPackaged": true
+      }
+    },
+    {
+      "platform": "darwin",
+      "arch": "x64",
+      "runner_label": "macos-15-intel",
+      "actual_os": {
+        "type": "Darwin",
+        "release": "24.6.0",
+        "version": "Darwin Kernel Version 24.6.0: Tue Jul 21 20:50:07 PDT 2026; root:xnu-11417.140.69.711.44~1/RELEASE_X86_64",
+        "systemDetail": "ProductName:\t\tmacOS\nProductVersion:\t\t15.7.9\nBuildVersion:\t\t24G830"
+      },
+      "job_id": 125782570858,
+      "job_url": "https://github.com/StateKnot/Harniqo/actions/runs/41595744654/job/125782570858",
+      "job_log_sha256": "fd03cdf5a634b5582021f577acf665bb7c9dc9d9fa9b54aadc2300750e71a158",
+      "job_log_bytes": 44832,
+      "artifact_id": 13211737949,
+      "artifact_name": "desktop-darwin-x64-b2c953701878679abd401678122241272c86cc5b",
+      "artifact_service_digest": "sha256:f7b0c704a748145b914ac26a975e0a6cd5a90621802de320767e2cbe26c3e1c0",
+      "artifact_metadata_bytes": 126035210,
+      "archive_ci_report": {
+        "name": "harniqo-darwin-x64-b2c953701878.zip",
+        "bytes": 126014871,
+        "sha256": "570efc86dbb055480f2687a6661cd2cf3370dab8a122546ec5976617f491f31e"
+      },
+      "archive_independent_download_verified": false,
+      "packaged_render_verified": true,
+      "renderer_security": {
+        "sandbox": true,
+        "contextIsolation": true,
+        "nodeIntegration": false,
+        "webSecurity": true,
+        "requireUnavailable": true,
+        "processUnavailable": true
+      },
+      "security_regressions": 3,
+      "runtime": {
+        "electron": "45.2.1",
+        "chrome": "156.0.8078.75",
+        "node": "24.22.1",
+        "appVersion": "0.1.0",
+        "isPackaged": true
+      }
+    },
+    {
+      "platform": "darwin",
+      "arch": "arm64",
+      "runner_label": "macos-26",
+      "actual_os": {
+        "type": "Darwin",
+        "release": "25.6.0",
+        "version": "Darwin Kernel Version 25.6.0: Fri Jul 31 19:16:43 PDT 2026; root:xnu-12377.161.14~5/RELEASE_ARM64_VMAPPLE",
+        "systemDetail": "ProductName:\t\tmacOS\nProductVersion:\t\t26.6.2\nBuildVersion:\t\t25G83"
+      },
+      "job_id": 125782570749,
+      "job_url": "https://github.com/StateKnot/Harniqo/actions/runs/41595744654/job/125782570749",
+      "job_log_sha256": "fdf8e129dea9347b64df82a2b6b52deb87f1fada9fd96dfbae1b993b4cd1d5db",
+      "job_log_bytes": 44431,
+      "artifact_id": 13211922576,
+      "artifact_name": "desktop-darwin-arm64-b2c953701878679abd401678122241272c86cc5b",
+      "artifact_service_digest": "sha256:c65732260fdf349b512f92ea35500cf91ade141a89388ab9852c25b7857bd477",
+      "artifact_metadata_bytes": 118845526,
+      "archive_ci_report": {
+        "name": "harniqo-darwin-arm64-b2c953701878.zip",
+        "bytes": 118825212,
+        "sha256": "6e092e1606507b204483a617a4fce0a45de75747cd914f1529308eb321ad20e6"
+      },
+      "archive_independent_download_verified": false,
+      "packaged_render_verified": true,
+      "renderer_security": {
+        "sandbox": true,
+        "contextIsolation": true,
+        "nodeIntegration": false,
+        "webSecurity": true,
+        "requireUnavailable": true,
+        "processUnavailable": true
+      },
+      "security_regressions": 3,
+      "runtime": {
+        "electron": "45.2.1",
+        "chrome": "156.0.8078.75",
+        "node": "24.22.1",
+        "appVersion": "0.1.0",
+        "isPackaged": true
+      }
+    }
+  ],
+  "counts": {
+    "native_jobs": 4,
+    "packaged_renders": 4,
+    "security_regressions_per_job": 3
+  },
+  "archive_sha256_validation": "computed_and_checked_inside_each_pinned_ci_job; independently_reread_from_authenticated_job_logs",
+  "full_artifact_bytes_independently_downloaded": false,
+  "resource_decision": "Full archive re-download deferred; no installer or release acceptance is inferred.",
+  "first_failure_run": "https://github.com/StateKnot/Harniqo/actions/runs/41595124053",
+  "installation_verified": false,
+  "signed": false,
+  "notarized": false,
+  "release_accepted": false,
+  "limitations": [
+    "Native packaged launch is not installation acceptance.",
+    "Windows Server is not Windows 11 GUI support.",
+    "Platform login, cloud connection and Harness sessions are not implemented."
+  ]
+}
