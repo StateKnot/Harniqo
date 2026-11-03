@@ -43,8 +43,6 @@ jobs:
       HARNIQO_EXPECTED_PLATFORM: ${{ matrix.platform }}
       HARNIQO_EXPECTED_ARCH: ${{ matrix.arch }}
       HARNIQO_RUNNER_LABEL: ${{ matrix.os }}
-      ELECTRON_CACHE: ${{ runner.temp }}/harniqo-electron-cache
-      electron_config_cache: ${{ runner.temp }}/harniqo-electron-cache
       electron_use_remote_checksums: ''
       npm_config_electron_use_remote_checksums: ''
       ELECTRON_OVERRIDE_DIST_PATH: ''
@@ -65,6 +63,8 @@ jobs:
           df -h .
           npm install --prefix "$RUNNER_TEMP/harniqo-pnpm" --ignore-scripts --no-fund --no-audit --package-lock=false pnpm@11.5.2
           echo "$RUNNER_TEMP/harniqo-pnpm/node_modules/.bin" >> "$GITHUB_PATH"
+          echo "ELECTRON_CACHE=$RUNNER_TEMP/harniqo-electron-cache" >> "$GITHUB_ENV"
+          echo "electron_config_cache=$RUNNER_TEMP/harniqo-electron-cache" >> "$GITHUB_ENV"
       - name: Verify native environment, source identity and available disk
         run: |
           export HARNIQO_PNPM_VERSION="$(pnpm --version)"
