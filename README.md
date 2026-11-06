@@ -25,7 +25,7 @@ pnpm build:desktop
 pnpm --filter @harniqo/desktop start
 ```
 
-打包、实际原生 smoke、构建来源及限制见 [桌面工程说明](apps/desktop/README.md)。内测归档未做发行签名/公证，尚无 Windows11/Linux 桌面安装及完整用户流程验收。
+打包、原生冒烟和构建来源见 [桌面工程说明](apps/desktop/README.md)。macOS arm64 的[内部安装流程](docs/operations/DESKTOP-INTERNAL-INSTALL.md)已在真实 Mac 验证。正式签名、公证、其他目标系统安装及完整用户流程按里程碑验收。
 
 生产目标同时覆盖团队私有部署和多租户 SaaS；执行环境首版限定为 Linux，客户端覆盖三端。
 

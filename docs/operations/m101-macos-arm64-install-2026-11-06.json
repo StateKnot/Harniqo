@@ -1,0 +1,61 @@
+{
+  "date_local": "2026-11-06",
+  "task": "M1-01",
+  "task_status": "IN_PROGRESS",
+  "scope": "macOS arm64 internal per-user app bundle installation and installed executable smoke",
+  "app_version": "0.1.0",
+  "bundle_identifier": "org.harniqo.desktop",
+  "app_source_commit": "abdcdb1fc0f8889246c7099310b18b6f17125d81",
+  "app_source_dirty": false,
+  "app_source_input_sha256": "a23b8cb788c5fbcf4a3cd5b423dc296179162ebb1ae7d277cd274340ba49e4d4",
+  "installer_sha256": "b081f816bd6cd7960e5b64699b0da66a05c81a4aece4dabd06bbdf8913c16210",
+  "node": "24.22.1",
+  "electron": "45.2.1",
+  "electron_osx_sign": "2.7.2",
+  "system": {
+    "os": "macOS",
+    "version": "26.6.2",
+    "build": "25G83",
+    "arch": "arm64"
+  },
+  "method": {
+    "install_location": "current user Applications",
+    "system_installer_package": false,
+    "launched_executable_from_installed_bundle": true,
+    "isolated_smoke_profile": true
+  },
+  "strict_recursive_code_signature_verified": true,
+  "signing": {
+    "mode": "ad-hoc-local",
+    "hardened_runtime": false,
+    "developer_id": false,
+    "notarized": false,
+    "gatekeeper_assessed": false
+  },
+  "source_and_installed_app_asar_sha256": "8920ca9d1744ed132302b849d6ec5a8529ee2e908175d99d793e799e3c48cda6",
+  "smoke": {
+    "sandbox": true,
+    "contextIsolation": true,
+    "nodeIntegration": false,
+    "webSecurity": true,
+    "requireUnavailable": true,
+    "processUnavailable": true
+  },
+  "rendered": true,
+  "packaged_runtime": true,
+  "platform_connection": "disconnected",
+  "existing_install_rejected_without_replacement": true,
+  "first_failed_install": {
+    "failure": "dyld library validation rejected different signing team identities with default hardened runtime",
+    "task_owned_install_removed": true,
+    "receipt_sha256": "4c19c912672d88ed5870b13380fdfa191e35ab0b3006309a6a2c2cc74207cf02"
+  },
+  "success_receipt_sha256": "7256ec04bf0cf3aba0ebc5c0300c0afcd3ce4313384e57711cb43cd0a853d96d",
+  "collision_receipt_sha256": "97cefa9bd527f622ac0e036b4ae5297a92e00d9a7c065c72d3c0caa9bf4ce9d7",
+  "other_target_os_installations_verified": false,
+  "finder_interactive_launch_verified": false,
+  "reused_existing_build": true,
+  "new_builds": 0,
+  "model_calls": 0,
+  "new_vm_runs": 0
+}

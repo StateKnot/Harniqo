@@ -86,7 +86,7 @@
 
 | 资源 | 当前证据状态 | 解除条件 / 受影响阶段 |
 | --- | --- | --- |
-| macOS arm64/x64 原生构建与真实设备 | 两组合原生 CI 通过。本机 macOS 26.6.2 arm64 可用于内部安装验收，已有打包启动证据 | OS-MAC-A 取得独立安装冒烟；OS-MAC-I 登记可安装的 Intel Mac 并记录其系统 build。完整流程、Keychain、升级及正式签名按 M1/M8 |
+| macOS arm64/x64 原生构建与真实设备 | 两组合原生 CI 通过。本机 macOS 26.6.2 arm64 [内部安装及启动通过](m101-macos-arm64-install-2026-11-06.json) | OS-MAC-I 登记可安装的 Intel Mac 并记录其系统 build。完整流程、Keychain、升级及正式签名按 M1/M8 |
 | Windows 原生 CI 与 Windows11 25H2 安装设备 | Windows Server 2025 x64 原生构建与打包启动通过；Windows11 验收设备未登记 | 登记可操作的 Windows11 25H2 x64 测试环境与 GUI 安装权限，取得 OS build 和冒烟记录；M1/M8 |
 | Linux 桌面验收与安全 keyring | Ubuntu 24.04 x64 原生构建与打包启动通过；桌面验收会话未登记 | 登记 Ubuntu24.04 x64 实际桌面会话与安装权限，分别验证有、无 Secret Service；M1/M8 |
 | Apple Developer 身份、Developer ID、notarization | 本机可见的有效代码签名身份为 0，未取得项目签名权限证据 | 发行负责人在受控 CI 提供 Developer ID Application、按发行包类型提供 Installer 权限及公证凭据，核验签名、公证、staple 与 Gatekeeper；M8 |
