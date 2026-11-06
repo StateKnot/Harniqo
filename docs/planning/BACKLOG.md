@@ -212,3 +212,4 @@
 | 2026-11-06 | M0-05 / AC-12 | 核对 E30、E52、E76 的实际入口与授权，定位同一 Guest 路径缺少隔离 NIC 与当前授权入口的集成 | IN_PROGRESS；既有分项证据有效，同一路径未满足执行前置 | 待入口可用后以合成上游进行一次精确验证。转 M0-07 独立资源核对 |
 | 2026-11-06 | M0-07 验收资源 | 确认本机 macOS26.6.2 arm64、指定服务器当前容量、四份原生 CI 产物可用性与摘要；更新桌面、签名和备份资源登记 | VERIFIED（资源核对子项，E79）；M0-07 仍 IN_PROGRESS，M0 仍 4/8 | 复用已确认设备进入 M1-01 内部安装准备；其余资源按[解除条件](../operations/ACCEPTANCE-BASELINE.md#6-原生构建签名与外部资源登记)登记 |
 | 2026-11-06 | M1-01 macOS arm64 内部安装 | [安装入口](../operations/DESKTOP-INTERNAL-INSTALL.md)复用 `abdcdb1fc0f8` 包；从 macOS 26.6.2 用户 Applications 安装路径启动，严格 ad-hoc 签名、app.asar 一致性、React、沙箱和已有安装防覆盖通过 | VERIFIED（仅 macOS arm64 安装子项）；首轮 dyld 签名验证失败与回收已留证，[实际报告](../operations/m101-macos-arm64-install-2026-11-06.json)；M1-01 整项仍 IN_PROGRESS，M1 为 0/8 | Intel Mac、Windows11 及 Ubuntu 桌面待确认设备；正式发行按 M8 |
+| 2026-11-06 | M0-05 / AC-12 Guest TLS 入口 | 按请求授权、拨号前复核、限域 HTTP 和撤销取消；复用现有受限 HTTPS 转发 | VERIFIED（入口及回环子项，E80）；18 项本机与指定服务器测试通过，完整 AC-12 未验；M0 仍 4/8 | 接真实当前授权与固定隔离 NIC，再验证同一真实 Guest 路径 |

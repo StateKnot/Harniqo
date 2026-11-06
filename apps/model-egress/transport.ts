@@ -142,7 +142,8 @@ export class UpstreamTransport {
       secretRef: source.secretRef, operations, exceptions: this.policy.exceptions(source.privateAddressExceptions ?? []), ca };
   }
 
-  exchange(input: ExchangeRequest, destination: Destination, signal?: AbortSignal): Promise<Receipt> {
+  exchange(input: ExchangeRequest, destination: Destination, signal?: AbortSignal,
+    confirmDispatch?: () => Promise<boolean>): Promise<Receipt> {
     const state: MutableReceipt = { routeId: '',
       requestExposure: 'not_sent', requestBodyBytes: 0, responseBodyBytes: 0, upstreamStatus: null, outcome: 'failed' };
     const reject = (code: string) => Promise.reject<Receipt>(new EgressTransportError(code, state));
@@ -219,6 +220,13 @@ export class UpstreamTransport {
           const auth = copyHeaders(credential, secretHeaders, 'secret_invalid');
           const outbound = { ...headers, ...auth, host: new URL(route.origin).host, connection: 'close', 'content-length': String(body.length) };
           if (headerBytes(outbound) + Buffer.byteLength(method + ' ' + path + ' HTTP/1.1\r\n') > this.limits.maxHeaderBytes) throw new PolicyError('request_headers_too_large');
+          if (confirmDispatch) {
+            let allowed: boolean;
+            try { allowed = await confirmDispatch(); }
+            catch { guard(); throw new PolicyError('dispatch_authority_unavailable'); }
+            guard();
+            if (allowed !== true) throw new PolicyError('dispatch_not_authorized');
+          }
           agent = new Agent({ keepAlive: false, maxSockets: 1, maxTotalSockets: 1, maxCachedSessions: 0, proxyEnv: {} });
           const options: RequestOptions & { autoSelectFamily: false } = { hostname: route.hostname, port: route.port, path,
             method, headers: outbound, agent, family: pinned.family, autoSelectFamily: false,

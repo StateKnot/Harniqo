@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { after, before, test } from 'node:test';
-import { createServer } from 'node:https';
+import { createServer, request as httpsRequest } from 'node:https';
 import { mkdtemp, readFile, rm, chmod } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -9,11 +9,14 @@ import { Writable } from 'node:stream';
 import type { Duplex } from 'node:stream';
 import type { IncomingHttpHeaders } from 'node:http';
 import { UpstreamTransport, EgressTransportError } from './transport.ts';
+import { listenGuestEgress } from './guest-ingress.ts';
+import type { GuestIngressOptions } from './guest-ingress.ts';
 import { AddressPolicy, canonicalAddress, PolicyError } from './policy.ts';
 import type { Destination, Limits, Route, ExchangeRequest, TransportOptions } from './types.ts';
 
 let folder: string;
 let ca: Buffer;
+let keyBytes: Buffer;
 const port = 10040;
 const sockets = new Set<Duplex>();
 const seen: { method: string | undefined; path: string | undefined; body: Buffer; headers: IncomingHttpHeaders; socket: Duplex }[] = [];
@@ -29,7 +32,8 @@ before(async () => {
     '-out', cert, '-days', '2', '-subj', '/CN=localhost', '-addext', 'subjectAltName=DNS:localhost'], { stdio: 'ignore' });
   await chmod(key, 0o600); await chmod(cert, 0o600);
   ca = await readFile(cert);
-  server = createServer({ key: await readFile(key), cert: ca }, (request, response) => {
+  keyBytes = await readFile(key);
+  server = createServer({ key: keyBytes, cert: ca }, (request, response) => {
     const parts: Buffer[] = [];
     request.on('data', chunk => parts.push(Buffer.from(chunk)));
     request.on('end', () => {
@@ -252,4 +256,164 @@ test('downstream failure and early close abort the provider stream with stable c
   const task = transport().exchange(input('/stream-idle'), early, controller.signal);
   setTimeout(() => early.body.destroy(), 20);
   await errorCode(task, 'destination_closed');
+});
+
+const guestPort = 10041;
+const guestToken = 'fixture-execution-token';
+const guestBody = Buffer.from('{"model":"fixed","messages":[]}');
+
+function guestRequest(path: string, headers: Record<string, string | string[]> = {}, body = guestBody) {
+  return new Promise<{ status: number | undefined; body: Buffer }>((resolve, reject) => {
+    const request = httpsRequest({
+      hostname: '127.0.0.1', port: guestPort, servername: 'localhost', ca, agent: false,
+      method: 'POST', path, headers: { 'content-type': 'application/json', ...headers },
+    }, response => {
+      const chunks: Buffer[] = [];
+      response.on('data', chunk => chunks.push(Buffer.from(chunk)));
+      response.on('error', reject);
+      response.once('end', () => resolve({ status: response.statusCode, body: Buffer.concat(chunks) }));
+    });
+    request.setTimeout(4000, () => request.destroy(new Error('guest test timed out')));
+    request.on('error', reject);
+    request.end(body);
+  });
+}
+
+function guestIngress(authorize: GuestIngressOptions['authorize'], upstream = transport()) {
+  return listenGuestEgress({ host: '127.0.0.1', port: guestPort, key: keyBytes, cert: ca,
+    transport: upstream, authorize });
+}
+
+test('guest ingress authenticates each native TLS request and forwards only the approved request', async t => {
+  const start = seen.length;
+  let admissions = 0;
+  let secretReads = 0;
+  const ingress = await guestIngress(async invocation => {
+    admissions++;
+    assert.equal(invocation.peerAddress, '127.0.0.1');
+    assert.equal(invocation.headers.authorization, undefined);
+    if (invocation.credential !== guestToken || invocation.path !== '/ok') return null;
+    assert.deepEqual(invocation.body, guestBody);
+    invocation.body.fill(0); // Authority cannot replace the exact bytes checked and sent.
+    return { routeId: 'fixture', expiresAtMs: Date.now() + 5000, revoked: new AbortController().signal,
+      confirmCurrent: async () => true };
+  }, transport({}, { getSecret: async () => {
+    secretReads++;
+    return { authorization: 'Bearer fixture-only-value' };
+  } }));
+  t.after(() => ingress.close());
+  const headers = { authorization: 'Bearer ' + guestToken };
+  assert.equal((await guestRequest('/ok')).status, 401);
+  assert.equal((await guestRequest('/ok', { authorization: 'Bearer other' })).status, 403);
+  assert.equal((await guestRequest('/error', headers)).status, 403);
+  assert.equal((await guestRequest('/ok', { ...headers, 'x-forwarded-for': '127.0.0.2' })).status, 400);
+  assert.equal((await guestRequest('/ok', { authorization: ['Bearer ' + guestToken, 'Bearer other'] })).status, 400);
+  assert.equal((await guestRequest('/ok', { ...headers, 'content-length': String(1024 * 1024 + 1) }, Buffer.alloc(0))).status, 413);
+  assert.equal(seen.length, start);
+  assert.equal(secretReads, 0);
+  const allowed = await guestRequest('/ok', headers);
+  assert.equal(allowed.status, 200);
+  assert.deepEqual(allowed.body, guestBody);
+  assert.equal(seen.length, start + 1);
+  assert.equal(secretReads, 1);
+  assert.equal(seen.at(-1)?.headers.authorization, 'Bearer fixture-only-value');
+  assert.equal(admissions, 3);
+});
+
+test('guest ingress fails closed on expired permits and current authority failures', async t => {
+  const start = seen.length;
+  let state: 'expired' | 'unavailable' | 'stale' | 'confirm_unavailable' = 'expired';
+  let confirmations = 0;
+  const ingress = await guestIngress(async () => {
+    if (state === 'unavailable') throw new Error('private failure');
+    return { routeId: 'fixture', revoked: new AbortController().signal,
+      expiresAtMs: Date.now() + (state === 'expired' ? -100 : 5000),
+      confirmCurrent: async () => {
+        confirmations++;
+        if (state === 'confirm_unavailable') throw new Error('private confirmation failure');
+        return false;
+      } };
+  });
+  t.after(() => ingress.close());
+  const headers = { authorization: 'Bearer ' + guestToken };
+  assert.equal((await guestRequest('/ok', headers)).status, 403);
+  assert.equal(confirmations, 0);
+  state = 'unavailable';
+  const failure = await guestRequest('/ok', headers);
+  assert.equal(failure.status, 503);
+  assert.doesNotMatch(failure.body.toString(), /private|fixture/);
+  state = 'stale';
+  assert.equal((await guestRequest('/ok', headers)).status, 403);
+  state = 'confirm_unavailable';
+  assert.equal((await guestRequest('/ok', headers)).status, 503);
+  assert.equal(confirmations, 2);
+  assert.equal(seen.length, start);
+});
+
+test('guest revocation during secret lookup and final confirmation prevents a late dial', async t => {
+  const start = seen.length;
+  let revoked = new AbortController();
+  let blockSecret = true;
+  let secretStarted!: () => void;
+  let finishSecret!: () => void;
+  let confirmationStarted!: () => void;
+  let finishConfirmation!: () => void;
+  const inSecret = new Promise<void>(resolve => { secretStarted = resolve; });
+  const secretGate = new Promise<void>(resolve => { finishSecret = resolve; });
+  const inConfirmation = new Promise<void>(resolve => { confirmationStarted = resolve; });
+  const confirmationGate = new Promise<void>(resolve => { finishConfirmation = resolve; });
+  const upstream = transport({}, { getSecret: async () => {
+    if (blockSecret) {
+      secretStarted();
+      await secretGate;
+    }
+    return {};
+  } });
+  const ingress = await guestIngress(async () => ({
+    routeId: 'fixture', expiresAtMs: Date.now() + 5000, revoked: revoked.signal,
+    confirmCurrent: async () => { confirmationStarted(); await confirmationGate; return true; },
+  }), upstream);
+  t.after(async () => { finishSecret(); finishConfirmation(); await ingress.close(); });
+  const headers = { authorization: 'Bearer ' + guestToken };
+  const first = guestRequest('/ok', headers);
+  await Promise.race([inSecret, first.then(() => { throw new Error('unexpected early response'); })]);
+  revoked.abort();
+  assert.equal((await first).status, 403);
+  finishSecret();
+  revoked = new AbortController();
+  blockSecret = false;
+  const second = guestRequest('/ok', headers);
+  await Promise.race([inConfirmation, second.then(() => { throw new Error('unexpected early response'); })]);
+  revoked.abort();
+  assert.equal((await second).status, 403);
+  finishConfirmation();
+  await tick();
+  assert.equal(seen.length, start);
+});
+
+test('guest revocation terminates an active TLS stream and rejects the old permit on reconnect', async t => {
+  const start = seen.length;
+  const revoked = new AbortController();
+  const ingress = await guestIngress(async () => ({
+    routeId: 'fixture', expiresAtMs: Date.now() + 5000, revoked: revoked.signal,
+    confirmCurrent: async () => !revoked.signal.aborted,
+  }));
+  t.after(() => ingress.close());
+  const truncated = new Promise<Buffer>((resolve, reject) => {
+    const request = httpsRequest({
+      hostname: '127.0.0.1', port: guestPort, servername: 'localhost', ca, agent: false, method: 'POST',
+      path: '/stream-idle', headers: { authorization: 'Bearer ' + guestToken },
+    }, response => {
+      let first: Buffer | undefined;
+      response.once('data', chunk => { first = Buffer.from(chunk); revoked.abort(); });
+      response.on('error', error => first ? resolve(first) : reject(error));
+      response.once('end', () => reject(new Error('revocation must not look like a complete response')));
+    });
+    request.setTimeout(4000, () => request.destroy(new Error('guest test timed out')));
+    request.on('error', reject);
+    request.end();
+  });
+  assert.equal((await truncated).toString(), 'first');
+  assert.equal((await guestRequest('/stream-idle', { authorization: 'Bearer ' + guestToken })).status, 403);
+  assert.equal(seen.length, start + 1);
 });

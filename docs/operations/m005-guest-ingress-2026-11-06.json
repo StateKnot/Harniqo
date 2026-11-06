@@ -1,0 +1,46 @@
+{
+  "date_local": "2026-11-06",
+  "task": "M0-05",
+  "acceptance_case": "AC-12",
+  "task_status": "IN_PROGRESS",
+  "scope": "native_loopback_guest_https_ingress_to_synthetic_https_upstream",
+  "authority": "controlled test implementation at the trusted authorization interface",
+  "designated_server": {
+    "status": "passed",
+    "node": "24.22.1",
+    "typescript": "6.0.3",
+    "machine": "x86_64",
+    "os_version": "24.04",
+    "tests": 18,
+    "failures": 0,
+    "skipped": 0,
+    "source_sha256": {
+      "guest-ingress.ts": "93f49669797b7878a9833cd7813efbe7c30a4bfc2c49bcef10b0553f11e97df9",
+      "types.ts": "e79d0ccb5bb2a61e6591102e23ddc3dfe5214836308d8a63696cda71e7b315ec",
+      "policy.ts": "fe92e3d48afc783f80177bb03c3fba8bf1302368ed455d60da16bff1f2cc7da8",
+      "package-lock.json": "ab45312ad661eb8b38b23e8f63b8fd67983f6a5526626838560a99eba366a4b5",
+      "package.json": "cf97a1075ced86024d31c7f55a9501e50df4a269244219e4cf764759a9a231b6",
+      "tsconfig.json": "7a3f8cd19c5b6190583e5c2d6213ef76ab276525f4a44ad389276bc820b981ed",
+      "transport.test.ts": "ec664d2dc4680782ddf27bee88ca98a3061e814b846dc8215e7d9d9a36450002",
+      "transport.ts": "7e315b1f764c93744ab5ef2cd025b08aa1d16d172464cf233265e6b6b5651d4b"
+    },
+    "junit_sha256": "0dba43a82909c85d6cdb005ce52fa04c9318919f40dce753841e720867c1c9f9",
+    "test_ports_released": true
+  },
+  "local_macos": {
+    "tests": 18,
+    "failures": 0,
+    "skipped": 0,
+    "log_sha256": "d446087c3e5ec1b576e093e36918f7ee9f22f121d37c28d3d28d50adf1d7470b"
+  },
+  "first_local_failure": {
+    "failure": "test client EPIPE when writing a body after the listener rejected the oversized request",
+    "correction": "test the oversized Content-Length rejection without continuing to send the rejected body",
+    "log_sha256": "472dc3f45cf04054499e92636e5b88e146f1af359e440aa0b03bcf52ec83638a"
+  },
+  "current_broker_authority_connected": false,
+  "guest_vm_isolation_verified": false,
+  "model_calls": 0,
+  "new_vm_runs": 0,
+  "admin_changes": 0
+}

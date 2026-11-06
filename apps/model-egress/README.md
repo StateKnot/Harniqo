@@ -1,12 +1,48 @@
 # Restricted HTTPS upstream transport
 
-This is the host-internal HTTPS transport used behind the future Model Egress
-role. It does not listen for Guest traffic or implement ExecutionCredential
-verification, current lease/authorization lookup, model approval, budget
-reservation, OpenBao integration, kernel egress policy, or File Broker access.
-A trusted host caller must finish admission before calling `exchange` and must
-abort the supplied signal when that admission is revoked. A valid TLS request
-from this Module does not establish full production Egress qualification.
+This directory contains the host-internal HTTPS transport and a Guest HTTPS
+listener. Deployments supply a current execution authority and the isolated NIC
+and firewall configuration. Model policy, budget reservation, OpenBao, kernel
+egress policy and File Broker access retain separate acceptance conditions.
+
+## Guest HTTPS Interface
+
+`listenGuestEgress({ host, port, cert, key, transport, authorize })` binds a
+single explicit IPv4 address and returns an idempotent asynchronous `close`.
+Use the isolated bridge address and service certificate in a VM deployment.
+The launcher verifies the bridge and NIC/filter identity and restricts the host
+INPUT path before starting the listener.
+
+Each request supplies an execution bearer credential over TLS. The listener
+passes the kernel peer address, exact method/path and bounded request bytes
+to the trusted `authorize` Interface. The authority validates identity,
+audience, scope, current Attempt/workspace/instance, epoch and generation, and
+the approved operation, model and budget before issuing a request-specific
+permit. The permit binds a transport route, an expiry, a revocation signal and
+`confirmCurrent`. The listener rejects ambiguous or forwarded-identity
+headers. Guest Authorization and framing headers stay on the ingress hop.
+
+After DNS and credential lookup, the transport awaits `confirmCurrent` just
+before dialing. It only dispatches if confirmation returns true and the
+request is still active and within its deadline. The authority binds the
+confirmation and revocation signal to the same request and current scope,
+and releases any Broker lock before returning to network I/O.
+
+The listener bounds TLS handshakes, headers, body size, active requests,
+open sockets and deadlines. It declines tunneling and upgrades. Upstream
+responses stream with backpressure. Revocation or expiry aborts work and
+closes an already-started response stream. `close` stops listening and closes
+client sockets. Authority calls must honor the supplied signal and have their
+own timeout. Native HTTP parsing uses the pinned Node runtime. [Node HTTP](https://nodejs.org/download/release/v24.22.1/docs/api/http.html)
+
+The TLS regressions use a controlled test authority and synthetic upstream.
+The existing Broker `observe` result alone lacks the full execution-grant
+scope. VM deployment must connect the listener to a scoped authority backed
+by current Broker and execution state. Transport receipts distinguish
+`not_sent` from `may_have_been_sent`; durable settlement and attribution
+remain M2-08 work.
+
+## Host transport
 
 Node **24.22.1** is the qualification runtime. TypeScript 6.0.3, @types/node
 24.19.2 and ipaddr.js 2.5.0 are exact dependencies in the lockfile. Node's native
@@ -62,6 +98,11 @@ callers must not attempt to send a second HTTP response. Before that point, the
 caller can map `EgressTransportError.code` into its own controlled response.
 Async header callbacks are unsupported; if supplied accidentally, their permit
 remains held until they settle even after an outward timeout.
+
+The optional host-only fourth argument to `exchange` is an async final
+dispatch check. A false result, exception or cancellation before dial retains
+`requestExposure: not_sent`. Direct trusted callers finish admission before
+invoking `exchange` and propagate cancellation for revoked work.
 
 ## Address and TLS policy
 

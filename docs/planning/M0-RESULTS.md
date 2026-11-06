@@ -105,6 +105,7 @@
 | E77 | 受测源码`771aa56ca6d8`的[实际资格CI](https://github.com/StateKnot/Harniqo/actions/runs/41586462976)724项Python和两组Node、[同源三平台契约](https://github.com/StateKnot/Harniqo/actions/runs/41586462939)各60定义/18路径/107样例/15生命周期全部成功；4份实际artifact的run/job/步骤、源码/锁与SHA已核验。最终证据增补不改变受测运行输入，CI与E76真实宿主结果分别计量 | [CI及三平台契约索引](../operations/dedicated-vm-ci-2026-11-03.json) | `.private/validation/<dedicated-vm-ci-run>/` 的实际报告、环境和下载archive；0模型/VM，非桌面构建或生产服务激活 |
 | E78 | M0-02 契约收口，源码 `b171fecfbb8a`；本机、指定服务器和 [macOS/Windows/Linux 契约 CI](https://github.com/StateKnot/Harniqo/actions/runs/42172635032) 通过 64 定义、20 路径、128 样例、15 迁移案例；核对下载报告、源码及锁摘要 | [验证索引](../operations/m002-contract-interface-2026-11-06.json)、[真实证据对账](../../research/m0-contract-admission.md) | `.private/validation/m002-contract-ci-reports/`；0 模型调用、0 新 VM；M0-02 正式冻结仍需 M0-05 |
 | E79 | M0-07 只读资源核对：指定主机 Ubuntu24.04 x64 与 libvirt 查询、CPU/内存/文件系统快照，本机 macOS26.6.2 arm64；四组合原生 CI 产物仍可用且服务端摘要与既有记录一致 | [资源快照](../operations/m007-resource-readiness-2026-11-06.json)、[资源登记和解除条件](../operations/ACCEPTANCE-BASELINE.md) | 0 新构建/VM/模型/管理员操作。容量压力、目标 OS 安装、签名、独立备份和恢复需分项证据 |
+| E80 | M0-05 Guest TLS 入口和派发前复核；本机及指定 Ubuntu24.04 x64 的双 TLS 回环各通过 18 项，覆盖无效凭证、过期/旧授权、异常拒绝、晚返回取消和活动流关闭 | [入口 Interface](../../apps/model-egress/README.md#guest-https-interface)、[脱敏报告](../operations/m005-guest-ingress-2026-11-06.json) | 测试权威与合成上游；保留首轮超限客户端 EPIPE 及修正记录。指定服务器端口已释放，0 模型/VM/管理员操作；真实 Broker 权威与 Guest NIC 尚待接入 |
 
 
 
