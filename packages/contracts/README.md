@@ -17,6 +17,8 @@ OpenAPI API 路径仍为 `/v1`，它与契约草稿 SemVer 是不同维度。Sch
 
 所有路径的认证都显式声明。只有 `/v1/auth/discovery` 是公开的 TLS issuer/client discovery；它不包含机密，桌面仍必须通过系统浏览器、Authorization Code + PKCE 登录。用户 API 用配置 audience 的 Access Token，Runner Interface 用受控注册的 mTLS 身份，两者不能互换。
 
+桌面用 `POST /v1/handshakes`，已登记的 Runner 用 `POST /runner/v1/handshakes`。平台先核验对应的身份、归属和授权，再检查软件最低版本和双方契约版本的精确交集。仅当选中版本被双方明确列出时返回成功。执行代理和 Adapter 的版本由 Runner 在派发前核对；它们不借用用户或 Runner 的平台凭据。
+
 ## 运行验证
 
 锁定与正式验收环境为 Python3.12/Linux x86_64，目前仅此组合经过实测。锁中部分传递依赖要求 Python3.11+，不能根据两个直接工具包的最低版本推导整个环境支持 Python3.10。其他 Python/OS/架构需独立兼容验收。
@@ -58,14 +60,17 @@ python3 scripts/contracts/validate.py --write-openapi
 ## 关键语义
 
 - 身份来自认证结果，不允许用户在 SubmitRun/审批响应中自选组织或 approver。路由 scope 还须与 Access、RLS 和记录归属核对。
-- Command 幂等键的作用域为组织/项目、调用者和 operation；请求摘要由服务端对语义规范化后的输入计算。重放前重新授权，同键异内容返回 `IDEMPOTENCY_CONFLICT`。
+- Command 幂等键的作用域为组织/项目、调用者和 operation；请求摘要覆盖目标路径资源及语义规范化后的输入。重放前重新授权，同键异目标或内容返回 `IDEMPOTENCY_CONFLICT`。提交响应丢失时先以原会话和同键只读查询 `run-submissions:lookup`。找不到已提交结果时仍可能有请求在途；需要重试时沿用原键、目标和请求。
 - Trial 是计划单位，准入前可没有 Run；准入后关联一个逻辑 Run，重试增加其 Attempt。取消未获准 Trial 可以没有 Run。Attempt 不同时持有 trial_id/run_id 两个执行归属。
 - 排队时 Run 可以还没有原生会话；进入 running/waiting 状态时必须已有原生绑定和活动 Attempt。终态必须有 ended_at；终态不再向运行态迁移。重跑创建新的逻辑执行或按明确可重试规则创建新 Attempt，不改写历史成功/失败。
 - `Run.succeeded` 表示 Agent 执行生命周期完成，业务成功由独立 VerificationResult 决定。Verifier 错误不能同时给业务成功分数。
-- SourceEvent 不接受 guest 自选平台 seq。EventEnvelope 在持久提交后添加平台 event_id/seq；原生未识别事件通过受限原始对象引用保留，不把任意 JSON 注入平台状态机。
+- Runner 上报的 `SourceEvent` 绑定 Attempt、流和租约。`attempt.result_observed` 报告原生结果，平台结合受信的执行核对决定终态。平台在业务事务内提交权威状态事件，首次受理在没有 Attempt 时写入 `accepted`、revision 1 和 seq 1。客户端收到的 `EventEnvelope` 携带平台分配的 event_id/seq，且只有 `platform` 或 `source` 一种内容。原生未知事件通过受限原始对象引用保留。
 - committed ACK 是每 `(attempt_id, stream_id)` 的最高连续提交序号。Schema 只能限制其整数形状，不能证明它没有越过缺口；平台必须根据持久记录计算。
+- 游标失效时，重新授权获取同一数据库快照内的 Run、当前可见待处理交互和 `last_seq`，再从该游标补取。每类交互最多 32 条，平台在创建时限制数量，快照必须完整返回当前可见范围。已过期或不再属于当前 Attempt 的交互不能用于响应。历史正文的保留与恢复按 M3 验收。
 - 相同 Workspace 的连续 Run 可以保留状态且只允许一个写者；Assignment/Grant 绑定平台恢复 epoch、工作区、实例、owner、租约代次和 scope。新操作逐次核对撤权与当前代次。
-- `StopReceipt` 的 stopping/reconciling 不得声明 stop_confirmed；cancelled 必须声明停止确认。Attempt 的 stop_evidence_id 仅为引用，真实证据必须由受信的资源检查取得，guest ACK 不充分。
+- `DeploymentRevision` 固定部署归属、两个发行包、集成模式、配置修订和执行目标；RuntimeInstance、部署能力、提交请求、Run 及 Assignment 均关联该修订。受理和派发前分别核对修订、配置和目标，避免排队中的 Run 误用替换目标。配置或目标改变须创建新修订并重新解析能力。未知的必需能力拒绝派发。`strong_stop` 要求该修订的 `reliable_stop` 为 supported，且满足后端的资源停止保证。受管不可信 KVM 要求 `workspace_vm`；外部服务至少需有独立可验证的 `process_tree`，并只操作该执行获准的资源。原生 abort 或断开流最多提供原生逻辑停止证据。
+- `StopReceipt` 的 stopping/reconciling 返回 `stop_confirmed=false`，cancelled 返回 true。已确认终态不因迟到取消或完成而改写；终态前修订不符且无幂等重放结果时返回 `VALIDATION_FAILED`，客户端读取当前快照。Attempt 的 stop_evidence_id 引用受信资源证据。未启动取消须原子关闭或隔离仍可生效的派发，失联时保持 reconciling。
+- 交互响应以服务端时钟和当前 Attempt、租约、请求修订、摘要、权限为准。已过期或被替换的交互返回 `INTERACTION_EXPIRED`，不再触发动作。重放前仍核验当前权限，已提交的相同响应只读回执。
 - 输入和产物上传收到字节不等于 ready，必须再次完成对象存在/hash/大小校验。用户不能选内部 object key。下载由代理逐次授权，不对用户暴露内部长期签名直链。
 - 所有金额使用十进制字符串；unknown 用量不得填 `0`。Server 提交的实际费用不因旧租约拒绝状态写入而丢弃。
 - 草稿响应只接受所协商版本的字段，未协商新字段不默默生效；新增稳定字段的协商/降级在 M0 冻结。Handshake 可携带语法正确的未知版本，服务端无交集时返回 `VERSION_INCOMPATIBLE`，不能把它误判为坏 JSON。
@@ -89,6 +94,6 @@ python3 scripts/contracts/validate.py --write-openapi
 
 ## 冻结条件与资料
 
-M0-02 的初稿和离线一致性验证可以独立完成；正式冻结仍须结合 M0-03/04 的真实原生能力和 M0-05 的真实隔离验证。对外支持状态不能从 Schema 的字段存在推导。
+M0-02 的 Interface 草稿供后续实现使用。正式准入冻结仍须结合 M0-03/04 的真实原生能力和 M0-05 的真实隔离验证，见[有限对账及剩余条件](../../research/m0-contract-admission.md)。当前 `0.1.0` 草稿尚无上线调用方；状态事件和快照改动属于首次冻结前的修订。对外支持须逐项实际验收。
 
 规范和依赖来源：[JSON Schema draft2020-12](https://json-schema.org/draft/2020-12)、[OpenAPI3.1](https://spec.openapis.org/oas/v3.1.0)、[jsonschema4.26.0/MIT](https://pypi.org/project/jsonschema/4.26.0/)、[openapi-spec-validator0.9.0/Apache-2.0](https://pypi.org/project/openapi-spec-validator/0.9.0/)。

@@ -137,7 +137,8 @@
         },
         "active_attempt_id": "00000000-0000-4000-8000-000000000005",
         "accepted_at": "2026-10-29T00:00:00Z",
-        "started_at": "2026-10-29T00:00:00Z"
+        "started_at": "2026-10-29T00:00:00Z",
+        "deployment_revision_id": "00000000-0000-4000-8000-000000000012"
       }
     },
     {
@@ -173,7 +174,8 @@
         "required_capabilities": [
           "new_session",
           "files"
-        ]
+        ],
+        "deployment_revision_id": "00000000-0000-4000-8000-000000000012"
       }
     },
     {
@@ -302,7 +304,8 @@
           }
         },
         "stop_guarantee": "none",
-        "verified_at": null
+        "verified_at": null,
+        "deployment_revision_id": "00000000-0000-4000-8000-000000000012"
       }
     },
     {
@@ -600,7 +603,8 @@
             "issued_at": "2026-10-29T00:00:00Z",
             "expires_at": "2026-10-29T01:00:00Z"
           }
-        ]
+        ],
+        "deployment_revision_id": "00000000-0000-4000-8000-000000000012"
       }
     },
     {
@@ -637,7 +641,7 @@
       "instance": {
         "event_id": "00000000-0000-4000-8000-000000000036",
         "run_id": "00000000-0000-4000-8000-000000000004",
-        "seq": 1,
+        "seq": 3,
         "persisted_at": "2026-10-29T00:00:00Z",
         "source": {
           "contract_version": "0.1.0",
@@ -680,7 +684,7 @@
           "configuration_revision_id": "00000000-0000-4000-8000-000000000016",
           "input_snapshot_id": "00000000-0000-4000-8000-000000000017",
           "state": "running",
-          "revision": 2,
+          "revision": 4,
           "native_session": {
             "harness_release_id": "00000000-0000-4000-8000-000000000014",
             "workspace_id": "00000000-0000-4000-8000-000000000008",
@@ -691,10 +695,13 @@
           },
           "active_attempt_id": "00000000-0000-4000-8000-000000000005",
           "accepted_at": "2026-10-29T00:00:00Z",
-          "started_at": "2026-10-29T00:00:00Z"
+          "started_at": "2026-10-29T00:00:00Z",
+          "deployment_revision_id": "00000000-0000-4000-8000-000000000012"
         },
-        "last_seq": 1,
-        "snapshot_at": "2026-10-29T00:00:00Z"
+        "last_seq": 4,
+        "snapshot_at": "2026-10-29T00:00:00Z",
+        "pending_approvals": [],
+        "pending_inputs": []
       }
     },
     {
@@ -824,9 +831,82 @@
       }
     },
     {
-      "id": "event-run.status_changed",
-      "schema": "SourceEvent",
+      "id": "valid-platform-status-before-attempt",
+      "schema": "EventEnvelope",
       "valid": true,
+      "instance": {
+        "event_id": "00000000-0000-4000-8000-000000000036",
+        "run_id": "00000000-0000-4000-8000-000000000004",
+        "seq": 2,
+        "persisted_at": "2026-10-29T00:00:00Z",
+        "platform": {
+          "type": "run.status_changed",
+          "payload": {
+            "previous_state": "accepted",
+            "state": "queued",
+            "run_revision": 2
+          }
+        }
+      }
+    },
+    {
+      "id": "reject-mixed-platform-and-source-event",
+      "schema": "EventEnvelope",
+      "valid": false,
+      "instance": {
+        "event_id": "00000000-0000-4000-8000-000000000036",
+        "run_id": "00000000-0000-4000-8000-000000000004",
+        "seq": 2,
+        "persisted_at": "2026-10-29T00:00:00Z",
+        "platform": {
+          "type": "run.status_changed",
+          "payload": {
+            "previous_state": "accepted",
+            "state": "queued",
+            "run_revision": 2
+          }
+        },
+        "source": {
+          "contract_version": "0.1.0",
+          "scope": {
+            "organization_id": "00000000-0000-4000-8000-000000000001",
+            "project_id": "00000000-0000-4000-8000-000000000002"
+          },
+          "run_id": "00000000-0000-4000-8000-000000000004",
+          "attempt_id": "00000000-0000-4000-8000-000000000005",
+          "runtime_instance_id": "00000000-0000-4000-8000-000000000009",
+          "binding": {
+            "platform_epoch": "00000000-0000-4000-8000-000000000003",
+            "lease_generation": 1
+          },
+          "stream_id": "00000000-0000-4000-8000-000000000028",
+          "source_seq": 1,
+          "observed_at": "2026-10-29T00:00:00Z",
+          "type": "text.delta",
+          "payload": {
+            "block_id": "00000000-0000-4000-8000-000000000029",
+            "text": "Synthetic delta"
+          }
+        }
+      },
+      "expected_keyword": "oneOf"
+    },
+    {
+      "id": "reject-envelope-without-event",
+      "schema": "EventEnvelope",
+      "valid": false,
+      "instance": {
+        "event_id": "00000000-0000-4000-8000-000000000036",
+        "run_id": "00000000-0000-4000-8000-000000000004",
+        "seq": 2,
+        "persisted_at": "2026-10-29T00:00:00Z"
+      },
+      "expected_keyword": "oneOf"
+    },
+    {
+      "id": "reject-runner-authoritative-status",
+      "schema": "SourceEvent",
+      "valid": false,
       "instance": {
         "contract_version": "0.1.0",
         "scope": {
@@ -845,11 +925,12 @@
         "observed_at": "2026-10-29T00:00:00Z",
         "type": "run.status_changed",
         "payload": {
-          "previous_state": "queued",
-          "state": "provisioning",
+          "previous_state": "stopping",
+          "state": "cancelled",
           "run_revision": 2
         }
-      }
+      },
+      "expected_keyword": "oneOf"
     },
     {
       "id": "event-text.delta",
@@ -1212,7 +1293,8 @@
         "active_attempt_id": "00000000-0000-4000-8000-000000000005",
         "accepted_at": "2026-10-29T00:00:00Z",
         "started_at": "2026-10-29T00:00:00Z",
-        "trial_id": "00000000-0000-4000-8000-000000000023"
+        "trial_id": "00000000-0000-4000-8000-000000000023",
+        "deployment_revision_id": "00000000-0000-4000-8000-000000000012"
       }
     },
     {
@@ -1251,7 +1333,8 @@
           "new_session",
           "files"
         ],
-        "organization_id": "00000000-0000-4000-8000-000000000999"
+        "organization_id": "00000000-0000-4000-8000-000000000999",
+        "deployment_revision_id": "00000000-0000-4000-8000-000000000012"
       },
       "expected_keyword": "additionalProperties"
     },
@@ -1282,7 +1365,8 @@
         },
         "active_attempt_id": "00000000-0000-4000-8000-000000000005",
         "accepted_at": "2026-10-29T00:00:00Z",
-        "started_at": "2026-10-29T00:00:00Z"
+        "started_at": "2026-10-29T00:00:00Z",
+        "deployment_revision_id": "00000000-0000-4000-8000-000000000012"
       },
       "expected_keyword": "enum"
     },
@@ -1313,7 +1397,8 @@
         },
         "active_attempt_id": "00000000-0000-4000-8000-000000000005",
         "accepted_at": "2026-10-29T00:00:00Z",
-        "started_at": "2026-10-29T00:00:00Z"
+        "started_at": "2026-10-29T00:00:00Z",
+        "deployment_revision_id": "00000000-0000-4000-8000-000000000012"
       },
       "expected_keyword": "required"
     },
@@ -1337,7 +1422,8 @@
         "native_session": null,
         "active_attempt_id": "00000000-0000-4000-8000-000000000005",
         "accepted_at": "2026-10-29T00:00:00Z",
-        "started_at": "2026-10-29T00:00:00Z"
+        "started_at": "2026-10-29T00:00:00Z",
+        "deployment_revision_id": "00000000-0000-4000-8000-000000000012"
       },
       "expected_keyword": "type"
     },
@@ -1369,7 +1455,8 @@
         "active_attempt_id": "00000000-0000-4000-8000-000000000005",
         "accepted_at": "2026-10-29T00:00:00Z",
         "started_at": "2026-10-29T00:00:00Z",
-        "trial_id": "00000000-0000-4000-8000-000000000023"
+        "trial_id": "00000000-0000-4000-8000-000000000023",
+        "deployment_revision_id": "00000000-0000-4000-8000-000000000012"
       },
       "expected_keyword": "not"
     },
@@ -1499,7 +1586,8 @@
             "issued_at": "2026-10-29T00:00:00Z",
             "expires_at": "2026-10-29T01:00:00Z"
           }
-        ]
+        ],
+        "deployment_revision_id": "00000000-0000-4000-8000-000000000012"
       },
       "expected_keyword": "minimum"
     },
@@ -1570,7 +1658,8 @@
             "issued_at": "2026-10-29T00:00:00Z",
             "expires_at": "2026-10-29T01:00:00Z"
           }
-        ]
+        ],
+        "deployment_revision_id": "00000000-0000-4000-8000-000000000012"
       },
       "expected_keyword": "pattern"
     },
@@ -1767,7 +1856,8 @@
           }
         },
         "stop_guarantee": "none",
-        "verified_at": null
+        "verified_at": null,
+        "deployment_revision_id": "00000000-0000-4000-8000-000000000012"
       },
       "expected_keyword": "minItems"
     },
@@ -1843,7 +1933,8 @@
           }
         },
         "stop_guarantee": "none",
-        "verified_at": null
+        "verified_at": null,
+        "deployment_revision_id": "00000000-0000-4000-8000-000000000012"
       },
       "expected_keyword": "type"
     },
@@ -2469,6 +2560,499 @@
         "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         "purpose": "input"
       }
+    },
+    {
+      "id": "valid-DeploymentRevision",
+      "schema": "DeploymentRevision",
+      "valid": true,
+      "instance": {
+        "id": "00000000-0000-4000-8000-000000000012",
+        "deployment_id": "00000000-0000-4000-8000-000000000071",
+        "scope": {
+          "organization_id": "00000000-0000-4000-8000-000000000001",
+          "project_id": "00000000-0000-4000-8000-000000000002"
+        },
+        "harness_release_id": "00000000-0000-4000-8000-000000000014",
+        "adapter_release_id": "00000000-0000-4000-8000-000000000021",
+        "integration_mode": "managed_native",
+        "configuration_revision_id": "00000000-0000-4000-8000-000000000016",
+        "execution_target_id": "00000000-0000-4000-8000-000000000072"
+      }
+    },
+    {
+      "id": "reject-deployment-without-target",
+      "schema": "DeploymentRevision",
+      "valid": false,
+      "instance": {
+        "id": "00000000-0000-4000-8000-000000000012",
+        "deployment_id": "00000000-0000-4000-8000-000000000071",
+        "scope": {
+          "organization_id": "00000000-0000-4000-8000-000000000001",
+          "project_id": "00000000-0000-4000-8000-000000000002"
+        },
+        "harness_release_id": "00000000-0000-4000-8000-000000000014",
+        "adapter_release_id": "00000000-0000-4000-8000-000000000021",
+        "integration_mode": "managed_native",
+        "configuration_revision_id": "00000000-0000-4000-8000-000000000016"
+      },
+      "expected_keyword": "required"
+    },
+    {
+      "id": "reject-capabilities-without-deployment-revision",
+      "schema": "Capabilities",
+      "valid": false,
+      "instance": {
+        "harness_release_id": "00000000-0000-4000-8000-000000000014",
+        "adapter_release_id": "00000000-0000-4000-8000-000000000021",
+        "integration_mode": "managed_native",
+        "features": {
+          "new_session": {
+            "status": "unknown",
+            "evidence_ids": [],
+            "limitations": []
+          },
+          "event_history": {
+            "status": "unknown",
+            "evidence_ids": [],
+            "limitations": []
+          },
+          "reliable_stop": {
+            "status": "unknown",
+            "evidence_ids": [],
+            "limitations": []
+          },
+          "artifacts": {
+            "status": "unknown",
+            "evidence_ids": [],
+            "limitations": []
+          },
+          "identity_attribution": {
+            "status": "unknown",
+            "evidence_ids": [],
+            "limitations": []
+          },
+          "native_resume": {
+            "status": "unknown",
+            "evidence_ids": [],
+            "limitations": []
+          },
+          "checkpoint_resume": {
+            "status": "unknown",
+            "evidence_ids": [],
+            "limitations": []
+          },
+          "tool_approval": {
+            "status": "unknown",
+            "evidence_ids": [],
+            "limitations": []
+          },
+          "clarification": {
+            "status": "unknown",
+            "evidence_ids": [],
+            "limitations": []
+          },
+          "files": {
+            "status": "unknown",
+            "evidence_ids": [],
+            "limitations": []
+          },
+          "branching": {
+            "status": "unknown",
+            "evidence_ids": [],
+            "limitations": []
+          },
+          "model_configuration": {
+            "status": "unknown",
+            "evidence_ids": [],
+            "limitations": []
+          },
+          "usage": {
+            "status": "unknown",
+            "evidence_ids": [],
+            "limitations": []
+          }
+        },
+        "stop_guarantee": "none",
+        "verified_at": null
+      },
+      "expected_keyword": "required"
+    },
+    {
+      "id": "valid-runner-handshake",
+      "schema": "RunnerHandshakeRequest",
+      "valid": true,
+      "instance": {
+        "component": "runner",
+        "build_id": "synthetic-build-1",
+        "software_version": "0.1.0",
+        "supported_contract_versions": [
+          "0.1.0"
+        ]
+      }
+    },
+    {
+      "id": "valid-desktop-no-version-overlap",
+      "schema": "DesktopHandshakeRequest",
+      "valid": true,
+      "instance": {
+        "component": "desktop",
+        "build_id": "synthetic-build-1",
+        "software_version": "99.0.0",
+        "supported_contract_versions": [
+          "99.0.0"
+        ]
+      }
+    },
+    {
+      "id": "reject-runner-on-desktop-handshake",
+      "schema": "DesktopHandshakeRequest",
+      "valid": false,
+      "instance": {
+        "component": "runner",
+        "build_id": "synthetic-build-1",
+        "software_version": "0.1.0",
+        "supported_contract_versions": [
+          "0.1.0"
+        ]
+      },
+      "expected_keyword": "const"
+    },
+    {
+      "id": "reject-desktop-on-runner-handshake",
+      "schema": "RunnerHandshakeRequest",
+      "valid": false,
+      "instance": {
+        "component": "desktop",
+        "build_id": "synthetic-build-1",
+        "software_version": "99.0.0",
+        "supported_contract_versions": [
+          "99.0.0"
+        ]
+      },
+      "expected_keyword": "const"
+    },
+    {
+      "id": "valid-platform-acceptance-event",
+      "schema": "EventEnvelope",
+      "valid": true,
+      "instance": {
+        "event_id": "00000000-0000-4000-8000-000000000070",
+        "run_id": "00000000-0000-4000-8000-000000000004",
+        "seq": 1,
+        "persisted_at": "2026-10-29T00:00:00Z",
+        "platform": {
+          "type": "run.status_changed",
+          "payload": {
+            "state": "accepted",
+            "run_revision": 1
+          }
+        }
+      }
+    },
+    {
+      "id": "reject-false-acceptance-transition",
+      "schema": "EventEnvelope",
+      "valid": false,
+      "instance": {
+        "event_id": "00000000-0000-4000-8000-000000000070",
+        "run_id": "00000000-0000-4000-8000-000000000004",
+        "seq": 1,
+        "persisted_at": "2026-10-29T00:00:00Z",
+        "platform": {
+          "type": "run.status_changed",
+          "payload": {
+            "state": "accepted",
+            "run_revision": 1,
+            "previous_state": "running"
+          }
+        }
+      },
+      "expected_keyword": "not"
+    },
+    {
+      "id": "reject-transition-without-previous-state",
+      "schema": "EventEnvelope",
+      "valid": false,
+      "instance": {
+        "event_id": "00000000-0000-4000-8000-000000000036",
+        "run_id": "00000000-0000-4000-8000-000000000004",
+        "seq": 2,
+        "persisted_at": "2026-10-29T00:00:00Z",
+        "platform": {
+          "type": "run.status_changed",
+          "payload": {
+            "state": "queued",
+            "run_revision": 2
+          }
+        }
+      },
+      "expected_keyword": "required"
+    },
+    {
+      "id": "valid-snapshot-with-pending-approval",
+      "schema": "RunSnapshot",
+      "valid": true,
+      "instance": {
+        "run": {
+          "id": "00000000-0000-4000-8000-000000000004",
+          "scope": {
+            "organization_id": "00000000-0000-4000-8000-000000000001",
+            "project_id": "00000000-0000-4000-8000-000000000002"
+          },
+          "purpose": "interactive",
+          "session_id": "00000000-0000-4000-8000-000000000015",
+          "workspace_id": "00000000-0000-4000-8000-000000000008",
+          "configuration_revision_id": "00000000-0000-4000-8000-000000000016",
+          "input_snapshot_id": "00000000-0000-4000-8000-000000000017",
+          "state": "waiting_approval",
+          "revision": 5,
+          "native_session": {
+            "harness_release_id": "00000000-0000-4000-8000-000000000014",
+            "workspace_id": "00000000-0000-4000-8000-000000000008",
+            "runtime_instance_id": "00000000-0000-4000-8000-000000000009",
+            "instance_generation": 1,
+            "native_id": "synthetic-session-1",
+            "recovery_kind": "new"
+          },
+          "active_attempt_id": "00000000-0000-4000-8000-000000000005",
+          "accepted_at": "2026-10-29T00:00:00Z",
+          "started_at": "2026-10-29T00:00:00Z",
+          "deployment_revision_id": "00000000-0000-4000-8000-000000000012"
+        },
+        "last_seq": 6,
+        "snapshot_at": "2026-10-29T00:00:00Z",
+        "pending_approvals": [
+          {
+            "id": "00000000-0000-4000-8000-000000000018",
+            "scope": {
+              "organization_id": "00000000-0000-4000-8000-000000000001",
+              "project_id": "00000000-0000-4000-8000-000000000002"
+            },
+            "run_id": "00000000-0000-4000-8000-000000000004",
+            "attempt_id": "00000000-0000-4000-8000-000000000005",
+            "runtime_instance_id": "00000000-0000-4000-8000-000000000009",
+            "binding": {
+              "platform_epoch": "00000000-0000-4000-8000-000000000003",
+              "lease_generation": 1
+            },
+            "revision": 1,
+            "expires_at": "2026-10-29T01:00:00Z",
+            "tool_call_id": "synthetic-tool-call-1",
+            "tool_name": "write_file",
+            "action_summary": "Write a synthetic conformance file",
+            "parameters_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "state": "pending"
+          }
+        ],
+        "pending_inputs": []
+      }
+    },
+    {
+      "id": "reject-snapshot-with-expired-approval",
+      "schema": "RunSnapshot",
+      "valid": false,
+      "instance": {
+        "run": {
+          "id": "00000000-0000-4000-8000-000000000004",
+          "scope": {
+            "organization_id": "00000000-0000-4000-8000-000000000001",
+            "project_id": "00000000-0000-4000-8000-000000000002"
+          },
+          "purpose": "interactive",
+          "session_id": "00000000-0000-4000-8000-000000000015",
+          "workspace_id": "00000000-0000-4000-8000-000000000008",
+          "configuration_revision_id": "00000000-0000-4000-8000-000000000016",
+          "input_snapshot_id": "00000000-0000-4000-8000-000000000017",
+          "state": "waiting_approval",
+          "revision": 5,
+          "native_session": {
+            "harness_release_id": "00000000-0000-4000-8000-000000000014",
+            "workspace_id": "00000000-0000-4000-8000-000000000008",
+            "runtime_instance_id": "00000000-0000-4000-8000-000000000009",
+            "instance_generation": 1,
+            "native_id": "synthetic-session-1",
+            "recovery_kind": "new"
+          },
+          "active_attempt_id": "00000000-0000-4000-8000-000000000005",
+          "accepted_at": "2026-10-29T00:00:00Z",
+          "started_at": "2026-10-29T00:00:00Z",
+          "deployment_revision_id": "00000000-0000-4000-8000-000000000012"
+        },
+        "last_seq": 6,
+        "snapshot_at": "2026-10-29T00:00:00Z",
+        "pending_approvals": [
+          {
+            "id": "00000000-0000-4000-8000-000000000018",
+            "scope": {
+              "organization_id": "00000000-0000-4000-8000-000000000001",
+              "project_id": "00000000-0000-4000-8000-000000000002"
+            },
+            "run_id": "00000000-0000-4000-8000-000000000004",
+            "attempt_id": "00000000-0000-4000-8000-000000000005",
+            "runtime_instance_id": "00000000-0000-4000-8000-000000000009",
+            "binding": {
+              "platform_epoch": "00000000-0000-4000-8000-000000000003",
+              "lease_generation": 1
+            },
+            "revision": 1,
+            "expires_at": "2026-10-29T01:00:00Z",
+            "tool_call_id": "synthetic-tool-call-1",
+            "tool_name": "write_file",
+            "action_summary": "Write a synthetic conformance file",
+            "parameters_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "state": "expired"
+          }
+        ],
+        "pending_inputs": []
+      },
+      "expected_keyword": "const"
+    },
+    {
+      "id": "valid-attempt-result-observation",
+      "schema": "SourceEvent",
+      "valid": true,
+      "instance": {
+        "contract_version": "0.1.0",
+        "scope": {
+          "organization_id": "00000000-0000-4000-8000-000000000001",
+          "project_id": "00000000-0000-4000-8000-000000000002"
+        },
+        "run_id": "00000000-0000-4000-8000-000000000004",
+        "attempt_id": "00000000-0000-4000-8000-000000000005",
+        "runtime_instance_id": "00000000-0000-4000-8000-000000000009",
+        "binding": {
+          "platform_epoch": "00000000-0000-4000-8000-000000000003",
+          "lease_generation": 1
+        },
+        "stream_id": "00000000-0000-4000-8000-000000000028",
+        "source_seq": 1,
+        "observed_at": "2026-10-29T00:00:00Z",
+        "type": "attempt.result_observed",
+        "payload": {
+          "outcome": "completed"
+        }
+      }
+    },
+    {
+      "id": "reject-authoritative-revision-in-result-observation",
+      "schema": "SourceEvent",
+      "valid": false,
+      "instance": {
+        "contract_version": "0.1.0",
+        "scope": {
+          "organization_id": "00000000-0000-4000-8000-000000000001",
+          "project_id": "00000000-0000-4000-8000-000000000002"
+        },
+        "run_id": "00000000-0000-4000-8000-000000000004",
+        "attempt_id": "00000000-0000-4000-8000-000000000005",
+        "runtime_instance_id": "00000000-0000-4000-8000-000000000009",
+        "binding": {
+          "platform_epoch": "00000000-0000-4000-8000-000000000003",
+          "lease_generation": 1
+        },
+        "stream_id": "00000000-0000-4000-8000-000000000028",
+        "source_seq": 1,
+        "observed_at": "2026-10-29T00:00:00Z",
+        "type": "attempt.result_observed",
+        "payload": {
+          "outcome": "completed",
+          "run_revision": 3
+        }
+      },
+      "expected_keyword": "additionalProperties"
+    },
+    {
+      "id": "reject-platform-selected-version-not-offered",
+      "schema": "PlatformMetadata",
+      "valid": false,
+      "instance": {
+        "platform_id": "00000000-0000-4000-8000-000000000038",
+        "platform_epoch": "00000000-0000-4000-8000-000000000003",
+        "build_id": "synthetic-build-1",
+        "software_version": "0.1.0",
+        "selected_contract_version": "0.1.0",
+        "supported_contract_versions": [
+          "99.0.0"
+        ],
+        "minimum_component_versions": {
+          "desktop": "0.1.0",
+          "runner": "0.1.0",
+          "execution_agent": "0.1.0"
+        },
+        "feature_flags": [
+          "contracts.draft"
+        ]
+      },
+      "expected_keyword": "contains"
+    },
+    {
+      "id": "reject-submit-without-deployment-revision",
+      "schema": "SubmitRunRequest",
+      "valid": false,
+      "instance": {
+        "configuration_revision_id": "00000000-0000-4000-8000-000000000016",
+        "input_snapshot_id": "00000000-0000-4000-8000-000000000017",
+        "budget_policy_id": "00000000-0000-4000-8000-000000000030",
+        "prompt": "Synthetic conformance task",
+        "required_capabilities": [
+          "new_session",
+          "files"
+        ]
+      },
+      "expected_keyword": "required"
+    },
+    {
+      "id": "reject-source-at-first-seq",
+      "schema": "EventEnvelope",
+      "valid": false,
+      "instance": {
+        "event_id": "00000000-0000-4000-8000-000000000036",
+        "run_id": "00000000-0000-4000-8000-000000000004",
+        "seq": 1,
+        "persisted_at": "2026-10-29T00:00:00Z",
+        "source": {
+          "contract_version": "0.1.0",
+          "scope": {
+            "organization_id": "00000000-0000-4000-8000-000000000001",
+            "project_id": "00000000-0000-4000-8000-000000000002"
+          },
+          "run_id": "00000000-0000-4000-8000-000000000004",
+          "attempt_id": "00000000-0000-4000-8000-000000000005",
+          "runtime_instance_id": "00000000-0000-4000-8000-000000000009",
+          "binding": {
+            "platform_epoch": "00000000-0000-4000-8000-000000000003",
+            "lease_generation": 1
+          },
+          "stream_id": "00000000-0000-4000-8000-000000000028",
+          "source_seq": 1,
+          "observed_at": "2026-10-29T00:00:00Z",
+          "type": "text.delta",
+          "payload": {
+            "block_id": "00000000-0000-4000-8000-000000000029",
+            "text": "Synthetic delta"
+          }
+        }
+      },
+      "expected_keyword": "required"
+    },
+    {
+      "id": "reject-acceptance-after-first-seq",
+      "schema": "EventEnvelope",
+      "valid": false,
+      "instance": {
+        "event_id": "00000000-0000-4000-8000-000000000070",
+        "run_id": "00000000-0000-4000-8000-000000000004",
+        "seq": 2,
+        "persisted_at": "2026-10-29T00:00:00Z",
+        "platform": {
+          "type": "run.status_changed",
+          "payload": {
+            "state": "accepted",
+            "run_revision": 1
+          }
+        }
+      },
+      "expected_keyword": "not"
     }
   ]
 }

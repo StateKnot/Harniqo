@@ -77,15 +77,20 @@
       "Guest event payloads are observations; they do not directly set platform lifecycle state."
     ],
     "to_cancelled": [
-      "No execution was started, or authoritative stop evidence matches the current owner/epoch/generation.",
+      "Atomically prove no execution could start by closing or fencing any pending assignment, or match authoritative stop evidence to the current owner, platform epoch and lease generation.",
       "A guest ACK or expired lease alone is never sufficient evidence."
     ],
     "from_reconciling_to_queued": [
       "The previous writer is confirmed stopped/absent and its credential is fenced.",
       "A retry policy or explicit authorized retry has created a new Attempt; never replay uncertain external side effects blindly."
     ],
-    "from_reconciling_to_running": [
-      "Inspection proves the same current execution can be reattached; do not start another writer."
+    "from_reconciling_to_provisioning_running_waiting": [
+      "Authoritative inspection must prove the same current execution, owner, epoch and generation can be reattached.",
+      "Do not start another writer; a new Attempt must go through queued after confirmed stop or absence and fencing."
+    ],
+    "from_stopping_or_reconciling_to_succeeded_or_failed": [
+      "A natural result may win only once authoritative evidence resolves the execution and no unresolved writer remains.",
+      "Commit exactly one terminal result; late stop or completion events must not rewrite it."
     ]
   },
   "transition_cases": [

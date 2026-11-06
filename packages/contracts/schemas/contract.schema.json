@@ -591,6 +591,9 @@
         },
         "ended_at": {
           "$ref": "#/$defs/Timestamp"
+        },
+        "deployment_revision_id": {
+          "$ref": "#/$defs/Identifier"
         }
       },
       "required": [
@@ -605,7 +608,8 @@
         "revision",
         "native_session",
         "active_attempt_id",
-        "accepted_at"
+        "accepted_at",
+        "deployment_revision_id"
       ],
       "additionalProperties": false,
       "allOf": [
@@ -806,6 +810,9 @@
           "minItems": 0,
           "maxItems": 7,
           "uniqueItems": true
+        },
+        "deployment_revision_id": {
+          "$ref": "#/$defs/Identifier"
         }
       },
       "required": [
@@ -813,7 +820,8 @@
         "input_snapshot_id",
         "budget_policy_id",
         "prompt",
-        "required_capabilities"
+        "required_capabilities",
+        "deployment_revision_id"
       ],
       "additionalProperties": false
     },
@@ -1058,12 +1066,7 @@
           "$ref": "#/$defs/Identifier"
         },
         "integration_mode": {
-          "type": "string",
-          "enum": [
-            "managed_native",
-            "external_native",
-            "delegated_composition"
-          ]
+          "$ref": "#/$defs/IntegrationMode"
         },
         "features": {
           "type": "object",
@@ -1144,6 +1147,9 @@
               "type": "null"
             }
           ]
+        },
+        "deployment_revision_id": {
+          "$ref": "#/$defs/Identifier"
         }
       },
       "required": [
@@ -1152,7 +1158,8 @@
         "integration_mode",
         "features",
         "stop_guarantee",
-        "verified_at"
+        "verified_at",
+        "deployment_revision_id"
       ],
       "additionalProperties": false
     },
@@ -1946,6 +1953,9 @@
           },
           "minItems": 1,
           "maxItems": 8
+        },
+        "deployment_revision_id": {
+          "$ref": "#/$defs/Identifier"
         }
       },
       "required": [
@@ -1963,7 +1973,8 @@
         "lease_expires_at",
         "limits",
         "network_policy",
-        "execution_grants"
+        "execution_grants",
+        "deployment_revision_id"
       ],
       "additionalProperties": false
     },
@@ -1988,11 +1999,43 @@
         }
       },
       "required": [
-        "previous_state",
         "state",
         "run_revision"
       ],
-      "additionalProperties": false
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "state": {
+                "const": "accepted"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "run_revision": {
+                "const": 1
+              }
+            },
+            "not": {
+              "required": [
+                "previous_state"
+              ]
+            }
+          },
+          "else": {
+            "required": [
+              "previous_state"
+            ],
+            "properties": {
+              "run_revision": {
+                "minimum": 2
+              }
+            }
+          }
+        }
+      ]
     },
     "TextDeltaPayload": {
       "type": "object",
@@ -2208,10 +2251,23 @@
               "$ref": "#/$defs/Timestamp"
             },
             "type": {
-              "const": "run.status_changed"
+              "const": "attempt.result_observed"
             },
             "payload": {
-              "$ref": "#/$defs/RunStatusPayload"
+              "type": "object",
+              "properties": {
+                "outcome": {
+                  "enum": [
+                    "completed",
+                    "failed",
+                    "aborted"
+                  ]
+                }
+              },
+              "required": [
+                "outcome"
+              ],
+              "additionalProperties": false
             }
           },
           "required": [
@@ -2682,16 +2738,88 @@
         },
         "source": {
           "$ref": "#/$defs/SourceEvent"
+        },
+        "platform": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "run.status_changed"
+            },
+            "payload": {
+              "$ref": "#/$defs/RunStatusPayload"
+            }
+          },
+          "required": [
+            "type",
+            "payload"
+          ],
+          "additionalProperties": false
         }
       },
       "required": [
         "event_id",
         "run_id",
         "seq",
-        "persisted_at",
-        "source"
+        "persisted_at"
       ],
-      "additionalProperties": false
+      "additionalProperties": false,
+      "oneOf": [
+        {
+          "required": [
+            "source"
+          ]
+        },
+        {
+          "required": [
+            "platform"
+          ]
+        }
+      ],
+      "if": {
+        "properties": {
+          "seq": {
+            "const": 1
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "platform"
+        ],
+        "properties": {
+          "platform": {
+            "properties": {
+              "payload": {
+                "properties": {
+                  "state": {
+                    "const": "accepted"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "else": {
+        "not": {
+          "required": [
+            "platform"
+          ],
+          "properties": {
+            "platform": {
+              "properties": {
+                "payload": {
+                  "properties": {
+                    "state": {
+                      "const": "accepted"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
     },
     "RunSnapshot": {
       "type": "object",
@@ -2706,12 +2834,50 @@
         },
         "snapshot_at": {
           "$ref": "#/$defs/Timestamp"
+        },
+        "pending_approvals": {
+          "type": "array",
+          "items": {
+            "allOf": [
+              {
+                "$ref": "#/$defs/ApprovalRequest"
+              },
+              {
+                "properties": {
+                  "state": {
+                    "const": "pending"
+                  }
+                }
+              }
+            ]
+          },
+          "maxItems": 32
+        },
+        "pending_inputs": {
+          "type": "array",
+          "items": {
+            "allOf": [
+              {
+                "$ref": "#/$defs/InputRequest"
+              },
+              {
+                "properties": {
+                  "state": {
+                    "const": "pending"
+                  }
+                }
+              }
+            ]
+          },
+          "maxItems": 32
         }
       },
       "required": [
         "run",
         "last_seq",
-        "snapshot_at"
+        "snapshot_at",
+        "pending_approvals",
+        "pending_inputs"
       ],
       "additionalProperties": false
     },
@@ -2916,7 +3082,10 @@
           },
           "minItems": 1,
           "maxItems": 8,
-          "uniqueItems": true
+          "uniqueItems": true,
+          "contains": {
+            "$ref": "#/$defs/ContractVersion"
+          }
         },
         "minimum_component_versions": {
           "type": "object",
@@ -3037,6 +3206,82 @@
         "accepted_at"
       ],
       "additionalProperties": false
+    },
+    "IntegrationMode": {
+      "type": "string",
+      "enum": [
+        "managed_native",
+        "external_native",
+        "delegated_composition"
+      ]
+    },
+    "DeploymentRevision": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "deployment_id": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "scope": {
+          "$ref": "#/$defs/ProjectScope"
+        },
+        "harness_release_id": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "adapter_release_id": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "integration_mode": {
+          "$ref": "#/$defs/IntegrationMode"
+        },
+        "configuration_revision_id": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "execution_target_id": {
+          "$ref": "#/$defs/Identifier"
+        }
+      },
+      "required": [
+        "id",
+        "deployment_id",
+        "scope",
+        "harness_release_id",
+        "adapter_release_id",
+        "integration_mode",
+        "configuration_revision_id",
+        "execution_target_id"
+      ],
+      "additionalProperties": false
+    },
+    "DesktopHandshakeRequest": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/HandshakeRequest"
+        },
+        {
+          "properties": {
+            "component": {
+              "const": "desktop"
+            }
+          }
+        }
+      ]
+    },
+    "RunnerHandshakeRequest": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/HandshakeRequest"
+        },
+        {
+          "properties": {
+            "component": {
+              "const": "runner"
+            }
+          }
+        }
+      ]
     }
   }
 }

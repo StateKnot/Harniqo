@@ -146,10 +146,10 @@ HTTPS JSON 命令/查询 + SSE 事件。默认 REST/OpenAPI；不通过 MCP、AC
 
 | Interface 类别 | 计划路径示例 | 关键约束 |
 | --- | --- | --- |
-| 版本与环境 | `GET /v1/meta` | 平台/契约版本、最低客户端、支持窗口、功能范围；不兼容时停止写操作 |
+| 版本与环境 | `GET /v1/meta`、`POST /v1/handshakes` | 用户 Access Token；版本、最低客户端、支持窗口、功能范围；不兼容时停止写操作 |
 | 资源管理 | `/v1/organizations/{org}/projects/{project}/...` | 路径 scope 不是授权证明，必须与数据库归属和成员权限一致 |
 | 目录/部署 | `.../harness-releases`、`.../deployments`、`.../configuration-revisions` | 区分外部连接与托管；能力按版本；发布配置不可变 |
-| 提交执行 | `POST .../sessions/{session}/runs` | `Idempotency-Key`、配置修订、输入快照、预算策略；接受返回 202、run/command ID |
+| 提交执行 | `POST .../sessions/{session}/runs`、`GET .../sessions/{session}/run-submissions:lookup` | `Idempotency-Key`、配置修订、输入快照、预算策略；接受返回 202、run/command ID；响应丢失时按原会话及同键查询 |
 | 状态与历史 | `GET .../runs/{run}`、`GET .../runs/{run}/events?after=...` | 快照和历史可单独查询；SSE 不是唯一恢复入口 |
 | 取消/交互 | `POST .../runs/{run}/stop`、`POST .../approvals/{id}/responses`、`.../input-requests/{id}/responses` | 接受取消不等于停止成功；交互响应绑定内容、身份、Attempt 和有效期 |
 | 文件 | `.../uploads`、`.../uploads/{id}/complete`、`GET .../artifacts/{id}/content` | 上传/完成分开；下载代理重新授权，支持受控 Range；不暴露内部对象长期直链 |
@@ -159,7 +159,7 @@ HTTPS JSON 命令/查询 + SSE 事件。默认 REST/OpenAPI；不通过 MCP、AC
 
 ### Runner 到平台
 
-独立 `/runner/v1` Interface，出站 mTLS 长轮询领取授权指派、续约、批量回传和核对资源；Runner 无 PostgreSQL 凭据。注册令牌一次性、短有效期；证书可轮换/撤销，绑定具体 target/pool。
+独立 `/runner/v1` Interface，通过出站 mTLS 先握手，再长轮询领取授权指派、续约、批量回传和核对资源；Runner 无 PostgreSQL 凭据。注册令牌一次性、短有效期；证书可轮换/撤销，绑定具体 target/pool。
 
 每个 Assignment 固定 org/project、Run/Attempt、Workspace、RuntimeInstance UUID、image digest、配置 hash、租约代次、资源/网络策略和执行凭证范围。既有服务连接也有独立作用范围，不能接受客户端任意地址与管理员密钥直接转发。
 
@@ -222,7 +222,7 @@ ACK、重传或崩溃续接语义，不替代上述SQLite spool；通用文件�
 
 committed ACK 按 `(attempt_id, stream_id)` 返回最高连续提交的 `source_seq`，不能以最大序号跨过缺口。乱序事件保留、缺口重传，Runner/guest 只删除已确认范围；原始块需对象校验及数据库引用均完成后确认。物理宿主损坏导致未提交尾部确实无法恢复时，明确标注轨迹不完整，不伪造连续历史。
 
-SSE 用 `id`/`Last-Event-ID` 携带游标，持久数据仍来自数据库；NOTIFY 仅唤醒读取。任务中心先使用授权快照、ETag 和低频刷新，不共享一个可能漏提交的全局文本流游标。游标过期返回 `CURSOR_EXPIRED`；`readSnapshot` 在同一数据库一致性快照中返回 projection 和 `last_seq`，客户端从该 seq 补取并跟随，不能先读快照再取一个更晚游标。订阅建立和历史补取交叠时靠事件 ID 去重，并定期按 cursor 查持久记录，不因通知丢失漏事件。[SSE 规范](https://html.spec.whatwg.org/multipage/server-sent-events.html)
+SSE 用 `id`/`Last-Event-ID` 携带游标，持久数据仍来自数据库；NOTIFY 仅唤醒读取。任务中心先使用授权快照、ETag 和低频刷新，不共享一个可能漏提交的全局文本流游标。游标过期返回 `CURSOR_EXPIRED`；`readRunSnapshot` 在同一数据库一致性快照中返回 Run、当前可见待处理交互和 `last_seq`，客户端从该 seq 补取并跟随，不能先读快照再取一个更晚游标。订阅建立和历史补取交叠时靠事件 ID 去重，并定期按 cursor 查持久记录，不因通知丢失漏事件。[SSE 规范](https://html.spec.whatwg.org/multipage/server-sent-events.html)
 
 状态沿用 `accepted/queued/provisioning/running/waiting_approval/waiting_input/stopping/reconciling/succeeded/failed/cancelled`。`succeeded` 只表示 Agent 执行生命周期完成，不表示业务评分成功；评分保存在独立记录。
 
@@ -358,7 +358,7 @@ docs/adr/                   关键决策与取舍
 
 contracts 不引用 UI、数据库或具体 Harness；客户端不导入 server 实现；Adapter 不导入 libvirt、平台管理和数据库模块。每个业务 Module 管自己的写入，必要的跨模块原子行为经显式应用事务协调。TypeScript/Python 的交界是版本化 JSON/产物，不能依赖彼此进程内对象。
 
-M0 契约采用 draft2020-12，Fastify 默认验证链不能自动承担该方言。M1 显式使用 Ajv2020 编译同一 canonical Schema；响应先做相同方言的 DTO 校验再用原生 JSON 序列化，未验证兼容性前不交给默认 Draft7 serializer。107 项契约 shape 样例和生命周期表须在 Python/Node 两端一致通过，禁止删除 `$schema` 或静默降级方言来让测试变绿。[Ajv 方言](https://ajv.js.org/json-schema.html)、[Fastify 验证与序列化](https://fastify.dev/docs/latest/Reference/Validation-and-Serialization/)
+M0 契约采用 draft2020-12，Fastify 默认验证链不能自动承担该方言。M1 显式使用 Ajv2020 编译同一 canonical Schema；响应先做相同方言的 DTO 校验再用原生 JSON 序列化，未验证兼容性前不交给默认 Draft7 serializer。仓库当前的契约 shape 样例和生命周期表须在 Python/Node 两端一致通过，禁止删除 `$schema` 或静默降级方言来让测试变绿。[Ajv 方言](https://ajv.js.org/json-schema.html)、[Fastify 验证与序列化](https://fastify.dev/docs/latest/Reference/Validation-and-Serialization/)
 
 CI 从 M1 就覆盖三个原生系统；模块逻辑、真实 PostgreSQL/S3/OIDC 集成、Adapter 契约、真实 VM 故障和核心原生流程分层验证。至少包含：连接池租户上下文、同事务 job 回滚、并发预算、低序号晚提交、旧租约回报、取消竞态、上传成功但数据库回滚、撤权后重放、恶意产物和评分隔离。
 

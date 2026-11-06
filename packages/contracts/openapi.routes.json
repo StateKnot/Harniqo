@@ -80,11 +80,12 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/HandshakeRequest"
+                "$ref": "#/components/schemas/DesktopHandshakeRequest"
               }
             }
           }
-        }
+        },
+        "description": "Authenticate and authorize the component first. Select an exact mutually supported contract version and check the minimum software version. A valid request with no compatible version returns VERSION_INCOMPATIBLE and retry_class never."
       }
     },
     "/v1/organizations/{organization_id}/projects/{project_id}/sessions/{session_id}/runs": {
@@ -710,7 +711,7 @@
         "operationId": "readDeploymentCapabilities",
         "responses": {
           "200": {
-            "description": "Successful response",
+            "description": "Capability evidence resolved for the current immutable deployment revision in this project.",
             "content": {
               "application/json": {
                 "schema": {
@@ -818,7 +819,7 @@
             "description": "No eligible assignment; long poll timed out"
           },
           "default": {
-            "description": "Successful response",
+            "description": "Typed failure",
             "content": {
               "application/json": {
                 "schema": {
@@ -827,7 +828,8 @@
               }
             }
           }
-        }
+        },
+        "description": "Require a successful compatible negotiation for the current registered mTLS identity and build before offering any assignment. Recheck current authorization and compatibility; a changed registration, build or compatibility policy invalidates the previous negotiation. Reject incompatible versions with VERSION_INCOMPATIBLE."
       }
     },
     "/runner/v1/events:batch": {
@@ -931,7 +933,7 @@
         ],
         "responses": {
           "200": {
-            "description": "SSE frames: id is the persisted per-Run seq; data is an EventEnvelope JSON. Heartbeats carry no id. Last-Event-ID and after cannot conflict.",
+            "description": "SSE id is the persisted per-Run seq. Data is an EventEnvelope with exactly one of platform or source. Heartbeats carry no id. Last-Event-ID and after must match when both are supplied.",
             "content": {
               "text/event-stream": {
                 "schema": {
@@ -941,7 +943,7 @@
             }
           },
           "default": {
-            "description": "Successful response",
+            "description": "Typed failure before streaming, including CURSOR_EXPIRED",
             "content": {
               "application/json": {
                 "schema": {
@@ -1093,6 +1095,121 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/AuthenticationDiscovery"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/runner/v1/handshakes": {
+      "post": {
+        "operationId": "negotiateRunnerContract",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlatformMetadata"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Typed failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "RunnerMTLS": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RunnerHandshakeRequest"
+              }
+            }
+          }
+        },
+        "description": "Authenticate and authorize the component first. Select an exact mutually supported contract version and check the minimum software version. A valid request with no compatible version returns VERSION_INCOMPATIBLE and retry_class never."
+      }
+    },
+    "/v1/organizations/{organization_id}/projects/{project_id}/sessions/{session_id}/run-submissions:lookup": {
+      "parameters": [
+        {
+          "name": "organization_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/Identifier"
+          }
+        },
+        {
+          "name": "project_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/Identifier"
+          }
+        },
+        {
+          "name": "session_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/Identifier"
+          }
+        }
+      ],
+      "get": {
+        "operationId": "findAcceptedRun",
+        "description": "Read-only lookup for a lost submit response. Reauthorize this caller for the session. An absent committed result returns NOT_FOUND; absence does not prove an in-flight submit will fail. All responses are non-cacheable (Cache-Control: no-store).",
+        "security": [
+          {
+            "PlatformAccessToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 16,
+              "maxLength": 128,
+              "pattern": "^[A-Za-z0-9._:-]+$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The committed acceptance receipt for this caller, session and key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcceptedRun"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Typed failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
                 }
               }
             }
