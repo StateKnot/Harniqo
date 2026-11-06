@@ -1,0 +1,74 @@
+{
+  "date_local": "2026-11-06",
+  "scope": "read_only_resource_inventory",
+  "task": "M0-07",
+  "task_status": "IN_PROGRESS",
+  "designated_server": {
+    "source_commit": "7d7e84325e31b09bfc433e3d6f046259ff809c8e",
+    "source_clean": true,
+    "os": "Ubuntu 24.04 x86_64",
+    "kernel": "7.0.0-38-generic",
+    "online_logical_cpus": 72,
+    "process_affinity_logical_cpus": 72,
+    "memory_total_bytes": 269716287488,
+    "memory_available_bytes": 158728196096,
+    "workspace_filesystem_total_bytes": 4030220222464,
+    "workspace_filesystem_available_bytes": 2474927431680,
+    "images_and_workspace_same_filesystem": true,
+    "libvirt_client_version": "10.0.0",
+    "libvirt_system_domain_query_succeeded": true,
+    "direct_kvm_read_write_access_for_operator": false,
+    "existing_domains_observed": 3,
+    "existing_active_domains_observed": 3,
+    "eight_slot_capacity_verified": false
+  },
+  "local_desktop": {
+    "os": "macOS 26.6.2",
+    "build": "25G83",
+    "arch": "arm64",
+    "valid_code_signing_identities_visible": 0,
+    "prior_native_packaged_smoke": "m1-engineering-2026-11-03.json",
+    "target_installation_verified_by_this_check": false
+  },
+  "native_ci_artifact_metadata": {
+    "run_url": "https://github.com/StateKnot/Harniqo/actions/runs/41595744654",
+    "source_commit": "b2c953701878679abd401678122241272c86cc5b",
+    "metadata_matched_recorded_digests": true,
+    "archives_downloaded_by_this_check": 0,
+    "artifacts": [
+      {
+        "name": "desktop-linux-x64-b2c953701878679abd401678122241272c86cc5b",
+        "runner": "ubuntu-24.04",
+        "artifact_service_digest": "sha256:bedd0543cf6bbf02d0bbb2d7ef2bc2c1375053eb2927f7b84da2b360259e0b24",
+        "expires_at_utc": "2026-11-17T07:21:59Z",
+        "metadata_expired": false
+      },
+      {
+        "name": "desktop-win32-x64-b2c953701878679abd401678122241272c86cc5b",
+        "runner": "windows-2025",
+        "artifact_service_digest": "sha256:a565f7b53eeecbf952f247f017848bfa8428a1e4015c6063f03907dc786ce236",
+        "expires_at_utc": "2026-11-17T07:22:32Z",
+        "metadata_expired": false
+      },
+      {
+        "name": "desktop-darwin-x64-b2c953701878679abd401678122241272c86cc5b",
+        "runner": "macos-15-intel",
+        "artifact_service_digest": "sha256:f7b0c704a748145b914ac26a975e0a6cd5a90621802de320767e2cbe26c3e1c0",
+        "expires_at_utc": "2026-11-17T07:23:06Z",
+        "metadata_expired": false
+      },
+      {
+        "name": "desktop-darwin-arm64-b2c953701878679abd401678122241272c86cc5b",
+        "runner": "macos-26",
+        "artifact_service_digest": "sha256:c65732260fdf349b512f92ea35500cf91ade141a89388ab9852c25b7857bd477",
+        "expires_at_utc": "2026-11-17T07:21:51Z",
+        "metadata_expired": false
+      }
+    ]
+  },
+  "independent_backup_destination": "not_registered",
+  "new_vm_runs": 0,
+  "model_calls": 0,
+  "new_build_jobs": 0,
+  "admin_changes": 0
+}
