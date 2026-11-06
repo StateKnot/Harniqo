@@ -1,0 +1,58 @@
+{
+  "date_local": "2026-11-06",
+  "scope": "offline_contract_verification_only",
+  "task": "M0-02",
+  "source_commit": "b171fecfbb8a6627b0b21307ab452d6d1d387e98",
+  "requirements_sha256": "f33905bf22aa235bc117986a9f7b635c21fcac35d7aa525c88cc742db2e00546",
+  "contract_version": "0.1.0",
+  "source_sha256": {
+    "packages/contracts/fixtures/cases.json": "aee85791385bb6af69a5bead2c9a10c81f2c0e8e6e89d9fad608c35bfd1dbbee",
+    "packages/contracts/manifest.json": "8f5a12d1b5f46bc4d09c298b4094471eedd20c320f7a35baafea445079c75638",
+    "packages/contracts/openapi.json": "4026057918248518069481a9fc38bcba4519a0399ccb91a4aafbc5020be7bbd7",
+    "packages/contracts/openapi.routes.json": "125bf7e43ea488dc7a4e298fb833fb122abc7dc1428c83fc40d1e678cfe8bab1",
+    "packages/contracts/run-lifecycle.json": "49a6788efe3c3d1e38b84a4c8e31d65a832358afb8979d74ef63db68fc77ae31",
+    "packages/contracts/schemas/contract.schema.json": "1b0851865fac68a6455874d07dbdadf2bdcd3c40911a26fd39b6b8f5189483d1"
+  },
+  "result": {
+    "definitions": 64,
+    "paths": 20,
+    "positive_fixtures": 65,
+    "negative_fixtures": 63,
+    "fixture_count": 128,
+    "transition_cases": 15
+  },
+  "local_python": "3.12.13",
+  "designated_server_python": "3.12.3",
+  "ci": {
+    "url": "https://github.com/StateKnot/Harniqo/actions/runs/42172635032",
+    "conclusion": "success",
+    "jobs": [
+      {
+        "runner": "macos-15",
+        "machine": "arm64",
+        "python": "3.12.10",
+        "url": "https://github.com/StateKnot/Harniqo/actions/runs/42172635032/job/127743778263",
+        "report_sha256": "e39ddc337f4a44cc44d21b20c7bbe3a27e00b3d30021190112e2230e1e0847bf"
+      },
+      {
+        "runner": "ubuntu-24.04",
+        "machine": "x86_64",
+        "python": "3.12.16",
+        "url": "https://github.com/StateKnot/Harniqo/actions/runs/42172635032/job/127743778662",
+        "report_sha256": "e39ddc337f4a44cc44d21b20c7bbe3a27e00b3d30021190112e2230e1e0847bf"
+      },
+      {
+        "runner": "windows-2025",
+        "machine": "AMD64",
+        "python": "3.12.10",
+        "url": "https://github.com/StateKnot/Harniqo/actions/runs/42172635032/job/127743778444",
+        "report_sha256": "e539de47596565718222cd57336389274d9c8a084d4dc8ccfdae07ec3a4c54e1"
+      }
+    ]
+  },
+  "comparison": "Parsed reports agree after normalizing Windows path separators; raw report digests are preserved.",
+  "live_model_calls": 0,
+  "new_vm_runs": 0,
+  "task_status": "IMPLEMENTED",
+  "pending_live_admission": "M0-05"
+}

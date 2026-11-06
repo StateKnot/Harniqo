@@ -1,6 +1,6 @@
 # M0 执行证据索引
 
-日期：2026-11-03 · M0 状态：`IN_PROGRESS`，8 项中 **4 项已验收**。本索引记录已取得的证据及其范围，不表示 M0、应用功能或生产发布已完成。
+日期：2026-11-06 · M0 状态：`IN_PROGRESS`，8 项中 **4 项已验收**。本索引记录已取得的证据及其范围，不表示 M0、应用功能或生产发布已完成。
 
 任务定义见 [BACKLOG](BACKLOG.md)，阶段门槛见 [ROADMAP](ROADMAP.md)，验收规则见 [ACCEPTANCE](ACCEPTANCE.md)。这里只发布脱敏摘要；私有报告位置均为工作区相对路径模式，`<…>` 代表由受控环境记录映射的实际文件名。原始报告、日志、配置、凭据和镜像不随本索引公开。
 
@@ -103,6 +103,7 @@
 | E75 | 专用身份真实 VM 资格工具组件通过：Supervisor 签名 envelope 的四操作 SDK 调用者与 Broker Guest/console 夹具；指定 Linux/Python3.12.3 共54项（35+19），0失败/错误/跳过。覆盖派发前实际报告空间预留、未知结果留证、原始失败帧、停止排空与持久归档；组件本身未启动 VM | [工具运行方法](../../deploy/runner/DEDICATED-VM.md)、[脱敏组件报告](../operations/dedicated-vm-components-2026-11-03.json) | `.private/validation/<dedicated-vm-components>/` 的源 pin、report 和 unittest log；原失败及修正前批次分别保留 |
 | E76 | 临时固定对象授权下的专用身份真实 VM/IPC 通过：1台新 KVM，正式 Broker CLI/独立watch及Supervisor四操作SDK、Guest新nonce/boot、真实Broker限额读取、own普通XML成功与secure/已存在foreign拒绝、live revoke/实际QEMU消失、fresh旧代次拒绝、console EOF持久归档与fixture退出0全部通过。原生10门槛，独立11组加准入核验通过；0错误/清理错误，原3VM/2net/24filter及daemon/socket代次不变，临时权限全部恢复 | [固定范围与执行方法](../../deploy/runner/DEDICATED-VM.md)、[脱敏原生与独立核验](../operations/dedicated-vm-native-2026-11-03.json) | root受控 `<dedicated-vm-run>/` 的plan/report、8unit的Invocation绑定日志、4peer收据/events、Guest/console归档及独立collector；3个原生失败及2次显式恢复记录保留；完整raw层仅在指定images目录 |
 | E77 | 受测源码`771aa56ca6d8`的[实际资格CI](https://github.com/StateKnot/Harniqo/actions/runs/41586462976)724项Python和两组Node、[同源三平台契约](https://github.com/StateKnot/Harniqo/actions/runs/41586462939)各60定义/18路径/107样例/15生命周期全部成功；4份实际artifact的run/job/步骤、源码/锁与SHA已核验。最终证据增补不改变受测运行输入，CI与E76真实宿主结果分别计量 | [CI及三平台契约索引](../operations/dedicated-vm-ci-2026-11-03.json) | `.private/validation/<dedicated-vm-ci-run>/` 的实际报告、环境和下载archive；0模型/VM，非桌面构建或生产服务激活 |
+| E78 | M0-02 契约收口，源码 `b171fecfbb8a`；本机、指定服务器和 [macOS/Windows/Linux 契约 CI](https://github.com/StateKnot/Harniqo/actions/runs/42172635032) 通过 64 定义、20 路径、128 样例、15 迁移案例；核对下载报告、源码及锁摘要 | [验证索引](../operations/m002-contract-interface-2026-11-06.json)、[真实证据对账](../../research/m0-contract-admission.md) | `.private/validation/m002-contract-ci-reports/`；0 模型调用、0 新 VM；M0-02 正式冻结仍需 M0-05 |
 
 
 
