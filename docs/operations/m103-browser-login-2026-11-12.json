@@ -1,0 +1,38 @@
+{
+  "date_local": "2026-11-12",
+  "task": "M1-03",
+  "task_status": "IN_PROGRESS",
+  "browser_login_integration": "VERIFIED",
+  "source_commit": "fee400814368933f38cd8be362d91b27e20235eb",
+  "source_input_sha256": "8dd2a21b155f641d9bb78813051e6e639abec55a6a4f3e08c311a423c6331d1a",
+  "desktop": {
+    "os": "macOS",
+    "version": "26.6.2",
+    "architecture": "arm64",
+    "installed": true
+  },
+  "identity_provider": {
+    "name": "Keycloak",
+    "version": "26.8.2",
+    "image_digest": "sha256:723b1d6e254c0fc96d5cffec860c7e0744d6a3277822b865bb538cf891575e41",
+    "tls": "private test CA",
+    "temporary": true
+  },
+  "browser": "Google Chrome via isolated qualification launcher",
+  "control_plane_transports": {
+    "http": {
+      "browser_login": true,
+      "local_sign_out": true,
+      "receipt_sha256": "ff372a2c7074528db21f63104d55f40b18e5d4e87b2e82b5ab2f8ef55e40355a"
+    },
+    "https": {
+      "browser_login": true,
+      "local_sign_out": true,
+      "receipt_sha256": "ff372a2c7074528db21f63104d55f40b18e5d4e87b2e82b5ab2f8ef55e40355a"
+    }
+  },
+  "http_rejected_missing_or_mismatched_issuer_or_client_id": true,
+  "production_os_browser_launch_verified": false,
+  "designated_server_login_configured": false,
+  "session_refresh_and_revocation_verified": false
+}
