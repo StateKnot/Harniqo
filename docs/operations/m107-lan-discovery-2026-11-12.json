@@ -1,0 +1,30 @@
+{
+  "date_local": "2026-11-12",
+  "task": "M1-07",
+  "task_status": "IN_PROGRESS",
+  "subtask_status": "VERIFIED",
+  "source_commit": "b76598af4b989d44b4c437fc1a59eeda3371ab44",
+  "source_input_sha256": "ca5c13a2402545f90c31bf83ea93820ff14127d97ca7c0dbcd04d960e59784d6",
+  "deployment": {
+    "transport": "HTTP public discovery",
+    "systemd_active": true,
+    "systemd_enabled": true,
+    "restricted_lan_ingress": true
+  },
+  "macos": {
+    "version": "26.6.2",
+    "arch": "arm64",
+    "tcp_reachable": true,
+    "scripted_form_test": "passed",
+    "probe": {
+      "userActionRequired": true,
+      "identityPending": true
+    },
+    "receipt_sha256": "a03b7020c3ca8166643dd0a745a0fa07c1a2d5090cf2ade09ef29e8e4b55e163"
+  },
+  "discovery": {
+    "http_status": 503,
+    "error": "identity_not_configured"
+  },
+  "live_oidc_login_verified": false
+}

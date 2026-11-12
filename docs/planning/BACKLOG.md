@@ -216,3 +216,4 @@
 | 2026-11-12 | M1-06 身份发现 | 纠正 M0-05 对独立连接开发的排程约束。实现 [控制面 HTTPS 身份发现](../../apps/control-plane/README.md)及 Node 客户端，统一使用 canonical Schema | VERIFIED（身份发现子项）。本机、指定服务器均通过类型检查与 4 项测试，指定服务器实际启动与 HTTPS 请求通过。M1-06 整项 IN_PROGRESS，[证据](../operations/m106-https-discovery-2026-11-12.json) | M1-07 接入安装版桌面，验证环境探测 |
 | 2026-11-12 | M1-07 桌面环境探测 | 平台地址输入、受限 IPC、共享客户端主进程打包、证书错误反馈 | VERIFIED（环境探测子项）。macOS arm64 安装版完成真实 HTTPS 成功及证书拒绝，指定服务器同源构建及定向回归通过。M1-07 整项 IN_PROGRESS。[证据](../operations/m107-desktop-probe-2026-11-12.json) | M1-03 接入真实 OIDC 系统浏览器登录 |
 | 2026-11-12 | M1-07 HTTP 发现 | 桌面接受 HTTP 地址，控制面可显式启用公开 HTTP 发现 | VERIFIED（HTTP 发现子项）。macOS arm64 安装版通过真实 HTTP、HTTPS 和证书拒绝验证，指定服务器同源回归通过。[证据](../operations/m107-http-probe-2026-11-12.json) | M1-03 接入真实 OIDC 系统浏览器登录 |
+| 2026-11-12 | M1-07 局域网连通 | 指定服务器常驻 HTTP 发现，入站范围限定局域网。桌面区分网络超时和身份待配置 | VERIFIED（局域网连通子项）。Mac 实测 TCP，安装版对真实局域网地址通过探测。[证据](../operations/m107-lan-discovery-2026-11-12.json) | M1-03 配置身份服务并验收登录 |
