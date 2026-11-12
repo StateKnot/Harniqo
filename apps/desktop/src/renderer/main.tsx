@@ -10,6 +10,7 @@ const probeErrors: Record<Extract<PlatformProbe, { error: string }>['error'], st
   discovery_timeout: '探测超时，请检查网络和平台服务。',
   discovery_unreachable: '无法访问平台，请检查地址、网络和服务状态。',
   discovery_http_status: '未收到身份发现配置，请核对 Harniqo 控制面地址。',
+  identity_not_configured: '已连到 Harniqo 控制面。登录服务待配置。',
   invalid_discovery: '平台返回的身份发现配置不符合 Harniqo 契约。',
   discovery_too_large: '平台返回的身份发现配置超出大小限制。',
   probe_busy: '正在检查另一个平台地址，请稍候。',
@@ -45,7 +46,8 @@ function App() {
         <span className="edition">工程版本</span>
       </header>
       <section className="connection" aria-labelledby="connection-title"
-        data-platform-state={checking ? 'checking' : probe ? ('issuer' in probe ? 'discovered' : 'error') : 'disconnected'}>
+        data-platform-state={checking ? 'checking' : probe ? ('issuer' in probe ? 'discovered'
+          : probe.error === 'identity_not_configured' ? 'identity_pending' : 'error') : 'disconnected'}>
         <h1 id="connection-title">平台连接</h1>
         <form onSubmit={(event) => void checkPlatform(event)} className="probe">
           <label htmlFor="platform-address">Harniqo 控制面地址（HTTP 或 HTTPS）</label>
@@ -59,7 +61,8 @@ function App() {
         <div className="probe-result" aria-live="polite" aria-atomic="true">
           {checking ? '正在检查平台…' : probe && ('issuer' in probe
             ? <p>已读取平台身份配置。登录服务为 <span>{probe.issuer}</span>。</p>
-            : <p className="probe-error" data-probe-error={probe.error}>{probeErrors[probe.error]}</p>)}
+            : <p className={probe.error === 'identity_not_configured' ? undefined : 'probe-error'}
+              data-probe-error={probe.error}>{probeErrors[probe.error]}</p>)}
         </div>
       </section>
       <section className="build" aria-labelledby="build-title">

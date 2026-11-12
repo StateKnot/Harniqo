@@ -38,4 +38,6 @@ HARNIQO_CONTROL_PROTOCOL=http pnpm --filter @harniqo/control-plane start
 curl http://127.0.0.1:10050/v1/auth/discovery
 ```
 
+尚未配置身份提供方时，可在 HTTP 模式省略 `HARNIQO_DISCOVERY_FILE`。`GET /v1/auth/discovery` 此时返回 HTTP 503 和 `{"error":"identity_not_configured"}`。配置有效的发现文件后，重启服务即可获取身份元数据。HTTPS 模式启动时必须提供发现文件和 TLS 文件。
+
 HTTP 仅用于无凭据的公开发现。OIDC issuer 仍要求 HTTPS，后续登录和受保护的 API 使用 HTTPS。

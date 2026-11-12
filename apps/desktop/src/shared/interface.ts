@@ -31,7 +31,7 @@ export interface DesktopInterface {
 
 export type PlatformProbe = { readonly issuer: string } |
   { readonly error: 'invalid_platform_origin' | 'discovery_unreachable' | 'discovery_timeout'
-    | 'discovery_http_status' | 'invalid_discovery' | 'discovery_too_large'
+    | 'discovery_http_status' | 'invalid_discovery' | 'discovery_too_large' | 'identity_not_configured'
     | 'certificate_rejected' | 'probe_busy' | 'user_action_required' };
 
 export const RUNTIME_INFO_CHANNEL = 'harniqo:runtime-info';

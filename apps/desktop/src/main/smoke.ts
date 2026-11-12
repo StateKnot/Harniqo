@@ -51,6 +51,7 @@ async function inspectPlatformProbe(window: BrowserWindow) {
   const origin = process.env['HARNIQO_SMOKE_DISCOVERY_ORIGIN'];
   const badCertificate = process.env['HARNIQO_SMOKE_BAD_CERTIFICATE_ORIGIN'];
   const httpOrigin = process.env['HARNIQO_SMOKE_HTTP_DISCOVERY_ORIGIN'];
+  const unconfiguredOrigin = process.env['HARNIQO_SMOKE_UNCONFIGURED_DISCOVERY_ORIGIN'];
   const denied = await window.webContents.executeJavaScript(
     `window.harniqo.probePlatform(${JSON.stringify(origin ?? httpOrigin ?? 'https://localhost:10050')})`,
   ) as { error?: string };
@@ -78,9 +79,13 @@ async function inspectPlatformProbe(window: BrowserWindow) {
     if (!await submit(badCertificate, 'certificate_rejected')) throw new Error('PLATFORM_CERTIFICATE_SMOKE_FAILED');
   }
   if (httpOrigin && !await submit(httpOrigin, 'discovered')) throw new Error('PLATFORM_HTTP_DISCOVERY_SMOKE_FAILED');
+  if (unconfiguredOrigin && !await submit(unconfiguredOrigin, 'identity_not_configured')) {
+    throw new Error('PLATFORM_UNCONFIGURED_DISCOVERY_SMOKE_FAILED');
+  }
   return {
     userActionRequired: true,
     ...(origin ? { discovered: true, certificateRejected: true } : {}),
     ...(httpOrigin ? { httpDiscovered: true } : {}),
+    ...(unconfiguredOrigin ? { identityPending: true } : {}),
   };
 }

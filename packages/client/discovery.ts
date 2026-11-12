@@ -1,6 +1,6 @@
 import { request as httpRequest } from 'node:http';
 import { request as httpsRequest } from 'node:https';
-import { authenticationDiscoveryPath, parseAuthenticationDiscovery } from '@harniqo/contracts';
+import { authenticationDiscoveryNotConfigured, authenticationDiscoveryPath, parseAuthenticationDiscovery } from '@harniqo/contracts';
 import type { AuthenticationDiscovery } from '@harniqo/contracts';
 
 const maxDiscoveryBytes = 32 * 1024;
@@ -16,7 +16,8 @@ export class DiscoveryError extends Error {
 }
 
 export type DiscoveryErrorCode = 'invalid_platform_origin' | 'discovery_unreachable' | 'discovery_timeout'
-  | 'discovery_http_status' | 'invalid_discovery' | 'discovery_too_large' | 'certificate_rejected';
+  | 'discovery_http_status' | 'invalid_discovery' | 'discovery_too_large' | 'certificate_rejected'
+  | typeof authenticationDiscoveryNotConfigured;
 
 const certificateErrors = new Set([
   'ERR_TLS_CERT_ALTNAME_INVALID', 'DEPTH_ZERO_SELF_SIGNED_CERT', 'SELF_SIGNED_CERT_IN_CHAIN',
@@ -34,16 +35,17 @@ export async function discoverPlatform(origin: string, options: { ca?: Buffer; s
   const request = secure ? httpsRequest : httpRequest;
   const deadline = AbortSignal.timeout(5000);
   const signal = options.signal ? AbortSignal.any([deadline, options.signal]) : deadline;
-  const result = await new Promise<Buffer>((resolve, reject) => {
+  const result = await new Promise<{ status: 200 | 503; body: Buffer }>((resolve, reject) => {
     const outgoing = request(new URL(authenticationDiscoveryPath, platform), {
       method: 'GET', agent: false,
       headers: { accept: 'application/json' }, signal, maxHeaderSize: 8192,
       ...(secure ? { rejectUnauthorized: true, minVersion: 'TLSv1.2', ca: options.ca } : {}),
     }, async response => {
       try {
-        if (response.statusCode !== 200) throw new DiscoveryError('discovery_http_status');
+        const status = response.statusCode;
+        if (status !== 200 && status !== 503) throw new DiscoveryError('discovery_http_status');
         if (!/^application\/json(?:\s*;|$)/i.test(response.headers['content-type'] ?? '')) {
-          throw new DiscoveryError('invalid_discovery');
+          throw new DiscoveryError(status === 200 ? 'invalid_discovery' : 'discovery_http_status');
         }
         const chunks: Buffer[] = [];
         let size = 0;
@@ -54,7 +56,7 @@ export async function discoverPlatform(origin: string, options: { ca?: Buffer; s
           chunks.push(bytes);
         }
         if (!response.complete) throw new DiscoveryError('discovery_unreachable');
-        resolve(Buffer.concat(chunks, size));
+        resolve({ status, body: Buffer.concat(chunks, size) });
       } catch (error) {
         reject(error instanceof DiscoveryError ? error
           : new DiscoveryError(deadline.aborted ? 'discovery_timeout' : 'discovery_unreachable'));
@@ -68,9 +70,17 @@ export async function discoverPlatform(origin: string, options: { ca?: Buffer; s
     });
     outgoing.end();
   });
-  try {
-    return parseAuthenticationDiscovery(JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(result)));
-  } catch {
-    throw new DiscoveryError('invalid_discovery');
+  const malformed = result.status === 200 ? 'invalid_discovery' : 'discovery_http_status';
+  let metadata: unknown;
+  try { metadata = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(result.body)); }
+  catch { throw new DiscoveryError(malformed); }
+  if (result.status === 503) {
+    if (metadata && typeof metadata === 'object' && 'error' in metadata
+      && metadata.error === authenticationDiscoveryNotConfigured && Object.keys(metadata).length === 1) {
+      throw new DiscoveryError(authenticationDiscoveryNotConfigured);
+    }
+    throw new DiscoveryError('discovery_http_status');
   }
+  try { return parseAuthenticationDiscovery(metadata); }
+  catch { throw new DiscoveryError('invalid_discovery'); }
 }

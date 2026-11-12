@@ -1098,6 +1098,34 @@
                 }
               }
             }
+          },
+          "503": {
+            "description": "The HTTP discovery listener is running without an identity provider configuration.",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "additionalProperties": false,
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "const": "identity_not_configured"
+                    }
+                  }
+                }
+              }
+            }
           }
         }
       }

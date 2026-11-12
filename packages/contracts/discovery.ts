@@ -2,6 +2,7 @@ import { Ajv2020 } from 'ajv/dist/2020.js';
 import schema from './schemas/contract.schema.json' with { type: 'json' };
 
 export const authenticationDiscoveryPath = '/v1/auth/discovery';
+export const authenticationDiscoveryNotConfigured = 'identity_not_configured';
 
 export type AuthenticationDiscovery = Readonly<{
   issuer: string;

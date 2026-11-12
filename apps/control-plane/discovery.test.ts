@@ -56,7 +56,21 @@ test('an HTTP listener exposes the same public discovery response', async t => {
   assert.equal((await server.inject({ method: 'POST', url: '/v1/handshakes' })).statusCode, 404);
 });
 
+test('unconfigured HTTP reports unavailable identity with a noncacheable response', async t => {
+  const server = createControlPlane(undefined, null);
+  t.after(() => server.close());
+  const origin = await server.listen({ host: '127.0.0.1', port: 10053 });
+  const response = await fetch(`${origin}/v1/auth/discovery`, { signal: AbortSignal.timeout(5000) });
+  assert.equal(response.status, 503);
+  assert.match(response.headers.get('content-type') ?? '', /^application\/json(?:;|$)/);
+  assert.equal(response.headers.get('cache-control'), 'no-store');
+  assert.deepEqual(await response.json(), { error: 'identity_not_configured' });
+  await assert.rejects(discoverPlatform(origin), { code: 'identity_not_configured' });
+});
+
 test('startup rejects private fields, malformed issuer, missing OpenID scope and disabled PKCE', () => {
+  assert.throws(() => createControlPlane(undefined, tls), { message: 'invalid_discovery' });
+  assert.throws(() => createControlPlane(null, null), { message: 'invalid_discovery' });
   for (const change of [
     { client_secret: 'fixture-only' }, { issuer: 'https://guest:secret@identity.example.invalid' },
     { issuer: 'https://identity.example.invalid/?debug=1' }, { issuer: 'https://identity.example.invalid/#' },
