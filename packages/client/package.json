@@ -1,0 +1,11 @@
+{
+  "name": "@harniqo/client",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": { "node": "24.22.1" },
+  "exports": "./discovery.ts",
+  "scripts": { "typecheck": "tsc --noEmit" },
+  "dependencies": { "@harniqo/contracts": "workspace:*" },
+  "devDependencies": { "@types/node": "24.19.2", "typescript": "6.0.3" }
+}

@@ -6,6 +6,8 @@ Harniqo 自有源码、契约、原创文档和合成测试样本采用根目录
 
 本文是当前来源清点与依赖准入基线，不是尚未构建的发行物 SBOM。M1 解析完整依赖树，M2 构建运行镜像，M8 分发时仍须按实际版本、包内容和交付方式核对。新增或更换依赖必须更新本清单及相应锁文件；不能拿本次主仓许可核验覆盖未知的未来版本或插件。
 
+M1-06 身份发现新增 Fastify 5.12.8 和 Ajv 8.20.0，官方 npm 注册表均登记为 MIT。完整解析版本与发行包完整性值记录在 [pnpm 锁文件](../../pnpm-lock.yaml)。[Fastify 发行](https://github.com/fastify/fastify/releases) · [Ajv 发行](https://github.com/ajv-validator/ajv/releases)
+
 ## 1. 当前自有交付与第三方材料
 
 | 内容 | 当前来源与处理 | 后续准入要求 |

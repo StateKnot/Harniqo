@@ -1,0 +1,61 @@
+{
+  "date_local": "2026-11-12",
+  "task": "M1-06",
+  "task_status": "IN_PROGRESS",
+  "scope": "HTTPS authentication discovery and Node client",
+  "route": "GET /v1/auth/discovery",
+  "canonical_contract_version": "0.1.0",
+  "runtime_versions": {
+    "fastify": "5.12.8",
+    "ajv": "8.20.0",
+    "typescript": "6.0.3"
+  },
+  "designated_server": {
+    "status": "passed",
+    "os_version": "24.04",
+    "arch": "x86_64",
+    "node": "24.22.1",
+    "pnpm": "11.5.2",
+    "strict_typecheck": true,
+    "frozen_install": true,
+    "tests": 4,
+    "failures": 0,
+    "skipped": 0,
+    "native_start_and_https_curl_passed": true,
+    "test_ports_released": true,
+    "source_sha256": {
+      ".npmrc": "b9873fd9a88edd9fbe0e1e6015258e937cd667dca0c3cc323febd20a340f23d6",
+      "package.json": "3807636345aa18b0d3fa02889091d639c22a95ff9df83eceb3dd819b1f34790c",
+      "pnpm-workspace.yaml": "84b32dbee29e97b233ba0e6969f4b47eac7b587a4cb54b88658c81bc696d78af",
+      "pnpm-lock.yaml": "342799d362d763cfe9afd1af2a9e9cb9a8ebeb2688cd9e6533b4312c1d0c630e",
+      "apps/desktop/package.json": "330668cdc0eaa8094fdc14c7ca27d7f781e4cfe259d9462eeec0df9f873ca9df",
+      "apps/model-egress/package.json": "cf97a1075ced86024d31c7f55a9501e50df4a269244219e4cf764759a9a231b6",
+      "apps/runner/event-spool/package.json": "1f3fb51a00799f4c6835c5369e21ccc3de6480389aa4b189510ddec582a2eec5",
+      "packages/contracts/schemas/contract.schema.json": "1b0851865fac68a6455874d07dbdadf2bdcd3c40911a26fd39b6b8f5189483d1",
+      "apps/control-plane/main.ts": "0bc31baad451e01b8477ab2ee33eaa823ffc05ae859bc250ef1ebb6ff4272802",
+      "apps/control-plane/discovery.test.ts": "72daa8ad75fc7748abcfc71c399dcf30c61a52c64c19a9798564c82b86aba058",
+      "apps/control-plane/package.json": "ad76ff7290db6ba6aeae435e9f7299b62dceff11879df1f8353fc5b1d8b66b07",
+      "apps/control-plane/tsconfig.json": "7a3f8cd19c5b6190583e5c2d6213ef76ab276525f4a44ad389276bc820b981ed",
+      "apps/control-plane/discovery.ts": "de7b0c083c6ae6ac847f1e756039203e826172bfa473466647e8787fc5668300",
+      "packages/client/package.json": "180b6fac84c2ed4cd95f772036b6b5db895ecded537b847f3bd81f24195d4649",
+      "packages/client/tsconfig.json": "7a3f8cd19c5b6190583e5c2d6213ef76ab276525f4a44ad389276bc820b981ed",
+      "packages/client/discovery.ts": "5b73753619117737c1f8344b7e9c1c2435f68f3fb6882b0d5c7f4897811aa6ed",
+      "packages/contracts/package.json": "827d8ffa6c93c6ce037c5afcc00a8530e3c68e014b2e45c0984697de04d1c0ed",
+      "packages/contracts/tsconfig.json": "7a3f8cd19c5b6190583e5c2d6213ef76ab276525f4a44ad389276bc820b981ed",
+      "packages/contracts/discovery.ts": "8e27574a27b000d61d5d735881a82e4ce92381e040fb901360b77880f168a53c"
+    },
+    "test_log_sha256": "c0baca7b1bec8c8294ba5b94db2376874e42c4672df320a2feaa8eb135af5c9c"
+  },
+  "local_macos": {
+    "tests": 4,
+    "failures": 0,
+    "skipped": 0,
+    "strict_typecheck": true,
+    "test_log_sha256": "4b741064eb66c810a9bacc82516d2c45467fe9b1b0f39bac7a16618be54c52ff"
+  },
+  "configured_live_identity_provider": false,
+  "authenticated_handshake_verified": false,
+  "desktop_main_integration_verified": false,
+  "model_calls": 0,
+  "new_vm_runs": 0
+}

@@ -1,7 +1,10 @@
 packages:
+  - apps/control-plane
   - apps/desktop
   - apps/model-egress
   - apps/runner/event-spool
+  - packages/client
+  - packages/contracts
 
 saveExact: true
 engineStrict: true

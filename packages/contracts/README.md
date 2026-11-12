@@ -1,6 +1,6 @@
 # Harniqo contracts
 
-M0-02 的机器可读契约初稿，版本 `0.1.0`。它定义接口形状和确定的生命周期，不代表已经存在 API 服务、已通过 Harness/VM 准入或具备生产运行能力。当前状态见 [manifest](manifest.json)。
+M0-02 的机器可读契约初稿，版本 `0.1.0`。它定义接口形状和确定的生命周期。M1-06 已实现公开的 HTTPS 身份发现，其他接口按任务清单交付。[契约 manifest](manifest.json) · [控制面身份发现](../../apps/control-plane/README.md)
 
 ## 文件与单一来源
 
