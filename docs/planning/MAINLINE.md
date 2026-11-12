@@ -15,7 +15,7 @@
 
 ## 当前工作
 
-**M1-01 独立工程工作面已交付并验证**：固定工具链/workspace、Electron/React/TypeScript 工程入口、只读桌面 Interface、构建来源、四组合原生打包启动和指定服务器构建。登录、环境连接、Harness 会话尚未实现；[工程证据](../operations/m1-engineering-2026-11-03.json)与[原生CI](../operations/m1-desktop-ci-2026-11-03.json)保持范围区分。
+**M1-01 独立工程工作面已交付并验证。** 包括固定工具链、Electron/React/TypeScript 工程入口、构建来源、四组合原生打包启动和指定服务器构建。[工程证据](../operations/m1-engineering-2026-11-03.json) · [原生 CI](../operations/m1-desktop-ci-2026-11-03.json)
 
 M0 保持 4/8，M1 保持 0/8。M1-01 整项仍为 IN_PROGRESS：Intel Mac、Windows11 和 Ubuntu 桌面实际安装仍待验，正式签名归 M8。工程骨架并行例外已记录在 ROADMAP/BACKLOG，M1 整体验收的 M0 依赖不变。
 
@@ -33,7 +33,9 @@ M0 保持 4/8，M1 保持 0/8。M1-01 整项仍为 IN_PROGRESS：Intel Mac、Win
 
 **M1-06 的 HTTPS 身份发现子项已验证。** 控制面提供 `GET /v1/auth/discovery`，客户端调用复用 canonical Schema，并在本机与指定服务器验证 HTTPS。指定服务器实际启动、响应和回收均有记录。M1-06 保持 IN_PROGRESS，认证握手、持久命令与事件仍按原任务交付。[验收记录](../operations/m106-https-discovery-2026-11-12.json)
 
-**下一原任务为 M1-07 的环境探测。** 将已有 Node 客户端纳入桌面主进程与安装产物。用户输入平台 HTTPS 地址后，通过受限 IPC 展示发现结果或证书错误。取得安装版对实际控制面的正负向连接证据后进入 M1-03 的系统浏览器登录。M0-05 的实际执行授权与隔离 NIC 接入仍在 M2 真实闭环的关键路径上。
+**M1-07 的环境探测子项已验证。** 安装版可输入平台 HTTPS 地址，经受限 IPC 调用共享发现客户端。macOS arm64 安装版对实际控制面验证了读取身份配置、证书拒绝与用户操作要求。[验证报告](../operations/m107-desktop-probe-2026-11-12.json)
+
+**下一原任务为 M1-03 的系统浏览器登录。** 在已有身份发现上接入真实 OIDC，先确认公开 client 注册、回调和可用测试身份，再验证 PKCE、回调状态与系统凭据存储。M1-07 的组织项目导航及多环境凭据隔离随身份功能验证。M0-05 的实际执行授权与隔离 NIC 仍是 M2 真实闭环的前置。
 
 ## M0 有限收尾清单
 

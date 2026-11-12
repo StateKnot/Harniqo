@@ -1,0 +1,86 @@
+{
+  "date_local": "2026-11-12",
+  "task": "M1-07",
+  "task_status": "IN_PROGRESS",
+  "scope": "desktop HTTPS environment probe against actual control-plane discovery",
+  "source_commit": "b4597c91b9720919b4ccef88c1a720ada030aca0",
+  "source_input_sha256": "6af2ecd32548476feb05cdc0305d35b58872789930cee08bee2373621a5fe4d8",
+  "installed_macos": {
+    "version": "26.6.2",
+    "build": "25G83",
+    "arch": "arm64",
+    "scripted_user_gesture": true,
+    "probe": {
+      "userActionRequired": true,
+      "discovered": true,
+      "certificateRejected": true
+    },
+    "renderer_security": {
+      "sandbox": true,
+      "contextIsolation": true,
+      "nodeIntegration": false,
+      "webSecurity": true,
+      "requireUnavailable": true,
+      "processUnavailable": true,
+      "evidence": {
+        "sandbox": "preload.process.sandboxed",
+        "contextIsolation": "preload.process.contextIsolated",
+        "nodeIntegration": "renderer.require absence; BrowserWindow configured false",
+        "webSecurity": "BrowserWindow configured true"
+      }
+    },
+    "signing_mode": "ad-hoc-local",
+    "receipt_sha256": "0f3ea7b39e7f7a4318ca0895adb9e8d458fa4f5630f7347ac13226149837908e"
+  },
+  "tls_method": "actual Fastify loopback; process-local test CA; certificate SAN localhost vs 127.0.0.1",
+  "designated_server": {
+    "status": "passed",
+    "source_commit": "b4597c91b9720919b4ccef88c1a720ada030aca0",
+    "os_version": "24.04",
+    "arch": "x86_64",
+    "node": "24.22.1",
+    "pnpm": "11.5.2",
+    "source_input_sha256": "6af2ecd32548476feb05cdc0305d35b58872789930cee08bee2373621a5fe4d8",
+    "strict_typecheck": true,
+    "desktop_component_tests": 4,
+    "control_plane_tls_tests": 4,
+    "native_desktop_build": true,
+    "tls_test_ports_released": true,
+    "log_sha256": {
+      "desktop-build": "bad5da79f96ab406e6bd4b8c57ef2b4583d4b35a11f2b825c8f907d79f2b46e2",
+      "desktop-tests": "b104973c3ade770e3edb62863af4d0428c2bbbaa00e427900c31d2e8dd544c38",
+      "install": "07de32aad7942183be30e587a484a4861b4ae60b968786b4b0879910c3bb0d66",
+      "control-plane-tests": "479db50194d8e97b95babc4cb62bbb1d66de74049aaf7a1af9661a724bda0678",
+      "typecheck": "cfb5e67397477fcabf9b516d861c41db3f820d8b6bb1043abeeb784c64823f72"
+    }
+  },
+  "native_ci": {
+    "url": "https://github.com/StateKnot/Harniqo/actions/runs/43139295382",
+    "jobs": [
+      {
+        "name": "macos-26 / arm64 (unsigned internal build)",
+        "url": "https://github.com/StateKnot/Harniqo/actions/runs/43139295382/job/130922086985",
+        "conclusion": "success"
+      },
+      {
+        "name": "windows-2025 / x64 (unsigned internal build)",
+        "url": "https://github.com/StateKnot/Harniqo/actions/runs/43139295382/job/130922087285",
+        "conclusion": "success"
+      },
+      {
+        "name": "ubuntu-24.04 / x64 (unsigned internal build)",
+        "url": "https://github.com/StateKnot/Harniqo/actions/runs/43139295382/job/130922087291",
+        "conclusion": "success"
+      },
+      {
+        "name": "macos-15-intel / x64 (unsigned internal build)",
+        "url": "https://github.com/StateKnot/Harniqo/actions/runs/43139295382/job/130922087316",
+        "conclusion": "success"
+      }
+    ],
+    "scope": "native build, packaged renderer smoke and user activation denial"
+  },
+  "live_oidc_login_verified": false,
+  "model_calls": 0,
+  "new_vm_runs": 0
+}
