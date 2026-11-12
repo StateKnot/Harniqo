@@ -41,7 +41,12 @@ try {
   try { exitCode = await new Promise((resolve, reject) => { child.once('error', reject); child.once('close', resolve); }); }
   finally { clearTimeout(timer); }
   const records = output.split(/\r?\n/).filter((line) => line.startsWith('HARNIQO_SMOKE_RESULT='));
-  if (timedOut || exitCode !== 0 || records.length !== 1) throw new Error(`Native application failed (exit=${exitCode}, timeout=${timedOut}). ${errorOutput}`);
+  if (timedOut || exitCode !== 0 || records.length !== 1) {
+    const failure = records.length === 1 ? JSON.parse(records[0].slice('HARNIQO_SMOKE_RESULT='.length)) : undefined;
+    const reason = typeof failure?.error === 'string' && /^[A-Z0-9_]+(?:: [a-z_]+)?$/.test(failure.error)
+      ? failure.error : errorOutput;
+    throw new Error(`Native application failed (exit=${exitCode}, timeout=${timedOut}). ${reason}`);
+  }
   result = JSON.parse(records[0].slice('HARNIQO_SMOKE_RESULT='.length));
   if (result.status !== 'passed' || !result.rendered || result.runtime?.isPackaged !== packaged) throw new Error('Native application did not pass smoke');
   for (const key of Object.keys(expected)) if (result.runtime[key] !== expected[key]) throw new Error(`Native package identity differs from current build: ${key}`);

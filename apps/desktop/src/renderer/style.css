@@ -27,12 +27,22 @@ summary:focus-visible, button:focus-visible { outline: 2px solid #246e62; outlin
 .error { padding: 18px; border: 1px solid #bd6255; border-radius: 8px; color: #8b3026; background: #fff; font-size: 14px; }
 button { margin-left: 14px; border: 1px solid #87969f; border-radius: 5px; padding: 5px 10px; color: #253c43; background: #fff; cursor: pointer; font: inherit; }
 @media (max-width: 700px) { main { padding: 24px; } .connection { padding: 28px 24px; } .section-heading { align-items: start; flex-direction: column; gap: 8px; } .summary > div { padding: 15px 12px; } }
-.probe label { display: block; margin-bottom: 8px; color: #3c4c5c; font-size: 14px; }
+.probe label, .identity-inputs label { display: block; margin-bottom: 8px; color: #3c4c5c; font-size: 14px; }
 .probe-controls { display: flex; gap: 12px; align-items: center; }
-.probe input { flex: 1; min-width: 0; padding: 10px 12px; border: 1px solid #87969f; border-radius: 6px; font: inherit; }
-.probe input:focus-visible { outline: 2px solid #246e62; outline-offset: 2px; }
-.probe button { margin: 0; padding: 10px 14px; white-space: nowrap; background: #1f3b37; color: #fff; }
-.probe button:disabled { opacity: .6; cursor: wait; }
+.probe input, .identity-inputs input { min-width: 0; padding: 10px 12px; border: 1px solid #87969f; border-radius: 6px; font: inherit; }
+.probe input { flex: 1; }
+.probe input:focus-visible, .identity-inputs input:focus-visible { outline: 2px solid #246e62; outline-offset: 2px; }
+.probe button, .platform-login button { margin: 0; padding: 10px 14px; white-space: nowrap; }
+.probe button, .platform-login button[type="submit"] { background: #1f3b37; color: #fff; }
+.probe button:disabled, .platform-login button:disabled { opacity: .6; cursor: not-allowed; }
 .probe-result { min-height: 24px; margin-top: 12px; font-size: 14px; line-height: 1.5; overflow-wrap: anywhere; }
 .probe-result p { margin: 0; }
 .probe-error { color: #8b3026; }
+.platform-login { margin-top: 16px; padding-top: 16px; border-top: 1px solid #e8ebef; }
+.identity-fields { margin-bottom: 14px; }
+.identity-fields p { margin: 0 0 12px; color: #536171; font-size: 14px; line-height: 1.5; }
+.identity-inputs { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 12px; }
+.identity-inputs input { width: 100%; }
+.login-result p { margin: 8px 0 0; font-size: 14px; line-height: 1.5; overflow-wrap: anywhere; }
+.platform-login > button { margin-top: 10px; }
+@media (max-width: 700px) { .identity-inputs { grid-template-columns: 1fr; } }

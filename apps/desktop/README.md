@@ -1,8 +1,10 @@
 # Desktop engineering entry — M1-01
 
 The Electron/React desktop displays its build identity and lets the user test a
-platform HTTP or HTTPS origin. A successful probe displays the public identity issuer.
-Platform login and Harness sessions follow M1-03 and M2.
+platform HTTP or HTTPS origin. A configured platform lets the user sign in in
+the system browser and view the verified account in the current desktop session.
+For HTTP, enter the HTTPS issuer and public client ID supplied separately by the
+platform administrator. Harness sessions follow M2.
 
 From the repository root, use the pinned Node.js/pnpm versions and install with
 `pnpm install --frozen-lockfile`, then prepare Electron's native runtime and run:
@@ -50,12 +52,19 @@ its embedded identity must still equal the current build. Each run uses and
 removes a caller-created private temporary profile, leaving ordinary app data
 alone. A GUI session is required; use an actual native desktop or Xvfb on Linux.
 
-The preload exposes `getRuntimeInfo()` and `probePlatform(origin)`. Main checks
+The preload exposes `getRuntimeInfo()`, `probePlatform(origin)`,
+`signIn(origin, confirmation)` and `signOut()`. Main checks
 the exact window, top frame and document URL on every call. The probe requires
 transient user activation and performs one bounded discovery request at a time.
 The renderer receives the issuer or a typed error. Main bundles the shared
 discovery client and canonical schema, with dependency notices in
 `dist/main/THIRD-PARTY-MAIN.md`.
+
+Sign-in uses authorization code with PKCE S256, a temporary loopback callback,
+and verification of the signed ID token. The renderer receives account details.
+The account is available for this desktop session and expires with the ID token.
+See the [identity deployment guide](../../docs/operations/IDENTITY.md) for
+provider setup and the real Keycloak integration command.
 
 Renderer requests are limited to verified assets served by `harniqo://app`.
 CSP denies renderer networking, frames, inline/eval scripts and native form

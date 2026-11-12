@@ -1,13 +1,13 @@
 # 配置 Harniqo 身份服务
 
-平台管理员在服务器上配置 OIDC 身份提供方。每个 Harniqo 部署发布一个 `issuer` 和一个桌面端 `client_id`。当前桌面「测试连接」会显示平台是否可达，以及平台发布的身份配置。系统浏览器登录属于 M1-03。[开发清单](../planning/BACKLOG.md)
+平台管理员在服务器上配置 OIDC 身份提供方。每个 Harniqo 部署发布一个 `issuer` 和一个桌面端 `client_id`。桌面测试连接成功后，可在系统浏览器登录并返回桌面查看账号。[开发清单](../planning/BACKLOG.md)
 
 ## 选择身份提供方
 
 - **独立部署。** 通过 HTTPS 部署 Keycloak，在管理控制台创建 realm、管理本地用户，并在该 realm 下为 Harniqo 注册桌面 OIDC 客户端。同一个 Keycloak realm 也可以为其他系统分别注册客户端，各自使用自己的客户端 ID 和回调配置。[Keycloak 生产部署](https://www.keycloak.org/server/configuration-production) · [管理控制台](https://www.keycloak.org/docs/latest/server_admin/)
 - **接入现有系统。** 在该系统使用的 OIDC 提供方中为 Harniqo 注册独立的公开桌面客户端，取得 HTTPS `issuer` 和注册返回的 `client_id`。身份提供方继续管理账号和登录策略。[原生应用注册规范](https://datatracker.ietf.org/doc/html/rfc8252#section-8.4)
 
-桌面客户端采用公开客户端的授权码流程和 PKCE。在 Keycloak 中将 `Client authentication` 设为 `Off`，并启用 `Standard Flow`。在提供方启用 PKCE S256，按桌面登录版本公布的回调地址配置重定向。发现文件里的 `client_id` 是公开标识，账号凭据由身份提供方管理。[Keycloak 客户端设置](https://www.keycloak.org/docs/latest/server_admin/#_oidc-clients) · [原生应用授权流程](https://datatracker.ietf.org/doc/html/rfc8252#section-6)
+桌面客户端采用公开客户端的授权码流程和 PKCE。在 Keycloak 中将 `Client authentication` 设为 `Off`，启用 `Standard Flow`，并将 PKCE 方法设为 `S256`。Keycloak 的回调注册值是 `http://127.0.0.1/oauth/callback`，桌面每次登录使用独立的回环端口。其他提供方按其原生应用注册规则配置同一路径的动态回环端口。账号凭据由身份提供方管理。[Keycloak 客户端设置](https://www.keycloak.org/docs/latest/server_admin/#_oidc-clients) · [原生应用回环回调](https://www.rfc-editor.org/rfc/rfc8252.html#section-7.3)
 
 ## 在控制面发布发现配置
 
@@ -36,4 +36,12 @@ curl --fail --silent --show-error "${oidc_issuer%/}/.well-known/openid-configura
 Environment=HARNIQO_DISCOVERY_FILE=/etc/harniqo/discovery.json
 ```
 
-从客户端访问控制面 `GET /v1/auth/discovery`，核对 HTTP 200 和返回的 `issuer`、`client_id`。这个结果验证控制面已发布配置。提供方发现、客户端注册和真实账号登录分别验证。HTTP 控制面地址可用于公开探测，后续系统浏览器登录从客户端信任的 HTTPS 平台地址发起。[控制面启动说明](../../apps/control-plane/README.md) · [原生应用浏览器登录规范](https://datatracker.ietf.org/doc/html/rfc8252#section-4.1)
+从客户端访问控制面 `GET /v1/auth/discovery`，核对 HTTP 200 和返回的 `issuer`、`client_id`。这个结果验证控制面已发布配置。[控制面启动说明](../../apps/control-plane/README.md)
+
+在桌面填入 HTTP 或 HTTPS 控制面地址，点击「测试连接」。通过 HTTP 连接时，再填入管理员单独提供的 HTTPS issuer 和公开客户端 ID。桌面核对两项后，用 `openid profile` 发起登录。通过受信 HTTPS 控制面连接时，直接使用发布的配置。点击「在浏览器登录」并核对桌面确认框中的身份服务，在浏览器完成登录后返回桌面查看结果。当前账号状态保存在当次桌面会话，「退出此客户端」清除本机状态。[原生应用浏览器登录规范](https://datatracker.ietf.org/doc/html/rfc8252#section-4.1)
+
+在具备 Docker、Chrome 和已打包桌面的开发机上，可以通过真实 Keycloak 和隔离浏览器运行两条连接路径。
+
+```sh
+bash deploy/identity/qualify-keycloak.sh bash deploy/identity/qualify-desktop.sh
+```

@@ -8,6 +8,10 @@ Harniqo 自有源码、契约、原创文档和合成测试样本采用根目录
 
 M1-06 身份发现新增 Fastify 5.12.8 和 Ajv 8.20.0，官方 npm 注册表均登记为 MIT。完整解析版本与发行包完整性值记录在 [pnpm 锁文件](../../pnpm-lock.yaml)。[Fastify 发行](https://github.com/fastify/fastify/releases) · [Ajv 发行](https://github.com/ajv-validator/ajv/releases)
 
+M1-03 桌面登录使用 `oauth4webapi` 3.8.8 校验 OIDC 流程。该包采用 MIT 许可，完整性值记录在 pnpm 锁文件，许可随桌面主进程的第三方许可文件分发。[oauth4webapi 固定发行](https://github.com/panva/oauth4webapi/releases/tag/v3.8.8)
+
+M1-03 联调从 Quay 拉取摘要固定的官方 Keycloak 26.8.2 镜像。镜像由联调机直接取得，脚本和用途见 [Keycloak 联调说明](../../deploy/identity/README.md)。
+
 ## 1. 当前自有交付与第三方材料
 
 | 内容 | 当前来源与处理 | 后续准入要求 |

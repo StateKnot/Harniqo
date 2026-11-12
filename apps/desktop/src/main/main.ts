@@ -1,11 +1,15 @@
-import { app, BrowserWindow, ipcMain, Menu, protocol, session } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, Menu, protocol, session, shell } from 'electron';
+import { execFile } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { lstatSync, realpathSync } from 'node:fs';
 import path from 'node:path';
+import { promisify } from 'node:util';
 import { discoverPlatform, DiscoveryError } from '@harniqo/client';
-import { PLATFORM_PROBE_CHANNEL, RUNTIME_INFO_CHANNEL } from '../shared/interface';
-import type { BuildInfo, MainRuntimeInfo, PlatformProbe } from '../shared/interface';
+import { PLATFORM_PROBE_CHANNEL, RUNTIME_INFO_CHANNEL, SIGN_IN_CHANNEL, SIGN_OUT_CHANNEL } from '../shared/interface';
+import type { BuildInfo, MainRuntimeInfo, PlatformProbe, SignInResult } from '../shared/interface';
+import { signIn } from './oidc';
+import type { LoginMetadata } from './oidc';
 import { APP_URL, CONTENT_SECURITY_POLICY, assertDesktopRequest, resolveAssetPath } from './policy';
 import { inspectNativeWindow } from './smoke';
 
@@ -26,6 +30,8 @@ if (smoke) {
 let window: BrowserWindow | null = null;
 let runtime: MainRuntimeInfo;
 let platformProbe: AbortController | undefined;
+let verifiedPlatform: { origin: string; metadata: LoginMetadata; requiresIdentityConfirmation: boolean } | undefined;
+let login: AbortController | undefined;
 let smokeFinished = false;
 const smokeTimer = smoke ? setTimeout(() => finishSmoke(new Error('NATIVE_SMOKE_TIMEOUT')), 25000) : undefined;
 
@@ -75,17 +81,71 @@ async function configureAssets(): Promise<void> {
     assertDesktopRequest(event, args, window.webContents, window.webContents.mainFrame, 1);
     const [origin] = args;
     if (typeof origin !== 'string' || origin.length > 2048) return { error: 'invalid_platform_origin' };
-    if (platformProbe) return { error: 'probe_busy' };
+    if (platformProbe || login) return { error: 'probe_busy' };
     const probe = new AbortController();
     platformProbe = probe;
+    verifiedPlatform = undefined;
     try {
-      const result = await discoverPlatform(origin, { signal: probe.signal });
-      return { issuer: result.issuer };
+      const metadata = await discoverPlatform(origin, { signal: probe.signal });
+      if (probe.signal.aborted) return { error: 'discovery_unreachable' };
+      const requiresIdentityConfirmation = new URL(origin).protocol === 'http:';
+      verifiedPlatform = { origin, metadata, requiresIdentityConfirmation };
+      return { issuer: metadata.issuer, clientId: metadata.client_id, requiresIdentityConfirmation };
     } catch (error) {
       return { error: error instanceof DiscoveryError ? error.code : 'discovery_unreachable' };
     } finally {
       platformProbe = undefined;
     }
+  });
+  ipcMain.handle(SIGN_IN_CHANNEL, async (event, ...args: unknown[]): Promise<SignInResult> => {
+    if (!window || window.isDestroyed()) throw new Error('DESKTOP_REQUEST_DENIED');
+    assertDesktopRequest(event, args, window.webContents, window.webContents.mainFrame, 2);
+    const loginWindow = window;
+    if (login) return { error: 'login_busy' };
+    const [origin, confirmation] = args;
+    const verified = verifiedPlatform;
+    if (!verified || origin !== verified.origin) return { error: 'platform_not_verified' };
+    if (verified.requiresIdentityConfirmation && (!confirmation || typeof confirmation !== 'object'
+      || !('issuer' in confirmation) || confirmation.issuer !== verified.metadata.issuer
+      || !('clientId' in confirmation) || confirmation.clientId !== verified.metadata.client_id)) {
+      return { error: 'identity_mismatch' };
+    }
+    const attempt = new AbortController();
+    login = attempt;
+    const smokeBrowser = smoke ? process.env['HARNIQO_SMOKE_BROWSER_EXECUTABLE'] : undefined;
+    // The HTTP response cannot grant scopes beyond the desktop login defaults.
+    const metadata = verified.requiresIdentityConfirmation
+      ? { ...verified.metadata, required_scopes: ['openid', 'profile'] }
+      : verified.metadata;
+    try {
+      const account = await signIn(metadata, async url => {
+        if (smokeBrowser) {
+          await promisify(execFile)(smokeBrowser, [url], { signal: attempt.signal, timeout: 18000 });
+          return;
+        }
+        const authorizationOrigin = new URL(url).origin;
+        const consent = await dialog.showMessageBox(loginWindow, {
+          type: 'question',
+          message: '在系统浏览器登录 Harniqo',
+          detail: `控制面 ${new URL(verified.origin).origin}\n身份服务 ${metadata.issuer}\n浏览器将打开 ${authorizationOrigin}`,
+          buttons: ['继续', '取消'], defaultId: 1, cancelId: 1, noLink: true,
+          signal: attempt.signal,
+        });
+        if (consent.response !== 0) attempt.abort();
+        attempt.signal.throwIfAborted();
+        await shell.openExternal(url);
+      }, attempt.signal);
+      return attempt.signal.aborted ? { error: 'login_cancelled' } : { account };
+    } catch {
+      return { error: attempt.signal.aborted ? 'login_cancelled' : 'login_failed' };
+    } finally {
+      login = undefined;
+    }
+  });
+  ipcMain.handle(SIGN_OUT_CHANNEL, (event, ...args: unknown[]): void => {
+    if (!window || window.isDestroyed()) throw new Error('DESKTOP_REQUEST_DENIED');
+    assertDesktopRequest(event, args, window.webContents, window.webContents.mainFrame);
+    login?.abort();
   });
 }
 
@@ -113,6 +173,8 @@ function createWindow(): void {
   current.on('closed', () => {
     if (window !== current) return;
     platformProbe?.abort();
+    login?.abort();
+    verifiedPlatform = undefined;
     window = null;
   });
   if (smoke) current.webContents.once('did-finish-load', () => {
