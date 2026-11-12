@@ -1090,7 +1090,7 @@
         "security": [],
         "responses": {
           "200": {
-            "description": "Public, TLS-protected OIDC issuer/client discovery; the desktop must use PKCE and never an embedded login.",
+            "description": "Public OIDC issuer/client discovery. HTTPS is the default. Local network deployments may explicitly enable HTTP for discovery. The issuer uses HTTPS, and the desktop uses the system browser and PKCE.",
             "content": {
               "application/json": {
                 "schema": {

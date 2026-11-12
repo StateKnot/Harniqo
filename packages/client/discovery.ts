@@ -1,4 +1,5 @@
-import { request } from 'node:https';
+import { request as httpRequest } from 'node:http';
+import { request as httpsRequest } from 'node:https';
 import { authenticationDiscoveryPath, parseAuthenticationDiscovery } from '@harniqo/contracts';
 import type { AuthenticationDiscovery } from '@harniqo/contracts';
 
@@ -25,17 +26,19 @@ const certificateErrors = new Set([
 
 export async function discoverPlatform(origin: string, options: { ca?: Buffer; signal?: AbortSignal } = {}): Promise<AuthenticationDiscovery> {
   const platform = URL.parse(origin);
-  if (!platform?.hostname || platform.protocol !== 'https:' || platform.pathname !== '/'
-    || !/^https:\/\/[^/@?#\\\u0000-\u0020\u007f]+\/?$/u.test(origin) || /\s/u.test(origin)) {
+  if (!platform?.hostname || platform.pathname !== '/'
+    || !/^https?:\/\/[^/@?#\\\u0000-\u0020\u007f]+\/?$/u.test(origin) || /\s/u.test(origin)) {
     throw new DiscoveryError('invalid_platform_origin');
   }
+  const secure = platform.protocol === 'https:';
+  const request = secure ? httpsRequest : httpRequest;
   const deadline = AbortSignal.timeout(5000);
   const signal = options.signal ? AbortSignal.any([deadline, options.signal]) : deadline;
   const result = await new Promise<Buffer>((resolve, reject) => {
     const outgoing = request(new URL(authenticationDiscoveryPath, platform), {
-      method: 'GET', agent: false, rejectUnauthorized: true, minVersion: 'TLSv1.2',
+      method: 'GET', agent: false,
       headers: { accept: 'application/json' }, signal, maxHeaderSize: 8192,
-      ...(options.ca ? { ca: options.ca } : {}),
+      ...(secure ? { rejectUnauthorized: true, minVersion: 'TLSv1.2', ca: options.ca } : {}),
     }, async response => {
       try {
         if (response.statusCode !== 200) throw new DiscoveryError('discovery_http_status');

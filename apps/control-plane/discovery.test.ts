@@ -48,10 +48,19 @@ test('discovery returns only the configured public DTO over verified TLS', async
   }
 });
 
+test('an HTTP listener exposes the same public discovery response', async t => {
+  const server = createControlPlane(metadata, null);
+  t.after(() => server.close());
+  await server.listen({ host: '127.0.0.1', port: 10052 });
+  assert.deepEqual(await discoverPlatform('http://127.0.0.1:10052'), metadata);
+  assert.equal((await server.inject({ method: 'POST', url: '/v1/handshakes' })).statusCode, 404);
+});
+
 test('startup rejects private fields, malformed issuer, missing OpenID scope and disabled PKCE', () => {
   for (const change of [
     { client_secret: 'fixture-only' }, { issuer: 'https://guest:secret@identity.example.invalid' },
     { issuer: 'https://identity.example.invalid/?debug=1' }, { issuer: 'https://identity.example.invalid/#' },
+    { issuer: 'http://identity.example.invalid/realms/harniqo' },
     { required_scopes: ['profile'] }, { required_scopes: ['openid', 'two scopes'] },
     { authorization_code_pkce_required: false },
   ]) {
@@ -59,8 +68,8 @@ test('startup rejects private fields, malformed issuer, missing OpenID scope and
   }
 });
 
-test('client rejects ambiguous or non-HTTPS origins before sending requests', async () => {
-  for (const origin of ['http://localhost', 'https://localhost/subpath', 'https://localhost/?',
+test('client rejects ambiguous origins and unsupported schemes before sending requests', async () => {
+  for (const origin of ['ftp://localhost', 'http://localhost/subpath', 'http://user@localhost', 'https://localhost/?',
     'https://localhost#', 'https://@localhost', ' https://localhost', 'https://localhost\\', 'https://localhost\u0000']) {
     await assert.rejects(discoverPlatform(origin), { code: 'invalid_platform_origin' });
   }

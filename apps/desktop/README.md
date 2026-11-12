@@ -1,7 +1,7 @@
 # Desktop engineering entry — M1-01
 
 The Electron/React desktop displays its build identity and lets the user test a
-platform HTTPS origin. A successful probe displays the public identity issuer.
+platform HTTP or HTTPS origin. A successful probe displays the public identity issuer.
 Platform login and Harness sessions follow M1-03 and M2.
 
 From the repository root, use the pinned Node.js/pnpm versions and install with
@@ -64,3 +64,5 @@ Native smoke covers preload activation denial. When both
 `HARNIQO_SMOKE_DISCOVERY_ORIGIN` and `HARNIQO_SMOKE_BAD_CERTIFICATE_ORIGIN` are
 provided, it submits the actual form against a live HTTPS endpoint and verifies
 successful discovery and certificate rejection.
+Set `HARNIQO_SMOKE_HTTP_DISCOVERY_ORIGIN` to exercise the same form against a
+live HTTP discovery endpoint.

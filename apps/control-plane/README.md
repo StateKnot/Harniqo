@@ -1,6 +1,6 @@
-# 控制面 HTTPS 身份发现
+# 控制面身份发现
 
-M1-06 的公开接口 `GET /v1/auth/discovery` 返回部署配置的 OIDC issuer、桌面公开 client ID、scope 和 PKCE 要求。控制面和 Node 客户端使用同一份 draft 2020-12 契约校验这些字段。调用方可使用 `@harniqo/client` 的 `discoverPlatform` 从指定 HTTPS origin 读取配置。
+M1-06 的公开接口 `GET /v1/auth/discovery` 返回部署配置的 OIDC issuer、桌面公开 client ID、scope 和 PKCE 要求。控制面和 Node 客户端使用同一份 draft 2020-12 契约校验这些字段。调用方可使用 `@harniqo/client` 的 `discoverPlatform` 从指定 HTTPS 或 HTTP origin 读取配置。
 
 从仓库根目录执行。使用已获准的 issuer 和公开 client ID。配置文件格式如下。
 
@@ -31,4 +31,11 @@ pnpm --filter '@harniqo/control-plane...' -r typecheck
 pnpm --filter @harniqo/control-plane test
 ```
 
-下一步由 M1-07 将发现调用纳入桌面主进程和正式打包产物。真实 OIDC 登录归 M1-03，受保护的版本握手、幂等命令、事务队列与持久事件按 M1-06 验收。
+局域网联调可显式设置 `HARNIQO_CONTROL_PROTOCOL=http`。HTTP 模式直接读取同一份发现配置，无需 TLS 文件。默认只监听本机，局域网客户端需使用通过 `HARNIQO_CONTROL_HOST` 配置的可达地址。
+
+```sh
+HARNIQO_CONTROL_PROTOCOL=http pnpm --filter @harniqo/control-plane start
+curl http://127.0.0.1:10050/v1/auth/discovery
+```
+
+HTTP 仅用于无凭据的公开发现。OIDC issuer 仍要求 HTTPS，后续登录和受保护的 API 使用 HTTPS。

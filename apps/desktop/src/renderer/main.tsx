@@ -5,11 +5,11 @@ import type { PlatformProbe, RuntimeInfo } from '../shared/interface';
 import './style.css';
 
 const probeErrors: Record<Extract<PlatformProbe, { error: string }>['error'], string> = {
-  invalid_platform_origin: '请输入平台的 HTTPS 地址，只填写主机名和可选端口。',
+  invalid_platform_origin: '请输入平台的 HTTP 或 HTTPS 地址，只填写协议、主机名和可选端口。',
   certificate_rejected: '证书校验失败。请核对平台主机名、证书有效期及受信证书链。',
   discovery_timeout: '探测超时，请检查网络和平台服务。',
   discovery_unreachable: '无法访问平台，请检查地址、网络和服务状态。',
-  discovery_http_status: '平台未返回身份发现配置，请核对服务地址。',
+  discovery_http_status: '未收到身份发现配置，请核对 Harniqo 控制面地址。',
   invalid_discovery: '平台返回的身份发现配置不符合 Harniqo 契约。',
   discovery_too_large: '平台返回的身份发现配置超出大小限制。',
   probe_busy: '正在检查另一个平台地址，请稍候。',
@@ -48,7 +48,7 @@ function App() {
         data-platform-state={checking ? 'checking' : probe ? ('issuer' in probe ? 'discovered' : 'error') : 'disconnected'}>
         <h1 id="connection-title">平台连接</h1>
         <form onSubmit={(event) => void checkPlatform(event)} className="probe">
-          <label htmlFor="platform-address">平台 HTTPS 地址</label>
+          <label htmlFor="platform-address">Harniqo 控制面地址（HTTP 或 HTTPS）</label>
           <div className="probe-controls">
             <input id="platform-address" name="platform" autoComplete="off" spellCheck={false}
               placeholder="https://platform.example.com" required maxLength={2048} disabled={checking}

@@ -1,10 +1,10 @@
 import Fastify from 'fastify';
 import { authenticationDiscoveryPath, parseAuthenticationDiscovery } from '@harniqo/contracts';
 
-export function createControlPlane(discovery: unknown, tls: { key: Buffer; cert: Buffer }) {
+export function createControlPlane(discovery: unknown, tls: { key: Buffer; cert: Buffer } | null) {
   const metadata = parseAuthenticationDiscovery(discovery);
   const server = Fastify({
-    https: { ...tls, minVersion: 'TLSv1.2' },
+    ...(tls ? { https: { ...tls, minVersion: 'TLSv1.2' } } : {}),
     logger: false, trustProxy: false, exposeHeadRoutes: false,
     requestTimeout: 10_000, connectionTimeout: 10_000, keepAliveTimeout: 5000,
   });

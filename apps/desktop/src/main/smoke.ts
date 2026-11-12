@@ -50,12 +50,13 @@ export async function inspectNativeWindow(window: BrowserWindow, runtime: MainRu
 async function inspectPlatformProbe(window: BrowserWindow) {
   const origin = process.env['HARNIQO_SMOKE_DISCOVERY_ORIGIN'];
   const badCertificate = process.env['HARNIQO_SMOKE_BAD_CERTIFICATE_ORIGIN'];
+  const httpOrigin = process.env['HARNIQO_SMOKE_HTTP_DISCOVERY_ORIGIN'];
   const denied = await window.webContents.executeJavaScript(
-    `window.harniqo.probePlatform(${JSON.stringify(origin ?? 'https://localhost:10050')})`,
+    `window.harniqo.probePlatform(${JSON.stringify(origin ?? httpOrigin ?? 'https://localhost:10050')})`,
   ) as { error?: string };
   if (denied.error !== 'user_action_required') throw new Error('PROBE_ACTIVATION_MISMATCH');
-  if (!origin && !badCertificate) return { userActionRequired: true };
-  if (!origin || !badCertificate) throw new Error('PROBE_SMOKE_ORIGINS_REQUIRED');
+  if (Boolean(origin) !== Boolean(badCertificate)) throw new Error('PROBE_SMOKE_ORIGINS_REQUIRED');
+  if (httpOrigin && !httpOrigin.startsWith('http://')) throw new Error('PROBE_SMOKE_HTTP_ORIGIN_REQUIRED');
 
   const submit = async (address: string, expected: string) => window.webContents.executeJavaScript(`(async () => {
     const input = document.querySelector('#platform-address');
@@ -72,7 +73,14 @@ async function inspectPlatformProbe(window: BrowserWindow) {
     }
     return false;
   })()`, true) as Promise<boolean>;
-  if (!await submit(origin, 'discovered')) throw new Error('PLATFORM_DISCOVERY_SMOKE_FAILED');
-  if (!await submit(badCertificate, 'certificate_rejected')) throw new Error('PLATFORM_CERTIFICATE_SMOKE_FAILED');
-  return { userActionRequired: true, discovered: true, certificateRejected: true };
+  if (origin && badCertificate) {
+    if (!await submit(origin, 'discovered')) throw new Error('PLATFORM_DISCOVERY_SMOKE_FAILED');
+    if (!await submit(badCertificate, 'certificate_rejected')) throw new Error('PLATFORM_CERTIFICATE_SMOKE_FAILED');
+  }
+  if (httpOrigin && !await submit(httpOrigin, 'discovered')) throw new Error('PLATFORM_HTTP_DISCOVERY_SMOKE_FAILED');
+  return {
+    userActionRequired: true,
+    ...(origin ? { discovered: true, certificateRejected: true } : {}),
+    ...(httpOrigin ? { httpDiscovered: true } : {}),
+  };
 }

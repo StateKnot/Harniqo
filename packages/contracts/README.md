@@ -1,6 +1,6 @@
 # Harniqo contracts
 
-M0-02 的机器可读契约初稿，版本 `0.1.0`。它定义接口形状和确定的生命周期。M1-06 已实现公开的 HTTPS 身份发现，其他接口按任务清单交付。[契约 manifest](manifest.json) · [控制面身份发现](../../apps/control-plane/README.md)
+M0-02 的机器可读契约初稿，版本 `0.1.0`。它定义接口形状和确定的生命周期。M1-06 已实现公开的身份发现，其他接口按任务清单交付。[契约 manifest](manifest.json) · [控制面身份发现](../../apps/control-plane/README.md)
 
 ## 文件与单一来源
 
@@ -15,7 +15,7 @@ M0-02 的机器可读契约初稿，版本 `0.1.0`。它定义接口形状和确
 
 OpenAPI API 路径仍为 `/v1`，它与契约草稿 SemVer 是不同维度。Schema 采用同文档 `$ref`；生成的 OpenAPI 也只使用同文档引用，不允许网络、任意本机文件或动态引用。`$schema`/`jsonSchemaDialect` 是标准方言标识，不是运行时网络下载指令。
 
-所有路径的认证都显式声明。只有 `/v1/auth/discovery` 是公开的 TLS issuer/client discovery；它不包含机密，桌面仍必须通过系统浏览器、Authorization Code + PKCE 登录。用户 API 用配置 audience 的 Access Token，Runner Interface 用受控注册的 mTLS 身份，两者不能互换。
+所有路径的认证都显式声明。`/v1/auth/discovery` 公开 issuer 和客户端配置，默认使用 HTTPS，局域网联调可显式启用 HTTP。OIDC issuer 使用 HTTPS，桌面通过系统浏览器和 Authorization Code + PKCE 登录。用户 API 用配置 audience 的 Access Token，Runner Interface 用受控注册的 mTLS 身份。
 
 桌面用 `POST /v1/handshakes`，已登记的 Runner 用 `POST /runner/v1/handshakes`。平台先核验对应的身份、归属和授权，再检查软件最低版本和双方契约版本的精确交集。仅当选中版本被双方明确列出时返回成功。执行代理和 Adapter 的版本由 Runner 在派发前核对；它们不借用用户或 Runner 的平台凭据。
 
