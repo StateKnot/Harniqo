@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { APP_URL, assertRuntimeInfoRequest, resolveAssetPath } from '../src/main/policy';
+import { APP_URL, assertDesktopRequest, resolveAssetPath } from '../src/main/policy';
 
 const assets = new Set(['/index.html', '/assets/index-B3qx.js', '/assets/index-L4zz.css']);
 
@@ -26,16 +26,16 @@ test('only exact built renderer assets can be requested; callers cannot choose h
 test('compromised subframes or other windows cannot read through the main window IPC capability', () => {
   const contents = {};
   const mainFrame = { url: APP_URL };
-  assert.doesNotThrow(() => assertRuntimeInfoRequest({ sender: contents, senderFrame: mainFrame }, [], contents, mainFrame));
+  assert.doesNotThrow(() => assertDesktopRequest({ sender: contents, senderFrame: mainFrame }, [], contents, mainFrame));
   const attackers = [
     { sender: {}, senderFrame: mainFrame },
     { sender: contents, senderFrame: { url: APP_URL } },
     { sender: contents, senderFrame: null },
     { sender: contents, senderFrame: { url: 'https://example.com' } },
   ];
-  for (const event of attackers) assert.throws(() => assertRuntimeInfoRequest(event, [], contents, mainFrame), /DESKTOP_REQUEST_DENIED/);
+  for (const event of attackers) assert.throws(() => assertDesktopRequest(event, [], contents, mainFrame), /DESKTOP_REQUEST_DENIED/);
   mainFrame.url = 'harniqo://app/assets/index-B3qx.js';
-  assert.throws(() => assertRuntimeInfoRequest({ sender: contents, senderFrame: mainFrame }, [], contents, mainFrame), /DESKTOP_REQUEST_DENIED/);
+  assert.throws(() => assertDesktopRequest({ sender: contents, senderFrame: mainFrame }, [], contents, mainFrame), /DESKTOP_REQUEST_DENIED/);
 });
 
 test('read-only runtime IPC cannot be repurposed as shell, URL, or file access', () => {
@@ -43,6 +43,15 @@ test('read-only runtime IPC cannot be repurposed as shell, URL, or file access',
   const frame = { url: APP_URL };
   const event = { sender: contents, senderFrame: frame };
   for (const args of [[undefined], [null], [{ path: '/etc/passwd' }], [{ command: 'sh', args: ['-c', 'id'] }], ['https://example.com'], ['getRuntimeInfo'], [[], {}]]) {
-    assert.throws(() => assertRuntimeInfoRequest(event, args, contents, frame), /DESKTOP_REQUEST_DENIED/);
+    assert.throws(() => assertDesktopRequest(event, args, contents, frame), /DESKTOP_REQUEST_DENIED/);
   }
+});
+
+test('the probe channel accepts exactly one argument from the local top frame', () => {
+  const contents = {};
+  const frame = { url: APP_URL };
+  const event = { sender: contents, senderFrame: frame };
+  assert.doesNotThrow(() => assertDesktopRequest(event, ['https://example.com'], contents, frame, 1));
+  assert.throws(() => assertDesktopRequest(event, ['https://example.com', { ca: '/etc/passwd' }], contents, frame, 1), /DESKTOP_REQUEST_DENIED/);
+  assert.throws(() => assertDesktopRequest({ ...event, senderFrame: { url: APP_URL } }, ['https://example.com'], contents, frame, 1), /DESKTOP_REQUEST_DENIED/);
 });

@@ -1,9 +1,8 @@
 # Desktop engineering entry — M1-01
 
-This is an executable Electron/React/TypeScript engineering entry. It displays the
-actual local application identity and an explicit disconnected state. Platform
-login, environment configuration and real Harness sessions remain M1-03/06/07 and
-M2 work. No cloud or Harness capability is simulated.
+The Electron/React desktop displays its build identity and lets the user test a
+platform HTTPS origin. A successful probe displays the public identity issuer.
+Platform login and Harness sessions follow M1-03 and M2.
 
 From the repository root, use the pinned Node.js/pnpm versions and install with
 `pnpm install --frozen-lockfile`, then prepare Electron's native runtime and run:
@@ -51,13 +50,17 @@ its embedded identity must still equal the current build. Each run uses and
 removes a caller-created private temporary profile, leaving ordinary app data
 alone. A GUI session is required; use an actual native desktop or Xvfb on Linux.
 
-The only renderer capability is `window.harniqo.getRuntimeInfo():
-Promise<RuntimeInfo>`, defined in `src/shared/interface.ts`. It accepts no
-arguments. Main checks the exact window, main frame and document URL on every
-call. No generic IPC, shell, URL opening, file access or credential channel is
-exposed. Renderer requests are limited to exact build-manifest assets served by
-`harniqo://app`; hashes are checked before delivery. CSP denies network, frames,
-inline/eval scripts and forms. Main denies navigation, redirects, popup windows,
-webviews, permissions and downloads. Security regressions exercise hostile
-senders, subframes, extra arguments, protocols and path traversal; they do not
-substitute for actual native smoke or the later M1-07 malicious-content suite.
+The preload exposes `getRuntimeInfo()` and `probePlatform(origin)`. Main checks
+the exact window, top frame and document URL on every call. The probe requires
+transient user activation and performs one bounded discovery request at a time.
+The renderer receives the issuer or a typed error. Main bundles the shared
+discovery client and canonical schema, with dependency notices in
+`dist/main/THIRD-PARTY-MAIN.md`.
+
+Renderer requests are limited to verified assets served by `harniqo://app`.
+CSP denies renderer networking, frames, inline/eval scripts and native form
+navigation. Main denies navigation, popups, webviews, permissions and downloads.
+Native smoke covers preload activation denial. When both
+`HARNIQO_SMOKE_DISCOVERY_ORIGIN` and `HARNIQO_SMOKE_BAD_CERTIFICATE_ORIGIN` are
+provided, it submits the actual form against a live HTTPS endpoint and verifies
+successful discovery and certificate rejection.

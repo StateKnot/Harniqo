@@ -1,30 +1,66 @@
 import { StrictMode, useEffect, useState } from 'react';
+import type { FormEvent } from 'react';
 import { createRoot } from 'react-dom/client';
-import type { RuntimeInfo } from '../shared/interface';
+import type { PlatformProbe, RuntimeInfo } from '../shared/interface';
 import './style.css';
+
+const probeErrors: Record<Extract<PlatformProbe, { error: string }>['error'], string> = {
+  invalid_platform_origin: '请输入平台的 HTTPS 地址，只填写主机名和可选端口。',
+  certificate_rejected: '证书校验失败。请核对平台主机名、证书有效期及受信证书链。',
+  discovery_timeout: '探测超时，请检查网络和平台服务。',
+  discovery_unreachable: '无法访问平台，请检查地址、网络和服务状态。',
+  discovery_http_status: '平台未返回身份发现配置，请核对服务地址。',
+  invalid_discovery: '平台返回的身份发现配置不符合 Harniqo 契约。',
+  discovery_too_large: '平台返回的身份发现配置超出大小限制。',
+  probe_busy: '正在检查另一个平台地址，请稍候。',
+  user_action_required: '请使用“测试连接”按钮发起探测。',
+};
 
 function App() {
   const [runtime, setRuntime] = useState<RuntimeInfo>();
   const [failed, setFailed] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [checking, setChecking] = useState(false);
+  const [probe, setProbe] = useState<PlatformProbe>();
   async function readRuntime(): Promise<void> {
     setFailed(false);
     try { setRuntime(await window.harniqo.getRuntimeInfo()); }
     catch { setFailed(true); }
   }
   useEffect(() => { setMounted(true); void readRuntime(); }, []);
+  async function checkPlatform(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (checking) return;
+    const address = String(new FormData(event.currentTarget).get('platform') ?? '').trim();
+    setChecking(true);
+    setProbe(undefined);
+    try { setProbe(await window.harniqo.probePlatform(address)); }
+    catch { setProbe({ error: 'discovery_unreachable' }); }
+    finally { setChecking(false); }
+  }
   return (
     <main data-react-mounted={mounted ? 'true' : 'false'}>
       <header>
         <div className="brand"><span className="brand-mark" aria-hidden="true">H</span><span>Harniqo</span></div>
         <span className="edition">工程版本</span>
       </header>
-      <section className="connection" aria-labelledby="connection-title" data-platform-state="disconnected">
-        <p className="eyebrow"><span className="status-dot" aria-hidden="true" />本机客户端</p>
-        <h1 id="connection-title">未连接平台</h1>
-        <p className="description">Harniqo 用于连接云端 Harness，持续对话、比较任务与批量评测。</p>
-        <p className="scope">当前版本提供可运行的桌面工程入口。平台登录、环境连接与真实 Harness 会话尚未接入。</p>
-        <div className="scope-note">本机运行状态不代表云端服务已连接。</div>
+      <section className="connection" aria-labelledby="connection-title"
+        data-platform-state={checking ? 'checking' : probe ? ('issuer' in probe ? 'discovered' : 'error') : 'disconnected'}>
+        <h1 id="connection-title">平台连接</h1>
+        <form onSubmit={(event) => void checkPlatform(event)} className="probe">
+          <label htmlFor="platform-address">平台 HTTPS 地址</label>
+          <div className="probe-controls">
+            <input id="platform-address" name="platform" autoComplete="off" spellCheck={false}
+              placeholder="https://platform.example.com" required maxLength={2048} disabled={checking}
+              onChange={() => setProbe(undefined)} />
+            <button type="submit" disabled={checking}>测试连接</button>
+          </div>
+        </form>
+        <div className="probe-result" aria-live="polite" aria-atomic="true">
+          {checking ? '正在检查平台…' : probe && ('issuer' in probe
+            ? <p>已读取平台身份配置。登录服务为 <span>{probe.issuer}</span>。</p>
+            : <p className="probe-error" data-probe-error={probe.error}>{probeErrors[probe.error]}</p>)}
+        </div>
       </section>
       <section className="build" aria-labelledby="build-title">
         <div className="section-heading"><h2 id="build-title">关于此构建</h2><span>来自当前应用的真实信息</span></div>
@@ -48,7 +84,6 @@ function App() {
           </> : <p className="loading" role="status">正在读取桌面运行信息…</p>}
         </div>
       </section>
-      <footer>Harniqo · M1-01 工程入口</footer>
     </main>
   );
 }

@@ -39,8 +39,8 @@ test('discovery returns only the configured public DTO over verified TLS', async
   const discovery = await discoverPlatform(platform, { ca: tls.cert });
   assert.deepEqual(discovery, metadata);
   assert.equal(Object.isFrozen(discovery.required_scopes), true);
-  await assert.rejects(discoverPlatform(platform), { code: 'discovery_unreachable' });
-  await assert.rejects(discoverPlatform('https://127.0.0.1:10050', { ca: tls.cert }), { code: 'discovery_unreachable' });
+  await assert.rejects(discoverPlatform(platform), { code: 'certificate_rejected' });
+  await assert.rejects(discoverPlatform('https://127.0.0.1:10050', { ca: tls.cert }), { code: 'certificate_rejected' });
   for (const [method, url] of [
     ['GET', '/v1/meta'], ['POST', '/v1/handshakes'], ['POST', '/runner/v1/handshakes'],
   ] as const) {

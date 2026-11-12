@@ -1,4 +1,4 @@
-/** Read-only desktop metadata. No credentials, paths, or arbitrary IPC are exposed. */
+/** Read-only desktop metadata. */
 export interface BuildInfo {
   readonly appId: 'org.harniqo.desktop';
   readonly appName: 'Harniqo';
@@ -26,6 +26,13 @@ export type MainRuntimeInfo = Omit<RuntimeInfo, 'rendererSecurity'>;
 
 export interface DesktopInterface {
   readonly getRuntimeInfo: () => Promise<RuntimeInfo>;
+  readonly probePlatform: (origin: string) => Promise<PlatformProbe>;
 }
 
+export type PlatformProbe = { readonly issuer: string } |
+  { readonly error: 'invalid_platform_origin' | 'discovery_unreachable' | 'discovery_timeout'
+    | 'discovery_http_status' | 'invalid_discovery' | 'discovery_too_large'
+    | 'certificate_rejected' | 'probe_busy' | 'user_action_required' };
+
 export const RUNTIME_INFO_CHANNEL = 'harniqo:runtime-info';
+export const PLATFORM_PROBE_CHANNEL = 'harniqo:platform-probe';

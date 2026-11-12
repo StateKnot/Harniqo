@@ -39,9 +39,40 @@ export async function inspectNativeWindow(window: BrowserWindow, runtime: MainRu
     },
   };
   if (!renderer.rendered || renderer.title !== 'Harniqo' || renderer.url !== APP_URL || renderer.connection !== 'disconnected') throw new Error('RENDERER_IDENTITY_MISMATCH');
-  if (renderer.apiKeys.length !== 1 || renderer.apiKeys[0] !== 'getRuntimeInfo') throw new Error('PRELOAD_SURFACE_MISMATCH');
+  if (renderer.apiKeys.sort().join(',') !== 'getRuntimeInfo,probePlatform') throw new Error('PRELOAD_SURFACE_MISMATCH');
   const { rendererSecurity: _rendererSecurity, ...reportedMain } = renderer.runtime;
   if (JSON.stringify(reportedMain) !== JSON.stringify(runtime) || runtime.appVersion !== runtime.version || runtime.isPackaged !== expectPackaged) throw new Error('RUNTIME_IDENTITY_MISMATCH');
   if (!security.sandbox || !security.contextIsolation || security.nodeIntegration || !security.webSecurity || !security.requireUnavailable || !security.processUnavailable) throw new Error('RENDERER_SECURITY_MISMATCH');
-  return { schemaVersion: 1, status: 'passed', sourceCommit: runtime.sourceCommit, sourceDirty: runtime.sourceDirty, sourceInputHash: runtime.sourceInputHash, rendered: true, runtime, security, renderer: { url: renderer.url, connection: renderer.connection } };
+  const probe = await inspectPlatformProbe(window);
+  return { schemaVersion: 1, status: 'passed', sourceCommit: runtime.sourceCommit, sourceDirty: runtime.sourceDirty, sourceInputHash: runtime.sourceInputHash, rendered: true, runtime, security, renderer: { url: renderer.url, connection: renderer.connection }, probe };
+}
+
+async function inspectPlatformProbe(window: BrowserWindow) {
+  const origin = process.env['HARNIQO_SMOKE_DISCOVERY_ORIGIN'];
+  const badCertificate = process.env['HARNIQO_SMOKE_BAD_CERTIFICATE_ORIGIN'];
+  const denied = await window.webContents.executeJavaScript(
+    `window.harniqo.probePlatform(${JSON.stringify(origin ?? 'https://localhost:10050')})`,
+  ) as { error?: string };
+  if (denied.error !== 'user_action_required') throw new Error('PROBE_ACTIVATION_MISMATCH');
+  if (!origin && !badCertificate) return { userActionRequired: true };
+  if (!origin || !badCertificate) throw new Error('PROBE_SMOKE_ORIGINS_REQUIRED');
+
+  const submit = async (address: string, expected: string) => window.webContents.executeJavaScript(`(async () => {
+    const input = document.querySelector('#platform-address');
+    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(input, ${JSON.stringify(address)});
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    input.form.requestSubmit();
+    const deadline = performance.now() + 7000;
+    const section = input.closest('[data-platform-state]');
+    const expected = ${JSON.stringify(expected)};
+    while (performance.now() < deadline) {
+      if (expected === 'discovered' ? section.dataset.platformState === 'discovered'
+        : section.querySelector('[data-probe-error]')?.dataset.probeError === expected) return true;
+      await new Promise(resolve => setTimeout(resolve, 25));
+    }
+    return false;
+  })()`, true) as Promise<boolean>;
+  if (!await submit(origin, 'discovered')) throw new Error('PLATFORM_DISCOVERY_SMOKE_FAILED');
+  if (!await submit(badCertificate, 'certificate_rejected')) throw new Error('PLATFORM_CERTIFICATE_SMOKE_FAILED');
+  return { userActionRequired: true, discovered: true, certificateRejected: true };
 }

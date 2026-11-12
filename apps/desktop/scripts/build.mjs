@@ -29,6 +29,10 @@ async function files(directory, excluded = new Set()) {
   return result;
 }
 const inputs = await files(appDirectory, new Set(['dist', 'node_modules', 'artifacts', '.test-build', '.DS_Store']));
+for (const name of ['packages/client/package.json', 'packages/client/discovery.ts', 'packages/contracts/package.json',
+  'packages/contracts/discovery.ts', 'packages/contracts/schemas/contract.schema.json']) {
+  inputs.push(path.join(repository, name));
+}
 for (const filename of ['package.json', 'pnpm-lock.yaml', 'pnpm-workspace.yaml', '.npmrc', '.node-version', '.nvmrc', 'tsconfig.base.json', 'LICENSE']) {
   const target = path.join(repository, filename);
   try { await readFile(target); inputs.push(target); } catch (error) { if (error.code !== 'ENOENT') throw error; }
@@ -40,6 +44,16 @@ const info = { appId: 'org.harniqo.desktop', appName: 'Harniqo', version: pkg.ve
 const output = path.join(appDirectory, 'dist');
 await rm(output, { recursive: true, force: true });
 execFileSync(process.execPath, [require.resolve('typescript/bin/tsc'), '-p', 'tsconfig.main.json'], { cwd: appDirectory, stdio: 'inherit' });
+await build({
+  configFile: false,
+  root: appDirectory,
+  build: {
+    lib: { entry: path.join(appDirectory, 'src/main/main.ts'), formats: ['cjs'], fileName: () => 'main.js' },
+    outDir: path.join(output, 'main'), emptyOutDir: false, target: 'es2023', minify: false,
+    license: { fileName: 'THIRD-PARTY-MAIN.md' },
+    rolldownOptions: { external: ['electron', /^node:/], platform: 'node' },
+  },
+});
 await build({
   configFile: false,
   root: path.join(appDirectory, 'src/renderer'),

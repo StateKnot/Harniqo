@@ -23,13 +23,14 @@ export interface SenderIdentity {
 }
 
 /** Called inside each handler; a top-level URL by itself cannot authorize a subframe or another window. */
-export function assertRuntimeInfoRequest(
+export function assertDesktopRequest(
   event: SenderIdentity,
   args: readonly unknown[],
   expectedContents: unknown,
   expectedMainFrame: { readonly url: string },
+  argumentCount = 0,
 ): void {
-  if (event.sender !== expectedContents || event.senderFrame !== expectedMainFrame || expectedMainFrame.url !== APP_URL || args.length !== 0) {
+  if (event.sender !== expectedContents || event.senderFrame !== expectedMainFrame || expectedMainFrame.url !== APP_URL || args.length !== argumentCount) {
     throw new Error('DESKTOP_REQUEST_DENIED');
   }
 }

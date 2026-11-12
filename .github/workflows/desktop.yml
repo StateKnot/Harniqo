@@ -3,9 +3,9 @@ name: Desktop native build
 on:
   push:
     branches: [main]
-    paths: ['package.json', 'pnpm-lock.yaml', 'pnpm-workspace.yaml', '.npmrc', '.node-version', 'apps/desktop/**', 'scripts/ci/desktop.mjs', '.github/workflows/desktop.yml']
+    paths: ['package.json', 'pnpm-lock.yaml', 'pnpm-workspace.yaml', '.npmrc', '.node-version', 'apps/desktop/**', 'packages/client/**', 'packages/contracts/package.json', 'packages/contracts/discovery.ts', 'packages/contracts/schemas/contract.schema.json', 'scripts/ci/desktop.mjs', '.github/workflows/desktop.yml']
   pull_request:
-    paths: ['package.json', 'pnpm-lock.yaml', 'pnpm-workspace.yaml', '.npmrc', '.node-version', 'apps/desktop/**', 'scripts/ci/desktop.mjs', '.github/workflows/desktop.yml']
+    paths: ['package.json', 'pnpm-lock.yaml', 'pnpm-workspace.yaml', '.npmrc', '.node-version', 'apps/desktop/**', 'packages/client/**', 'packages/contracts/package.json', 'packages/contracts/discovery.ts', 'packages/contracts/schemas/contract.schema.json', 'scripts/ci/desktop.mjs', '.github/workflows/desktop.yml']
   workflow_dispatch:
 
 permissions:

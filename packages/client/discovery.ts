@@ -5,14 +5,23 @@ import type { AuthenticationDiscovery } from '@harniqo/contracts';
 const maxDiscoveryBytes = 32 * 1024;
 
 export class DiscoveryError extends Error {
-  constructor(readonlyCode: 'invalid_platform_origin' | 'discovery_unreachable' | 'discovery_timeout'
-    | 'discovery_http_status' | 'invalid_discovery' | 'discovery_too_large') {
-    super(readonlyCode);
+  readonly code: DiscoveryErrorCode;
+
+  constructor(code: DiscoveryErrorCode) {
+    super(code);
     this.name = 'DiscoveryError';
-    this.code = readonlyCode;
+    this.code = code;
   }
-  readonly code;
 }
+
+export type DiscoveryErrorCode = 'invalid_platform_origin' | 'discovery_unreachable' | 'discovery_timeout'
+  | 'discovery_http_status' | 'invalid_discovery' | 'discovery_too_large' | 'certificate_rejected';
+
+const certificateErrors = new Set([
+  'ERR_TLS_CERT_ALTNAME_INVALID', 'DEPTH_ZERO_SELF_SIGNED_CERT', 'SELF_SIGNED_CERT_IN_CHAIN',
+  'UNABLE_TO_VERIFY_LEAF_SIGNATURE', 'UNABLE_TO_GET_ISSUER_CERT', 'UNABLE_TO_GET_ISSUER_CERT_LOCALLY',
+  'CERT_HAS_EXPIRED', 'CERT_NOT_YET_VALID', 'CERT_REVOKED',
+]);
 
 export async function discoverPlatform(origin: string, options: { ca?: Buffer; signal?: AbortSignal } = {}): Promise<AuthenticationDiscovery> {
   const platform = URL.parse(origin);
@@ -49,7 +58,11 @@ export async function discoverPlatform(origin: string, options: { ca?: Buffer; s
         response.destroy();
       }
     });
-    outgoing.once('error', () => reject(new DiscoveryError(deadline.aborted ? 'discovery_timeout' : 'discovery_unreachable')));
+    outgoing.once('error', (error: NodeJS.ErrnoException) => {
+      const code = deadline.aborted ? 'discovery_timeout'
+        : certificateErrors.has(error.code ?? '') ? 'certificate_rejected' : 'discovery_unreachable';
+      reject(new DiscoveryError(code));
+    });
     outgoing.end();
   });
   try {

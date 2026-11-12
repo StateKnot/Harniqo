@@ -3,9 +3,10 @@ import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { lstatSync, realpathSync } from 'node:fs';
 import path from 'node:path';
-import { RUNTIME_INFO_CHANNEL } from '../shared/interface';
-import type { BuildInfo, MainRuntimeInfo } from '../shared/interface';
-import { APP_URL, CONTENT_SECURITY_POLICY, assertRuntimeInfoRequest, resolveAssetPath } from './policy';
+import { discoverPlatform, DiscoveryError } from '@harniqo/client';
+import { PLATFORM_PROBE_CHANNEL, RUNTIME_INFO_CHANNEL } from '../shared/interface';
+import type { BuildInfo, MainRuntimeInfo, PlatformProbe } from '../shared/interface';
+import { APP_URL, CONTENT_SECURITY_POLICY, assertDesktopRequest, resolveAssetPath } from './policy';
 import { inspectNativeWindow } from './smoke';
 
 const smoke = process.env['HARNIQO_SMOKE'] === '1';
@@ -24,6 +25,7 @@ if (smoke) {
 
 let window: BrowserWindow | null = null;
 let runtime: MainRuntimeInfo;
+let platformProbe: AbortController | undefined;
 let smokeFinished = false;
 const smokeTimer = smoke ? setTimeout(() => finishSmoke(new Error('NATIVE_SMOKE_TIMEOUT')), 25000) : undefined;
 
@@ -65,8 +67,25 @@ async function configureAssets(): Promise<void> {
   desktopSession.webRequest.onBeforeRequest((details, callback) => callback({ cancel: resolveAssetPath(details.url, details.method, assets) === undefined }));
   ipcMain.handle(RUNTIME_INFO_CHANNEL, (event, ...args: unknown[]) => {
     if (!window || window.isDestroyed()) throw new Error('DESKTOP_REQUEST_DENIED');
-    assertRuntimeInfoRequest(event, args, window.webContents, window.webContents.mainFrame);
+    assertDesktopRequest(event, args, window.webContents, window.webContents.mainFrame);
     return runtime;
+  });
+  ipcMain.handle(PLATFORM_PROBE_CHANNEL, async (event, ...args: unknown[]): Promise<PlatformProbe> => {
+    if (!window || window.isDestroyed()) throw new Error('DESKTOP_REQUEST_DENIED');
+    assertDesktopRequest(event, args, window.webContents, window.webContents.mainFrame, 1);
+    const [origin] = args;
+    if (typeof origin !== 'string' || origin.length > 2048) return { error: 'invalid_platform_origin' };
+    if (platformProbe) return { error: 'probe_busy' };
+    const probe = new AbortController();
+    platformProbe = probe;
+    try {
+      const result = await discoverPlatform(origin, { signal: probe.signal });
+      return { issuer: result.issuer };
+    } catch (error) {
+      return { error: error instanceof DiscoveryError ? error.code : 'discovery_unreachable' };
+    } finally {
+      platformProbe = undefined;
+    }
   });
 }
 
@@ -91,7 +110,11 @@ function createWindow(): void {
   current.webContents.on('render-process-gone', (_event, details) => smoke ? finishSmoke(new Error(`RENDERER_GONE: ${details.reason}`)) : app.exit(1));
   current.webContents.on('did-fail-load', (_event, code) => { if (smoke) finishSmoke(new Error(`RENDERER_LOAD_FAILED: ${code}`)); });
   if (!smoke) current.once('ready-to-show', () => current.show());
-  current.on('closed', () => { if (window === current) window = null; });
+  current.on('closed', () => {
+    if (window !== current) return;
+    platformProbe?.abort();
+    window = null;
+  });
   if (smoke) current.webContents.once('did-finish-load', () => {
     void inspectNativeWindow(current, runtime, process.env['HARNIQO_SMOKE_EXPECT_PACKAGED'] === '1').then((receipt) => finishSmoke(undefined, receipt), (error: unknown) => finishSmoke(error instanceof Error ? error : new Error('NATIVE_SMOKE_FAILED')));
   });
