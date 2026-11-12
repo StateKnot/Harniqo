@@ -1,0 +1,62 @@
+{
+  "date_local": "2026-11-12",
+  "task": "M1-07",
+  "task_status": "IN_PROGRESS",
+  "scope": "Desktop HTTP and HTTPS probes for public Harniqo discovery",
+  "source_commit": "103822c7ac7853f85b02067e943d17e58cb1923d",
+  "source_input_sha256": "62c60c40884ff2183d1bcc845579084393a15addfee72ca29ecde8abdae0828f",
+  "installed_macos": {
+    "version": "26.6.2",
+    "build": "25G83",
+    "arch": "arm64",
+    "signing_mode": "ad-hoc-local",
+    "scripted_user_gesture": true,
+    "probe": {
+      "userActionRequired": true,
+      "discovered": true,
+      "certificateRejected": true,
+      "httpDiscovered": true
+    },
+    "receipt_sha256": "e03f4ae07f94e28bc9d507b997033a9192c33beb98c24ad43b9c981539c38387"
+  },
+  "control_plane_loopback": {
+    "default_without_tls_files_rejected": true,
+    "explicit_http_without_tls_files_succeeded": true,
+    "http_response_matches_configured_public_discovery": true,
+    "https_certificate_hostname_mismatch_rejected": true
+  },
+  "designated_server": {
+    "status": "passed",
+    "source_commit": "103822c7ac7853f85b02067e943d17e58cb1923d",
+    "os_version": "24.04",
+    "arch": "x86_64",
+    "node": "24.22.1",
+    "pnpm": "11.5.2",
+    "source_input_sha256": "62c60c40884ff2183d1bcc845579084393a15addfee72ca29ecde8abdae0828f",
+    "strict_typecheck": true,
+    "desktop_component_tests": 4,
+    "control_plane_discovery_tests": 5,
+    "native_desktop_build": true,
+    "test_ports_released": true,
+    "log_sha256": {
+      "desktop-build": "a238b59ea7128ceac44a72c508d516f826f445489c6cd4f357948eefdfb1e8cf",
+      "desktop-tests": "a96b63a6a7e64b703f2d1f99529dfd0dc48945e789d2b711a92f7d3702783585",
+      "install": "a56a0c2992d0f9b7eadceb082b2f15eb58cc18d26f0f705af80aa4f45775fc84",
+      "control-plane-tests": "0887f268cc713621a1226ea5ab6736d469f346a9497bb6ea6d7646ca18af3d67",
+      "typecheck": "cfb5e67397477fcabf9b516d861c41db3f820d8b6bb1043abeeb784c64823f72"
+    }
+  },
+  "ci": {
+    "native": {
+      "url": "https://github.com/StateKnot/Harniqo/actions/runs/43142242706",
+      "successful_jobs": 4
+    },
+    "contracts": {
+      "url": "https://github.com/StateKnot/Harniqo/actions/runs/43142242690",
+      "successful_jobs": 3
+    }
+  },
+  "ci_native_scope": "Native build, packaged renderer smoke and user activation denial",
+  "lan_platform_deployed": false,
+  "live_oidc_login_verified": false
+}
