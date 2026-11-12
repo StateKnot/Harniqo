@@ -1,6 +1,6 @@
 # 控制面身份发现
 
-M1-06 的公开接口 `GET /v1/auth/discovery` 返回部署配置的 OIDC issuer、桌面公开 client ID、scope 和 PKCE 要求。控制面和 Node 客户端使用同一份 draft 2020-12 契约校验这些字段。调用方可使用 `@harniqo/client` 的 `discoverPlatform` 从指定 HTTPS 或 HTTP origin 读取配置。
+M1-06 的公开接口 `GET /v1/auth/discovery` 返回部署配置的 OIDC issuer、桌面公开 client ID、scope 和 PKCE 要求。控制面和 Node 客户端使用同一份 draft 2020-12 契约校验这些字段。调用方可使用 `@harniqo/client` 的 `discoverPlatform` 从指定 HTTPS 或 HTTP origin 读取配置。独立部署或接入现有 OIDC 提供方的步骤见[身份服务配置指南](../../docs/operations/IDENTITY.md)。
 
 从仓库根目录执行。使用已获准的 issuer 和公开 client ID。配置文件格式如下。
 
