@@ -9,19 +9,25 @@
   "scripts": {
     "start": "node main.ts",
     "typecheck": "tsc --noEmit",
-    "test": "node --test discovery.test.ts",
-    "test:workbench-store": "node --test workbench-store/index.test.ts"
+    "test": "node --test discovery.test.ts && node --test --test-name-pattern=\"^(?!.*PostgreSQL)\" workbench-access/index.test.ts",
+    "test:workbench-store": "node --test workbench-store/index.test.ts",
+    "test:workbench-routes": "node --test workbench-routes.integration.ts"
   },
   "dependencies": {
     "@harniqo/contracts": "workspace:*",
+    "@harniqo/hermes-adapter": "workspace:*",
     "fastify": "5.12.8",
+    "jose": "6.2.16",
     "kysely": "0.29.8",
-    "pg": "8.23.1"
+    "pg": "8.23.1",
+    "pg-boss": "12.38.2",
+    "semver": "7.8.5"
   },
   "devDependencies": {
     "@harniqo/client": "workspace:*",
     "@types/node": "24.19.2",
     "@types/pg": "8.23.1",
+    "@types/semver": "7.7.1",
     "typescript": "6.0.3"
   }
 }

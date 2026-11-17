@@ -30,7 +30,7 @@ async function files(directory, excluded = new Set()) {
 }
 const inputs = await files(appDirectory, new Set(['dist', 'node_modules', 'artifacts', '.test-build', '.DS_Store']));
 for (const name of ['packages/client/package.json', 'packages/client/discovery.ts', 'packages/contracts/package.json',
-  'packages/contracts/discovery.ts', 'packages/contracts/schemas/contract.schema.json']) {
+  'packages/contracts/discovery.ts', 'packages/contracts/validation.ts', 'packages/contracts/schemas/contract.schema.json']) {
   inputs.push(path.join(repository, name));
 }
 for (const filename of ['package.json', 'pnpm-lock.yaml', 'pnpm-workspace.yaml', '.npmrc', '.node-version', '.nvmrc', 'tsconfig.base.json', 'LICENSE']) {

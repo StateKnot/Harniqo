@@ -1,5 +1,4 @@
-import { Ajv2020 } from 'ajv/dist/2020.js';
-import schema from './schemas/contract.schema.json' with { type: 'json' };
+import { contractValidator } from '@harniqo/contracts/validation';
 
 export const authenticationDiscoveryPath = '/v1/auth/discovery';
 export const authenticationDiscoveryNotConfigured = 'identity_not_configured';
@@ -11,18 +10,7 @@ export type AuthenticationDiscovery = Readonly<{
   authorization_code_pkce_required: true;
 }>;
 
-const ajv = new Ajv2020();
-ajv.addFormat('uri', {
-  type: 'string',
-  validate: (value: string) => {
-    const url = URL.parse(value);
-    return !!url?.hostname && !url.username && !url.password && !/\s/u.test(value);
-  },
-});
-ajv.addSchema(schema);
-const validateDiscovery = ajv.compile<AuthenticationDiscovery>({
-  $ref: schema.$id + '#/$defs/AuthenticationDiscovery',
-});
+const validateDiscovery = contractValidator<AuthenticationDiscovery>('AuthenticationDiscovery');
 
 export function parseAuthenticationDiscovery(value: unknown): AuthenticationDiscovery {
   if (!validateDiscovery(value)) throw new Error('invalid_discovery');

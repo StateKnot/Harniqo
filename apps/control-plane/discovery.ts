@@ -1,7 +1,13 @@
 import Fastify from 'fastify';
 import { authenticationDiscoveryNotConfigured, authenticationDiscoveryPath, parseAuthenticationDiscovery } from '@harniqo/contracts';
+import type { WorkbenchOptions } from './workbench-routes.ts';
 
-export function createControlPlane(discovery: unknown, tls: { key: Buffer; cert: Buffer } | null) {
+export function createControlPlane(
+  discovery: unknown,
+  tls: { key: Buffer; cert: Buffer } | null,
+  workbench?: WorkbenchOptions,
+) {
+  if (workbench && !tls) throw new Error('workbench_tls_required');
   const metadata = discovery === undefined && tls === null ? undefined : parseAuthenticationDiscovery(discovery);
   const server = Fastify({
     ...(tls ? { https: { ...tls, minVersion: 'TLSv1.2' } } : {}),
@@ -14,5 +20,9 @@ export function createControlPlane(discovery: unknown, tls: { key: Buffer; cert:
     return reply.send(metadata);
   });
   server.setNotFoundHandler((_request, reply) => reply.code(404).send({ error: 'not_found' }));
+  if (workbench) server.register(async instance => {
+    const { registerWorkbench } = await import('./workbench-routes.ts');
+    await registerWorkbench(instance, workbench);
+  });
   return server;
 }

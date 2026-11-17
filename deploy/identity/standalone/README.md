@@ -18,6 +18,8 @@
 
 将 [realm 模板](harniqo-realm.json) 写入运行时配置目录。首次启动时 Keycloak 创建 realm 并注册 `harniqo-desktop` 公开客户端。后续账号和配置保存在数据库中，由管理员维护。
 
+模板为桌面 Access Token 设置业务 audience `harniqo-workbench`。在已经导入的 realm 上，使用 `harniqo-desktop` 客户端的专用 Client Scope 新增 Audience mapper，将 Included Custom Audience 设为 `harniqo-workbench`，开启 Add to access token，关闭 Add to ID token。控制面的 `access.audience` 使用同一值。[Keycloak Audience mapper](https://www.keycloak.org/admin-api/protocol-mappers#oidc-audience-mapper)
+
 ```bash
 docker compose -p harniqo-identity --env-file /absolute/path/to/identity.env up -d --wait --wait-timeout 150
 ```

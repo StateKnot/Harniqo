@@ -15,6 +15,18 @@
       "directAccessGrantsEnabled": false,
       "serviceAccountsEnabled": false,
       "redirectUris": ["http://127.0.0.1/oauth/callback"],
+      "protocolMappers": [
+        {
+          "name": "Harniqo workbench audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "config": {
+            "included.custom.audience": "harniqo-workbench",
+            "access.token.claim": "true",
+            "id.token.claim": "false"
+          }
+        }
+      ],
       "attributes": {
         "pkce.code.challenge.method": "S256"
       }

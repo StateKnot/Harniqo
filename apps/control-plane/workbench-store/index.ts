@@ -4,7 +4,7 @@ import type { Kysely, Transaction } from 'kysely';
 
 type Db = Kysely<unknown>;
 type Tx = Transaction<unknown>;
-type Principal = { organizationId: string; principalId: string };
+export type Principal = { organizationId: string; principalId: string };
 export type ProjectPrincipal = Principal & { projectId: string };
 export type RunTarget = {
   organization_id: string;
@@ -38,7 +38,7 @@ export type AcceptedRun = {
   initial_state: 'accepted';
   accepted_at: string;
 };
-type ReserveAndEnqueue = (
+export type ReserveAndEnqueue = (
   tx: Tx,
   run: {
     scope: ProjectPrincipal;
@@ -71,7 +71,7 @@ const targetFields = sql`t.organization_id, t.project_id, t.session_id, t.worksp
   t.deployment_id, t.deployment_name, t.deployment_revision_id, t.configuration_revision_id,
   t.input_snapshot_id, t.budget_policy_id, t.execution_target_id`;
 
-export function listRunTargets(db: Db, principal: Principal): Promise<readonly WorkbenchDeploymentTarget[]> {
+export function listRunTargets(db: Db, principal: Principal, currentEpoch?: string): Promise<readonly WorkbenchDeploymentTarget[]> {
   return inScope(db, principal, async (tx) => {
     const { rows } = await sql<WorkbenchDeploymentTarget>`
       SELECT t.deployment_id AS id, t.deployment_name AS name, 'hermes' AS harness,
@@ -82,6 +82,8 @@ export function listRunTargets(db: Db, principal: Principal): Promise<readonly W
       WHERE t.organization_id = ${principal.organizationId}
         AND t.principal_id = ${principal.principalId}
         AND m.can_submit AND t.enabled
+        ${currentEpoch ? sql`AND harniqo.hermes_execution_ready(t.organization_id, t.project_id, t.principal_id,
+          t.execution_target_id, t.deployment_revision_id, t.workspace_id, ${currentEpoch}::uuid)` : sql``}
       ORDER BY t.deployment_name, t.deployment_id LIMIT 100`.execute(tx);
     return rows;
   });

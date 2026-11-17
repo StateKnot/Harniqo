@@ -241,5 +241,8 @@ pip/npm 包、宿主工具安装或二进制归档。未复制这些项目的实
 | @types/node、@types/react、@types/react-dom | 24.19.2、19.3.0、19.3.0；锁中固定 SRI | MIT；类型/开发依赖，不作为应用授权声明 |
 | Kysely | 0.29.8；[上游发行](https://github.com/kysely-org/kysely/releases/tag/v0.29.8) | MIT；首条 Run 存储使用 PostgreSQL 事务 |
 | pg、@types/pg | 8.23.1、8.23.1；[pg](https://registry.npmjs.org/pg/8.23.1)、[类型](https://registry.npmjs.org/@types%2fpg/8.23.1) | MIT；控制面 PostgreSQL 驱动和类型，精确版本及传递依赖写入工作区锁 |
+| pg-boss | 12.38.2，schema 46；[上游发行](https://github.com/timgit/pg-boss/releases/tag/12.38.2) | MIT；Run、预算预留和任务通过官方 Kysely Adapter 同事务受理 |
+| jose | 6.2.16；[上游发行记录](https://github.com/panva/jose/blob/main/CHANGELOG.md) | MIT；用户 API 访问令牌校验和有界 JWKS 读取 |
+| semver、@types/semver | 7.8.5、7.7.1；[semver](https://registry.npmjs.org/semver/7.8.5)、[类型](https://registry.npmjs.org/@types%2fsemver/7.7.1) | ISC、MIT；以 SemVer 判断握手最低版本 |
 
 workspace 默认严格引擎、peer 与 store 完整性，安装脚本权限限定精确 Electron 版本；Electron45 的原生安装使用官方 `install-electron` 显式入口，不关闭 TLS/校验或沙箱。完整原生归档同时保留 Harniqo 根 MIT 与实际第三方 notices。M8 仍按最终发行包内容完成 SBOM/NOTICE 与分发核验；本记录不把所有传递依赖或未来插件一概改标 MIT。
