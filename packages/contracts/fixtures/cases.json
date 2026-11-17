@@ -3053,6 +3053,84 @@
         }
       },
       "expected_keyword": "not"
+    },
+    {
+      "id": "valid-WorkbenchDeploymentTarget",
+      "schema": "WorkbenchDeploymentTarget",
+      "valid": true,
+      "instance": {
+        "id": "00000000-0000-4000-8000-000000000071",
+        "name": "Hermes fixture",
+        "harness": "hermes",
+        "organization_id": "00000000-0000-4000-8000-000000000072",
+        "project_id": "00000000-0000-4000-8000-000000000073",
+        "session_id": "00000000-0000-4000-8000-000000000074",
+        "configuration_revision_id": "00000000-0000-4000-8000-000000000075",
+        "deployment_revision_id": "00000000-0000-4000-8000-000000000076",
+        "input_snapshot_id": "00000000-0000-4000-8000-000000000077",
+        "budget_policy_id": "00000000-0000-4000-8000-000000000078"
+      }
+    },
+    {
+      "id": "invalid-WorkbenchDeploymentTarget-without-budget",
+      "schema": "WorkbenchDeploymentTarget",
+      "valid": false,
+      "instance": {
+        "id": "00000000-0000-4000-8000-000000000071",
+        "name": "Hermes fixture",
+        "harness": "hermes",
+        "organization_id": "00000000-0000-4000-8000-000000000072",
+        "project_id": "00000000-0000-4000-8000-000000000073",
+        "session_id": "00000000-0000-4000-8000-000000000074",
+        "configuration_revision_id": "00000000-0000-4000-8000-000000000075",
+        "deployment_revision_id": "00000000-0000-4000-8000-000000000076",
+        "input_snapshot_id": "00000000-0000-4000-8000-000000000077"
+      },
+      "expected_keyword": "required"
+    },
+    {
+      "id": "valid-WorkbenchDeploymentList",
+      "schema": "WorkbenchDeploymentList",
+      "valid": true,
+      "instance": {
+        "deployments": [
+          {
+            "id": "00000000-0000-4000-8000-000000000071",
+            "name": "Hermes fixture",
+            "harness": "hermes",
+            "organization_id": "00000000-0000-4000-8000-000000000072",
+            "project_id": "00000000-0000-4000-8000-000000000073",
+            "session_id": "00000000-0000-4000-8000-000000000074",
+            "configuration_revision_id": "00000000-0000-4000-8000-000000000075",
+            "deployment_revision_id": "00000000-0000-4000-8000-000000000076",
+            "input_snapshot_id": "00000000-0000-4000-8000-000000000077",
+            "budget_policy_id": "00000000-0000-4000-8000-000000000078"
+          }
+        ]
+      }
+    },
+    {
+      "id": "invalid-WorkbenchDeploymentList-native-token",
+      "schema": "WorkbenchDeploymentList",
+      "valid": false,
+      "instance": {
+        "deployments": [
+          {
+            "id": "00000000-0000-4000-8000-000000000071",
+            "name": "Hermes fixture",
+            "harness": "hermes",
+            "organization_id": "00000000-0000-4000-8000-000000000072",
+            "project_id": "00000000-0000-4000-8000-000000000073",
+            "session_id": "00000000-0000-4000-8000-000000000074",
+            "configuration_revision_id": "00000000-0000-4000-8000-000000000075",
+            "deployment_revision_id": "00000000-0000-4000-8000-000000000076",
+            "input_snapshot_id": "00000000-0000-4000-8000-000000000077",
+            "budget_policy_id": "00000000-0000-4000-8000-000000000078",
+            "native_token": "synthetic-secret"
+          }
+        ]
+      },
+      "expected_keyword": "additionalProperties"
     }
   ]
 }

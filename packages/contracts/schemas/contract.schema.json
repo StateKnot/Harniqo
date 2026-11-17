@@ -3282,6 +3282,72 @@
           }
         }
       ]
+    },
+    "WorkbenchDeploymentTarget": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "harness": {
+          "const": "hermes"
+        },
+        "organization_id": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "project_id": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "session_id": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "configuration_revision_id": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "deployment_revision_id": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "input_snapshot_id": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "budget_policy_id": {
+          "$ref": "#/$defs/Identifier"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "harness",
+        "organization_id",
+        "project_id",
+        "session_id",
+        "configuration_revision_id",
+        "deployment_revision_id",
+        "input_snapshot_id",
+        "budget_policy_id"
+      ],
+      "additionalProperties": false
+    },
+    "WorkbenchDeploymentList": {
+      "type": "object",
+      "properties": {
+        "deployments": {
+          "type": "array",
+          "maxItems": 100,
+          "items": {
+            "$ref": "#/$defs/WorkbenchDeploymentTarget"
+          }
+        }
+      },
+      "required": [
+        "deployments"
+      ],
+      "additionalProperties": false
     }
   }
 }

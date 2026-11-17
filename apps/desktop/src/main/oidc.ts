@@ -15,6 +15,8 @@ type LoginAccount = {
   expiresAt: number;
 };
 
+export type LoginSession = { account: LoginAccount; accessToken: string; expiresAt: number };
+
 export type OidcLoginErrorCode = 'oidc_invalid_provider' | 'oidc_browser_failed'
   | 'oidc_callback_failed' | 'oidc_token_rejected' | 'oidc_cancelled' | 'oidc_timed_out';
 
@@ -117,7 +119,7 @@ export async function signIn(
   openBrowser: (url: string) => Promise<void>,
   signal: AbortSignal,
   fetchIdentity: typeof fetch = fetch,
-): Promise<LoginAccount> {
+): Promise<LoginSession> {
   const expiry = AbortSignal.timeout(180_000);
   const attempt = AbortSignal.any([signal, expiry]);
   const httpOptions: oauth.HttpRequestOptions<'GET' | 'POST', URLSearchParams | undefined> = {
@@ -170,11 +172,20 @@ export async function signIn(
     if (!claims || !Number.isSafeInteger(expiresAt) || expiresAt <= Date.now() || claims.sub.length > 255) {
       throw new OidcLoginError('oidc_token_rejected');
     }
+    if (result.token_type !== 'bearer' || !/^[A-Za-z0-9._~+/-]+=*$/u.test(result.access_token)
+      || result.access_token.length > 8192) throw new OidcLoginError('oidc_token_rejected');
+    const accessExpiry = result.expires_in === undefined ? expiresAt : Date.now() + result.expires_in * 1000;
+    if (!Number.isSafeInteger(accessExpiry) || accessExpiry <= Date.now()) throw new OidcLoginError('oidc_token_rejected');
     const name = typeof claims.name === 'string' ? claims.name : claims.preferred_username;
     const displayName = typeof name === 'string'
       ? Array.from(name.replace(/[\p{Cc}\p{Cf}]/gu, '').trim()).slice(0, 80).join('')
       : '';
-    return { issuer: provider.issuer, subject: claims.sub, displayName: displayName || 'OIDC 用户', expiresAt };
+    const sessionExpiry = Math.min(expiresAt, accessExpiry);
+    return {
+      account: { issuer: provider.issuer, subject: claims.sub, displayName: displayName || 'OIDC 用户', expiresAt: sessionExpiry },
+      accessToken: result.access_token,
+      expiresAt: sessionExpiry,
+    };
   } catch (error) {
     if (signal.aborted) throw new OidcLoginError('oidc_cancelled');
     if (expiry.aborted || (error instanceof DOMException && error.name === 'TimeoutError')) {

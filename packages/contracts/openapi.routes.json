@@ -1113,7 +1113,9 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["error"],
+                  "required": [
+                    "error"
+                  ],
                   "additionalProperties": false,
                   "properties": {
                     "error": {
@@ -1241,6 +1243,39 @@
             }
           }
         }
+      }
+    },
+    "/v1/workbench/deployments": {
+      "get": {
+        "operationId": "listWorkbenchDeployments",
+        "description": "List at most 100 distinct, ready Hermes targets in projects where the current subject can send instructions. Each target binds a server-provisioned session to immutable deployment and configuration revisions, an input snapshot and a budget policy. Submission must reauthorize the subject and revalidate all references.",
+        "responses": {
+          "200": {
+            "description": "Authorized desktop deployment targets",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkbenchDeploymentList"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Typed failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "PlatformAccessToken": []
+          }
+        ]
       }
     }
   },

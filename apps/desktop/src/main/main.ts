@@ -6,12 +6,16 @@ import { lstatSync, realpathSync } from 'node:fs';
 import path from 'node:path';
 import { promisify } from 'node:util';
 import { discoverPlatform, DiscoveryError } from '@harniqo/client';
-import { PLATFORM_PROBE_CHANNEL, RUNTIME_INFO_CHANNEL, SIGN_IN_CHANNEL, SIGN_OUT_CHANNEL } from '../shared/interface';
+import {
+  LIST_HARNESS_DEPLOYMENTS_CHANNEL, PLATFORM_PROBE_CHANNEL, READ_HARNESS_RUN_CHANNEL, RUNTIME_INFO_CHANNEL,
+  SIGN_IN_CHANNEL, SIGN_OUT_CHANNEL, START_HARNESS_RUN_CHANNEL,
+} from '../shared/interface';
 import type { BuildInfo, MainRuntimeInfo, PlatformProbe, SignInResult } from '../shared/interface';
 import { signIn } from './oidc';
 import type { LoginMetadata } from './oidc';
 import { APP_URL, CONTENT_SECURITY_POLICY, assertDesktopRequest, resolveAssetPath } from './policy';
 import { inspectNativeWindow } from './smoke';
+import { DesktopWorkbench, httpsApiOrigin } from './workbench';
 
 const smoke = process.env['HARNIQO_SMOKE'] === '1';
 app.setName('Harniqo');
@@ -32,6 +36,7 @@ let runtime: MainRuntimeInfo;
 let platformProbe: AbortController | undefined;
 let verifiedPlatform: { origin: string; metadata: LoginMetadata; requiresIdentityConfirmation: boolean } | undefined;
 let login: AbortController | undefined;
+let workbench: DesktopWorkbench | undefined;
 let smokeFinished = false;
 const smokeTimer = smoke ? setTimeout(() => finishSmoke(new Error('NATIVE_SMOKE_TIMEOUT')), 25000) : undefined;
 
@@ -85,6 +90,7 @@ async function configureAssets(): Promise<void> {
     const probe = new AbortController();
     platformProbe = probe;
     verifiedPlatform = undefined;
+    closeWorkbench();
     try {
       const metadata = await discoverPlatform(origin, { signal: probe.signal });
       if (probe.signal.aborted) return { error: 'discovery_unreachable' };
@@ -110,6 +116,11 @@ async function configureAssets(): Promise<void> {
       || !('clientId' in confirmation) || confirmation.clientId !== verified.metadata.client_id)) {
       return { error: 'identity_mismatch' };
     }
+    const providedApiOrigin = verified.requiresIdentityConfirmation && confirmation && typeof confirmation === 'object'
+      && 'apiOrigin' in confirmation ? confirmation.apiOrigin : undefined;
+    const apiOrigin = httpsApiOrigin(verified.requiresIdentityConfirmation ? providedApiOrigin : verified.origin);
+    if (providedApiOrigin !== undefined && !apiOrigin) return { error: 'invalid_api_origin' };
+    closeWorkbench();
     const attempt = new AbortController();
     login = attempt;
     const smokeBrowser = smoke ? process.env['HARNIQO_SMOKE_BROWSER_EXECUTABLE'] : undefined;
@@ -122,7 +133,7 @@ async function configureAssets(): Promise<void> {
       ? { ...verified.metadata, required_scopes: ['openid', 'profile'] }
       : verified.metadata;
     try {
-      const account = await signIn(metadata, async url => {
+      const signedIn = await signIn(metadata, async url => {
         if (smokeBrowser) {
           await promisify(execFile)(smokeBrowser, [url], { signal: attempt.signal, timeout: 18000 });
           return;
@@ -131,7 +142,8 @@ async function configureAssets(): Promise<void> {
         const consent = await dialog.showMessageBox(loginWindow, {
           type: 'question',
           message: '在系统浏览器登录 Harniqo',
-          detail: `控制面 ${new URL(verified.origin).origin}\n身份服务 ${metadata.issuer}\n浏览器将打开 ${authorizationOrigin}`,
+          detail: `控制面 ${new URL(verified.origin).origin}\n身份服务 ${metadata.issuer}\n浏览器将打开 ${authorizationOrigin}`
+            + (apiOrigin ? `\n凭据仅发送至 Harniqo 业务地址 ${apiOrigin}` : ''),
           buttons: ['继续', '取消'], defaultId: 1, cancelId: 1, noLink: true,
           signal: attempt.signal,
         });
@@ -139,7 +151,11 @@ async function configureAssets(): Promise<void> {
         attempt.signal.throwIfAborted();
         await shell.openExternal(url);
       }, attempt.signal, smoke && process.env['NODE_EXTRA_CA_CERTS'] ? undefined : fetchIdentity);
-      return attempt.signal.aborted ? { error: 'login_cancelled' } : { account };
+      if (attempt.signal.aborted) return { error: 'login_cancelled' };
+      const apiSession = session.fromPartition('harniqo-workbench', { cache: false });
+      const fetchApi: typeof fetch = (url, init) => apiSession.fetch(url instanceof URL ? url.href : url, init);
+      workbench = new DesktopWorkbench(apiOrigin, signedIn.accessToken, signedIn.expiresAt, fetchApi, runtime);
+      return { account: signedIn.account };
     } catch {
       return { error: attempt.signal.aborted ? 'login_cancelled' : 'login_failed' };
     } finally {
@@ -150,7 +166,28 @@ async function configureAssets(): Promise<void> {
     if (!window || window.isDestroyed()) throw new Error('DESKTOP_REQUEST_DENIED');
     assertDesktopRequest(event, args, window.webContents, window.webContents.mainFrame);
     login?.abort();
+    closeWorkbench();
   });
+  ipcMain.handle(LIST_HARNESS_DEPLOYMENTS_CHANNEL, (event, ...args: unknown[]) => {
+    if (!window || window.isDestroyed()) throw new Error('DESKTOP_REQUEST_DENIED');
+    assertDesktopRequest(event, args, window.webContents, window.webContents.mainFrame);
+    return workbench?.list() ?? { ok: false, error: 'sign_in_required' };
+  });
+  ipcMain.handle(START_HARNESS_RUN_CHANNEL, (event, ...args: unknown[]) => {
+    if (!window || window.isDestroyed()) throw new Error('DESKTOP_REQUEST_DENIED');
+    assertDesktopRequest(event, args, window.webContents, window.webContents.mainFrame, 3);
+    return workbench?.start(args[0], args[1], args[2]) ?? { ok: false, error: 'sign_in_required' };
+  });
+  ipcMain.handle(READ_HARNESS_RUN_CHANNEL, (event, ...args: unknown[]) => {
+    if (!window || window.isDestroyed()) throw new Error('DESKTOP_REQUEST_DENIED');
+    assertDesktopRequest(event, args, window.webContents, window.webContents.mainFrame, 1);
+    return workbench?.read(args[0]) ?? { ok: false, error: 'sign_in_required' };
+  });
+}
+
+function closeWorkbench(): void {
+  workbench?.close();
+  workbench = undefined;
 }
 
 function createWindow(): void {
@@ -178,6 +215,7 @@ function createWindow(): void {
     if (window !== current) return;
     platformProbe?.abort();
     login?.abort();
+    closeWorkbench();
     verifiedPlatform = undefined;
     window = null;
   });

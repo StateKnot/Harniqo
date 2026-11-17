@@ -1244,6 +1244,39 @@
           }
         }
       }
+    },
+    "/v1/workbench/deployments": {
+      "get": {
+        "operationId": "listWorkbenchDeployments",
+        "description": "List at most 100 distinct, ready Hermes targets in projects where the current subject can send instructions. Each target binds a server-provisioned session to immutable deployment and configuration revisions, an input snapshot and a budget policy. Submission must reauthorize the subject and revalidate all references.",
+        "responses": {
+          "200": {
+            "description": "Authorized desktop deployment targets",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkbenchDeploymentList"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Typed failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "PlatformAccessToken": []
+          }
+        ]
+      }
     }
   },
   "components": {
@@ -4538,6 +4571,72 @@
             }
           }
         ]
+      },
+      "WorkbenchDeploymentTarget": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/Identifier"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "harness": {
+            "const": "hermes"
+          },
+          "organization_id": {
+            "$ref": "#/components/schemas/Identifier"
+          },
+          "project_id": {
+            "$ref": "#/components/schemas/Identifier"
+          },
+          "session_id": {
+            "$ref": "#/components/schemas/Identifier"
+          },
+          "configuration_revision_id": {
+            "$ref": "#/components/schemas/Identifier"
+          },
+          "deployment_revision_id": {
+            "$ref": "#/components/schemas/Identifier"
+          },
+          "input_snapshot_id": {
+            "$ref": "#/components/schemas/Identifier"
+          },
+          "budget_policy_id": {
+            "$ref": "#/components/schemas/Identifier"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "harness",
+          "organization_id",
+          "project_id",
+          "session_id",
+          "configuration_revision_id",
+          "deployment_revision_id",
+          "input_snapshot_id",
+          "budget_policy_id"
+        ],
+        "additionalProperties": false
+      },
+      "WorkbenchDeploymentList": {
+        "type": "object",
+        "properties": {
+          "deployments": {
+            "type": "array",
+            "maxItems": 100,
+            "items": {
+              "$ref": "#/components/schemas/WorkbenchDeploymentTarget"
+            }
+          }
+        },
+        "required": [
+          "deployments"
+        ],
+        "additionalProperties": false
       }
     }
   },

@@ -5,6 +5,7 @@ packages:
   - apps/runner/event-spool
   - packages/client
   - packages/contracts
+  - packages/adapters/hermes
 
 saveExact: true
 engineStrict: true

@@ -39,7 +39,9 @@ export async function inspectNativeWindow(window: BrowserWindow, runtime: MainRu
     },
   };
   if (!renderer.rendered || renderer.title !== 'Harniqo' || renderer.url !== APP_URL || renderer.connection !== 'disconnected') throw new Error('RENDERER_IDENTITY_MISMATCH');
-  if (renderer.apiKeys.sort().join(',') !== 'getRuntimeInfo,probePlatform,signIn,signOut') throw new Error('PRELOAD_SURFACE_MISMATCH');
+  if (renderer.apiKeys.sort().join(',') !== 'getRuntimeInfo,listHarnessDeployments,probePlatform,readHarnessRun,signIn,signOut,startHarnessRun') {
+    throw new Error('PRELOAD_SURFACE_MISMATCH');
+  }
   const { rendererSecurity: _rendererSecurity, ...reportedMain } = renderer.runtime;
   if (JSON.stringify(reportedMain) !== JSON.stringify(runtime) || runtime.appVersion !== runtime.version || runtime.isPackaged !== expectPackaged) throw new Error('RUNTIME_IDENTITY_MISMATCH');
   if (!security.sandbox || !security.contextIsolation || security.nodeIntegration || !security.webSecurity || !security.requireUnavailable || !security.processUnavailable) throw new Error('RENDERER_SECURITY_MISMATCH');
@@ -61,6 +63,12 @@ async function inspectPlatformProbe(window: BrowserWindow) {
     `window.harniqo.signIn(${JSON.stringify(loginOrigin ?? 'https://localhost:10050')})`,
   ) as { error?: string };
   if (deniedLogin.error !== 'user_action_required') throw new Error('LOGIN_ACTIVATION_MISMATCH');
+  const deniedRun = await window.webContents.executeJavaScript(
+    "window.harniqo.startHarnessRun('deployment', 'hello', 'key')",
+  ) as { error?: string };
+  if (deniedRun.error !== 'user_action_required') throw new Error('RUN_ACTIVATION_MISMATCH');
+  const anonymous = await window.webContents.executeJavaScript('window.harniqo.listHarnessDeployments()') as { error?: string };
+  if (anonymous.error !== 'sign_in_required') throw new Error('WORKBENCH_SIGN_IN_REQUIRED');
   if (Boolean(origin) !== Boolean(badCertificate)) throw new Error('PROBE_SMOKE_ORIGINS_REQUIRED');
   if (httpOrigin && !httpOrigin.startsWith('http://')) throw new Error('PROBE_SMOKE_HTTP_ORIGIN_REQUIRED');
 

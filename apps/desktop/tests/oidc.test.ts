@@ -97,7 +97,11 @@ for (const { name, signatureValid } of loginCases) test(name, async t => {
   }, AbortSignal.timeout(5000));
 
   if (signatureValid) {
-    assert.deepEqual(await login, { issuer, subject: 'account-42', displayName: '测试账号', expiresAt: expiresAt * 1000 });
+    assert.deepEqual(await login, {
+      account: { issuer, subject: 'account-42', displayName: '测试账号', expiresAt: expiresAt * 1000 },
+      accessToken: 'access-token',
+      expiresAt: expiresAt * 1000,
+    });
   } else {
     await assert.rejects(login, { code: 'oidc_token_rejected' });
   }

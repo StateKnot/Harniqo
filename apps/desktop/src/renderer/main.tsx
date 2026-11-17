@@ -2,6 +2,7 @@ import { StrictMode, useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
 import { createRoot } from 'react-dom/client';
 import type { PlatformProbe, RuntimeInfo, SignedInAccount, SignInResult } from '../shared/interface';
+import { Workbench } from './workbench';
 import './style.css';
 
 const probeErrors: Record<Extract<PlatformProbe, { error: string }>['error'], string> = {
@@ -21,6 +22,7 @@ type LoginError = Extract<SignInResult, { error: string }>['error'] | 'login_exp
 const loginErrors: Record<LoginError, string> = {
   user_action_required: '请使用“在浏览器登录”按钮开始登录。',
   identity_mismatch: '身份配置不匹配，请核对管理员提供的地址和客户端 ID。',
+  invalid_api_origin: '请输入管理员提供的 HTTPS 业务接口地址，只填写协议、主机名和可选端口。',
   platform_not_verified: '请重新测试平台连接后再登录。',
   login_busy: '正在等待浏览器登录，请稍候。',
   login_failed: '登录未完成，请检查浏览器并重试。',
@@ -89,9 +91,11 @@ function App() {
     event.preventDefault();
     if (platformLocked || !connection || !platform) return;
     const fields = new FormData(event.currentTarget);
+    const apiOrigin = String(fields.get('apiOrigin') ?? '').trim();
     const confirmation = platform.requiresIdentityConfirmation ? {
       issuer: String(fields.get('issuer') ?? '').trim(),
       clientId: String(fields.get('clientId') ?? '').trim(),
+      ...(apiOrigin && { apiOrigin }),
     } : undefined;
     const attempt = { status: 'signing_in' } as const;
     setLogin(attempt);
@@ -168,6 +172,12 @@ function App() {
                   <input id="identity-client-id" name="clientId" required maxLength={256}
                     autoComplete="off" spellCheck={false} aria-describedby="identity-help" disabled={signingIn} />
                 </div>
+                <div className="identity-api-origin">
+                  <label htmlFor="identity-api-origin">业务接口地址（HTTPS，可选）</label>
+                  <input id="identity-api-origin" name="apiOrigin" type="url" pattern="https://.+" maxLength={2048}
+                    autoComplete="off" spellCheck={false} aria-describedby="identity-api-help" disabled={signingIn} />
+                  <p id="identity-api-help">需要向 Harness 下发指令时，填写管理员提供的业务接口地址。</p>
+                </div>
               </div>
             </div>}
             <button id="platform-sign-in" type="submit" disabled={signingIn}>在浏览器登录</button>
@@ -184,6 +194,7 @@ function App() {
           </button>}
         </div>}
       </section>
+      {login?.status === 'signed_in' && <Workbench />}
       <section className="build" aria-labelledby="build-title">
         <div className="section-heading"><h2 id="build-title">关于此构建</h2><span>来自当前应用的真实信息</span></div>
         <div aria-live="polite">

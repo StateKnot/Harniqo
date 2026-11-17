@@ -239,5 +239,7 @@ pip/npm 包、宿主工具安装或二进制归档。未复制这些项目的实
 | TypeScript | 6.0.3；[官方 registry](https://registry.npmjs.org/typescript/6.0.3) | Apache-2.0；沿用已有两个 Node 模块版本 |
 | @electron/packager | 20.3.0；[官方 registry](https://registry.npmjs.org/@electron%2fpackager/20.3.0) | BSD-2-Clause；仅用于当前原生 OS/架构的工程打包 |
 | @types/node、@types/react、@types/react-dom | 24.19.2、19.3.0、19.3.0；锁中固定 SRI | MIT；类型/开发依赖，不作为应用授权声明 |
+| Kysely | 0.29.8；[上游发行](https://github.com/kysely-org/kysely/releases/tag/v0.29.8) | MIT；首条 Run 存储使用 PostgreSQL 事务 |
+| pg、@types/pg | 8.23.1、8.23.1；[pg](https://registry.npmjs.org/pg/8.23.1)、[类型](https://registry.npmjs.org/@types%2fpg/8.23.1) | MIT；控制面 PostgreSQL 驱动和类型，精确版本及传递依赖写入工作区锁 |
 
 workspace 默认严格引擎、peer 与 store 完整性，安装脚本权限限定精确 Electron 版本；Electron45 的原生安装使用官方 `install-electron` 显式入口，不关闭 TLS/校验或沙箱。完整原生归档同时保留 Harniqo 根 MIT 与实际第三方 notices。M8 仍按最终发行包内容完成 SBOM/NOTICE 与分发核验；本记录不把所有传递依赖或未来插件一概改标 MIT。
