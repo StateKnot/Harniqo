@@ -1,0 +1,27 @@
+{
+  "date_local": "2026-11-17",
+  "task": "M1-03",
+  "task_status": "IN_PROGRESS",
+  "deployment": {
+    "persistent": true,
+    "identity_provider": "Keycloak",
+    "database": "PostgreSQL 17",
+    "ingress": "LAN only"
+  },
+  "control_plane_transport": "HTTP discovery",
+  "identity_transport": "HTTPS with macOS user certificate trust",
+  "application": {
+    "source_commit": "ba9b250f8ccb351d4aee445cc612684c98e3a1a4",
+    "source_input_sha256": "0e0dd557f28dbcd7d7304dc447e923fd3ac255ad9ccf2e430517b6bd728e1762",
+    "architecture": "arm64",
+    "os_version": "26.6.2"
+  },
+  "automated_browser_login": {
+    "verified": true,
+    "application_installed": true,
+    "certificate_overrides_used": false,
+    "local_sign_out": true,
+    "receipt_sha256": "dcac2543f1aad2fe2f61080eaded2ffdd06d1e4ca980d0fb9cbce697546cd579"
+  },
+  "harness_execution_verified_through_desktop": false
+}
