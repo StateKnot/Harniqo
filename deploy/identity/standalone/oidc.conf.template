@@ -1,0 +1,42 @@
+server {
+    listen 8443 ssl;
+    server_name _;
+
+    ssl_certificate /etc/nginx/server.pem;
+    ssl_certificate_key /etc/nginx/server.key;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    access_log off;
+    error_log /dev/stderr crit;
+
+    resolver 127.0.0.11 valid=10s ipv6=off;
+    set $keycloak_backend keycloak:8080;
+
+    proxy_set_header Host "${HARNIQO_IDENTITY_PUBLIC_HOST}:${HARNIQO_IDENTITY_PUBLIC_PORT}";
+    proxy_set_header Forwarded "";
+    proxy_set_header X-Forwarded-Host "${HARNIQO_IDENTITY_PUBLIC_HOST}";
+    proxy_set_header X-Forwarded-Port "${HARNIQO_IDENTITY_PUBLIC_PORT}";
+    proxy_set_header X-Forwarded-Proto https;
+    proxy_set_header X-Forwarded-For $remote_addr;
+    proxy_set_header X-Forwarded-Prefix "";
+    proxy_redirect off;
+
+    location = /realms/harniqo/.well-known/openid-configuration {
+        proxy_pass http://$keycloak_backend;
+    }
+
+    location /realms/harniqo/protocol/openid-connect/ {
+        proxy_pass http://$keycloak_backend;
+    }
+
+    location /realms/harniqo/login-actions/ {
+        proxy_pass http://$keycloak_backend;
+    }
+
+    location /resources/ {
+        proxy_pass http://$keycloak_backend;
+    }
+
+    location / {
+        return 404;
+    }
+}

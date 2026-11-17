@@ -113,6 +113,10 @@ async function configureAssets(): Promise<void> {
     const attempt = new AbortController();
     login = attempt;
     const smokeBrowser = smoke ? process.env['HARNIQO_SMOKE_BROWSER_EXECUTABLE'] : undefined;
+    // A separate in-memory Chromium session uses the OS trust store without giving the renderer network access.
+    const identitySession = session.fromPartition('harniqo-oidc', { cache: false });
+    const fetchIdentity: typeof fetch = (url, init) =>
+      identitySession.fetch(url instanceof URL ? url.href : url, { ...init, credentials: 'omit' });
     // The HTTP response cannot grant scopes beyond the desktop login defaults.
     const metadata = verified.requiresIdentityConfirmation
       ? { ...verified.metadata, required_scopes: ['openid', 'profile'] }
@@ -134,7 +138,7 @@ async function configureAssets(): Promise<void> {
         if (consent.response !== 0) attempt.abort();
         attempt.signal.throwIfAborted();
         await shell.openExternal(url);
-      }, attempt.signal);
+      }, attempt.signal, smoke && process.env['NODE_EXTRA_CA_CERTS'] ? undefined : fetchIdentity);
       return attempt.signal.aborted ? { error: 'login_cancelled' } : { account };
     } catch {
       return { error: attempt.signal.aborted ? 'login_cancelled' : 'login_failed' };

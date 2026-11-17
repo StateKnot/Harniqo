@@ -11,16 +11,21 @@ const authorization = new URL(process.argv[2]);
 const issuer = new URL(process.env.HARNIQO_TEST_ISSUER);
 const username = process.env.HARNIQO_TEST_USERNAME;
 const password = (await readFile(process.env.HARNIQO_TEST_PASSWORD_FILE, 'utf8')).trimEnd();
-const certificate = new X509Certificate(await readFile(process.env.HARNIQO_TEST_CERT));
 if (authorization.origin !== issuer.origin || !username || !password) throw new Error('Invalid browser qualification input');
-const pin = createHash('sha256').update(certificate.publicKey.export({ type: 'spki', format: 'der' })).digest('base64');
+const certificatePath = process.env.HARNIQO_TEST_CERT;
+const certificateOptions = [];
+if (certificatePath) {
+  const certificate = new X509Certificate(await readFile(certificatePath));
+  const pin = createHash('sha256').update(certificate.publicKey.export({ type: 'spki', format: 'der' })).digest('base64');
+  certificateOptions.push('--ignore-certificate-errors-spki-list=' + pin);
+}
 const chrome = process.env.HARNIQO_TEST_CHROME || (process.platform === 'darwin'
   ? '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome' : 'chromium');
 const profile = await mkdtemp(path.join(tmpdir(), 'harniqo-oidc-browser-'));
 const browser = spawn(chrome, [
   '--headless', '--no-first-run', '--no-default-browser-check', '--disable-background-networking',
   '--remote-debugging-port=0', '--user-data-dir=' + profile,
-  '--ignore-certificate-errors-spki-list=' + pin, 'about:blank',
+  ...certificateOptions, 'about:blank',
 ], { stdio: 'ignore' });
 const browserDone = new Promise(resolve => {
   browser.once('error', resolve);

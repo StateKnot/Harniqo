@@ -116,10 +116,14 @@ export async function signIn(
   metadata: LoginMetadata,
   openBrowser: (url: string) => Promise<void>,
   signal: AbortSignal,
+  fetchIdentity: typeof fetch = fetch,
 ): Promise<LoginAccount> {
   const expiry = AbortSignal.timeout(180_000);
   const attempt = AbortSignal.any([signal, expiry]);
-  const httpOptions = { signal: () => AbortSignal.any([attempt, AbortSignal.timeout(12_000)]) };
+  const httpOptions: oauth.HttpRequestOptions<'GET' | 'POST', URLSearchParams | undefined> = {
+    signal: () => AbortSignal.any([attempt, AbortSignal.timeout(12_000)]),
+    [oauth.customFetch]: (url, options) => fetchIdentity(url, { ...options, body: options.body ?? null }),
+  };
   let stage: OidcLoginErrorCode = 'oidc_invalid_provider';
 
   try {
