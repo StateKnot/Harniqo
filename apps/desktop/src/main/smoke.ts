@@ -234,26 +234,40 @@ async function inspectHarnessWorkbench(window: BrowserWindow): Promise<object | 
       if (button.disabled) return { status: 'form_unavailable' };
       text.form.requestSubmit();
       const deadline = performance.now() + 95000;
+      let observedRunId;
+      let observedRunState;
       while (performance.now() < deadline) {
         const section = document.querySelector('[data-run-state]');
         const runId = section?.dataset.runId;
         if (runId && runId !== ${JSON.stringify(previousRunId)}) {
           const state = section.dataset.runState;
+          observedRunId = runId;
+          observedRunState = state;
           if (state === 'succeeded') {
-            return { status: state, runId, replyMatched: section.querySelector('.workbench-reply p')?.textContent === ${JSON.stringify(reply)} };
+            return { status: state, runId, runState: state, replyMatched: section.querySelector('.workbench-reply p')?.textContent === ${JSON.stringify(reply)} };
           }
-          if (state === 'failed' || state === 'cancelled') return { status: state };
-          if (section.querySelector('.workbench-notice')) return { status: 'status_unavailable' };
+          if (state === 'failed' || state === 'cancelled') return { status: state, runId, runState: state };
+          if (section.querySelector('.workbench-notice')) return { status: 'status_unavailable', runId, runState: state };
         }
         if (document.querySelector('.workbench > .probe-error') || document.querySelector('.workbench > .workbench-notice')) {
-          return { status: 'submission_unconfirmed' };
+          return { status: 'submission_unconfirmed', runId: observedRunId, runState: observedRunState };
         }
         await new Promise(resolve => setTimeout(resolve, 50));
       }
-      return { status: 'timeout' };
-    })()`, true) as { status: string; runId?: string; replyMatched?: boolean };
+      return { status: 'timeout', runId: observedRunId, runState: observedRunState };
+    })()`, true) as { status: string; runId?: string; runState?: string; replyMatched?: boolean };
     if (result.status !== 'succeeded' || !result.runId || !/^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/u.test(result.runId)
-      || !result.replyMatched) throw new Error('HARNESS_DIALOGUE_SMOKE_FAILED');
+      || !result.replyMatched) {
+      const status = ['form_unavailable', 'succeeded', 'failed', 'cancelled', 'status_unavailable',
+        'submission_unconfirmed', 'timeout'].includes(result.status) ? result.status : 'invalid_response';
+      const runId = result.runId && /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/u.test(result.runId)
+        ? result.runId : 'unavailable';
+      const runState = result.runState && ['accepted', 'queued', 'provisioning', 'running', 'waiting_approval',
+        'waiting_input', 'stopping', 'reconciling', 'succeeded', 'failed', 'cancelled'].includes(result.runState)
+        ? result.runState : 'unavailable';
+      const replyMatched = typeof result.replyMatched === 'boolean' ? String(result.replyMatched) : 'unavailable';
+      throw new Error(`HARNESS_DIALOGUE_SMOKE_FAILED: status=${status}; runId=${runId}; runState=${runState}; replyMatched=${replyMatched}`);
+    }
     runs.push({ runId: result.runId, state: 'succeeded', replyMatched: true });
   }
   return { deploymentId: selected, runs };

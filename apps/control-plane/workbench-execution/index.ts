@@ -49,7 +49,11 @@ export async function executeHermesAssignment(db: Db, untrustedJob: unknown, ope
     await markReconciling(db, job, attemptId, reason);
     return 'reconciling' as const;
   };
-  if (!run.bindingLive) return run.state === 'queued' ? 'pending' : reconcile('execution_binding_unavailable');
+  if (!run.bindingLive) {
+    const waitingForStartup = !run.startAuthorizedAt && !run.nativeRunId
+      && (run.state === 'queued' || run.state === 'provisioning');
+    return waitingForStartup ? 'pending' : reconcile('execution_binding_unavailable');
+  }
   if (run.startAuthorizedAt && !run.nativeRunId) {
     const expired = Date.now() - run.startAuthorizedAt.getTime() >= 60_000;
     if (expired || run.state === 'reconciling') return reconcile('native_start_unconfirmed');

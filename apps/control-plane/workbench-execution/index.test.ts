@@ -140,10 +140,29 @@ test('assigned workbench Runs make at most one start and commit a confirmed Herm
       return session && { ...session, identity: { ...session.identity, workspaceId: randomUUID() } };
     }), 'pending');
     assert.equal(startCalls, 0);
+    // Cold startup can outlast the readiness heartbeat after provisioning has
+    // begun. Before start authorization this remains a wait, with no native call.
+    await sql`UPDATE harniqo.hermes_execution_bindings SET ready_until = NULL`.execute(owner);
+    assert.equal(await executeHermesAssignment(worker, job, async () => {
+      assert.fail('an unavailable binding must not open or start native execution');
+    }), 'pending');
+    assert.equal((await readRunSnapshot(control, scope, job.runId) as { run: { state: string } }).run.state, 'provisioning');
+    const notStarted = await sql<{ authorized: boolean }>`SELECT start_authorized_at IS NOT NULL AS authorized
+      FROM harniqo.hermes_attempts WHERE run_id = ${job.runId}`.execute(owner);
+    assert.equal(notStarted.rows[0]?.authorized, false);
+    await sql`UPDATE harniqo.hermes_execution_bindings
+      SET ready_until = statement_timestamp() + interval '3 minutes'`.execute(owner);
     await Promise.all([executeHermesAssignment(worker, job, open), executeHermesAssignment(worker, job, open)]);
     assert.equal(startCalls, 1);
     assert.equal(attachCalls, 1);
     assert.equal((await readRunSnapshot(control, scope, job.runId) as { run: { state: string } }).run.state, 'running');
+    await sql`UPDATE harniqo.hermes_execution_bindings SET ready_until = NULL`.execute(owner);
+    assert.equal(await executeHermesAssignment(worker, job, async () => {
+      assert.fail('a started writer with an unavailable binding must reconcile');
+    }), 'reconciling');
+    assert.equal(startCalls, 1);
+    await sql`UPDATE harniqo.hermes_execution_bindings
+      SET ready_until = statement_timestamp() + interval '3 minutes'`.execute(owner);
     assert.equal(await executeHermesAssignment(worker, job, open), 'reconciling');
     assert.equal((await readRunSnapshot(control, scope, job.runId) as { run: { state: string } }).run.state, 'reconciling');
     allowTerminal = true;

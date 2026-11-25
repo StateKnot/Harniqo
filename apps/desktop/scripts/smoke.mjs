@@ -45,7 +45,8 @@ try {
   const records = output.split(/\r?\n/).filter((line) => line.startsWith('HARNIQO_SMOKE_RESULT='));
   if (timedOut || exitCode !== 0 || records.length !== 1) {
     const failure = records.length === 1 ? JSON.parse(records[0].slice('HARNIQO_SMOKE_RESULT='.length)) : undefined;
-    const reason = typeof failure?.error === 'string' && /^[A-Z0-9_]+(?:: [a-z_]+)?$/.test(failure.error)
+    const diagnostic = /^HARNESS_DIALOGUE_SMOKE_FAILED: status=[a-z_]+; runId=(?:[0-9a-f-]{36}|unavailable); runState=[a-z_]+; replyMatched=(?:true|false|unavailable)$/;
+    const reason = typeof failure?.error === 'string' && (/^[A-Z0-9_]+(?:: [a-z_]+)?$/.test(failure.error) || diagnostic.test(failure.error))
       ? failure.error : errorOutput;
     throw new Error(`Native application failed (exit=${exitCode}, timeout=${timedOut}). ${reason}`);
   }
