@@ -29,7 +29,7 @@ function configuration(value: unknown): Configuration {
   return { access: value.access as WorkbenchAccessConfig, platform: value.platform };
 }
 
-async function databaseConnectionString(path: string): Promise<string> {
+export async function databaseConnectionString(path: string): Promise<string> {
   if (!isAbsolute(path)) throw new Error('invalid_workbench_database_file');
   const file = await open(path, constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK);
   try {

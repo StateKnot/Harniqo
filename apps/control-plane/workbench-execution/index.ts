@@ -107,7 +107,8 @@ export async function executeHermesAssignment(db: Db, untrustedJob: unknown, ope
       return reconcile('execution_writer_unconfirmed');
     }
     const servedModel = proof.servedModel;
-    if (native.status === 'completed' && (!validModel(servedModel) || (native.model && native.model !== servedModel))) {
+    if ((servedModel !== undefined && !validModel(servedModel))
+      || (native.model && servedModel && native.model !== servedModel)) {
       return reconcile('served_model_unconfirmed');
     }
     const persisted = await recordTerminal(db, job, attemptId, {

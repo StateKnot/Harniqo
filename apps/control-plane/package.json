@@ -11,7 +11,9 @@
     "typecheck": "tsc --noEmit",
     "test": "node --test discovery.test.ts && node --test --test-name-pattern=\"^(?!.*PostgreSQL)\" workbench-access/index.test.ts",
     "test:workbench-store": "node --test workbench-store/index.test.ts",
-    "test:workbench-routes": "node --test workbench-routes.integration.ts"
+    "test:workbench-routes": "node --test workbench-routes.integration.ts",
+    "worker": "node main-worker.ts",
+    "test:connector": "node --test workbench-connector/index.test.ts && node --test ../runner/hermes-connector/index.test.ts"
   },
   "dependencies": {
     "@harniqo/contracts": "workspace:*",

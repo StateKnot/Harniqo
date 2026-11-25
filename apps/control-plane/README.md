@@ -77,3 +77,15 @@ HTTP 仅用于无凭据的公开发现。OIDC issuer 仍要求 HTTPS，后续登
 只有具备当前授权和有效执行就绪期限的目标出现在部署列表。受理时在数据库事务中再次校验目标和预算。实际执行还需要已登记的隔离运行环境及能验证当前授权和已服务模型的执行端。未接上该执行端的环境应保持目标停用，独立验证接口与队列。
 
 接口集成验证使用一次性 PostgreSQL（数据库名 `harniqo_workbench_route_test`）及临时 HTTPS 测试身份提供方。通过私有环境变量 `HARNIQO_TEST_POSTGRES_URL` 提供本机回环数据库 URL 后运行 `pnpm --filter @harniqo/control-plane test:workbench-routes`。
+
+## 后台 Hermes Worker
+
+使用独立的 `harniqo_worker` 数据库登录角色运行 Worker。将它的连接字符串保存到权限为 `0600` 的文件，设置 `HARNIQO_WORKER_DATABASE_URL_FILE`。Worker 配置文件由管理员维护，通过 `HARNIQO_WORKER_FILE` 指定，包含 `targets` 数组、`concurrency`（1–8）和 `pollIntervalMs`（100–60000）。
+
+每个 target 配置 `origin`、`caFile`、`certFile`、`keyFile` 和固定的 `binding`。binding 的组织、项目、主体、工作区、部署/配置/输入/预算修订、运行实例、Harness 发行包、平台 epoch 及实例代次须与数据库中的同一目标一致。Worker 从这些目标推导可处理的项目范围，调用地址和客户端证书由部署配置决定。
+
+```sh
+pnpm --filter @harniqo/control-plane worker
+```
+
+服务管理器以 SIGTERM 停止 Worker 时，它先终止轮询并等待当前调用收敛，再关闭队列和数据库连接。下一次启动按持久状态恢复任务。原生提交回执不明的任务保持核对状态，避免重复触发 Agent。连接器需要单独部署在获准执行宿主。[Worker 行为](workbench-worker/README.md) · [专用 Hermes 连接器](../runner/hermes-connector/README.md)

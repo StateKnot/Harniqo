@@ -12,5 +12,5 @@
     "noEmit": true,
     "types": ["node"]
   },
-  "include": ["*.ts", "workbench-*/*.ts"]
+  "include": ["*.ts", "workbench-*/*.ts", "../runner/hermes-connector/*.ts"]
 }

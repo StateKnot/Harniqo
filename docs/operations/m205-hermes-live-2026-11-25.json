@@ -1,0 +1,75 @@
+{
+  "date_local": "2026-11-25",
+  "tasks": [
+    "M2-03",
+    "M2-05",
+    "M2-06"
+  ],
+  "task_status": "IN_PROGRESS",
+  "scope": "HTTPS workbench to persistent queue and background worker, mTLS connector, pinned native Hermes and real model in a dedicated trusted-container validation",
+  "environment": {
+    "platform": "Linux x86_64",
+    "node": "24.22.1",
+    "postgres": "17.10",
+    "pg_boss": "12.38.2"
+  },
+  "harness": {
+    "commit": "a382af23f4c067d23463b5781958684c2cda82bc",
+    "image_id": "sha256:75bb26db4828c79a92565bcf00b61ea40d4da35d807007f50a9f91fe7ffb7e52"
+  },
+  "result": {
+    "liveHarness": true,
+    "runId": "f1fee714-0ab1-4c57-bcd3-bc946162d49e",
+    "native_run_id": "run_c8e1009fa6e942b1a7fabb8bfc6ef9a3",
+    "native_session_id": "harniqo_9a0977df-e892-4037-b295-2eac886ee15b",
+    "requestedModel": "qwen3.8-flash",
+    "replyMatched": true,
+    "terminalWriterStopped": true,
+    "servedModelReported": false
+  },
+  "checks": [
+    "signed_access_token_and_project_authorization",
+    "database_budget_and_queue_atomic_acceptance",
+    "background_worker_consumes_job",
+    "mutual_tls_controller_and_full_assignment_binding",
+    "native_reply_persisted_and_read_over_https",
+    "exact_container_stopped_and_pid_zero",
+    "temporary_runtime_and_secrets_cleaned"
+  ],
+  "receipt_sha256": "53fa7dcd120208d46fe083e45818acb3dde39f6507057a7247422553e4e34c5d",
+  "source_sha256": {
+    "apps/control-plane/hermes-worker-runtime.ts": "12868c58cd7bcd9e62ed28ece28f42b704757300d985c91b9a1dd97831281542",
+    "apps/control-plane/workbench-worker/index.ts": "0e4f2ae3432da4d739c35b197da76c311072f6f5b4098dd6be2d168d12b47d9c",
+    "apps/control-plane/workbench-connector/index.ts": "3858e054841e7a503c1099a690ef824a2857542b3c0d2da767e5b30c572e6704",
+    "apps/control-plane/workbench-connector/protocol.ts": "3329ca38c53d993c8eb48323df7d8cb8fee876139d138cda649621809ed74423",
+    "apps/runner/hermes-connector/index.ts": "08ce439c918e9fbda5c8c99a56f3e055be6d0a538c3921c637aa64885dc9668a",
+    "apps/runner/hermes-connector/journal.ts": "c9689f7d23a2fd6b580ab348e2b4ad07445ae5a509b53fcbb706444acce2c919",
+    "apps/runner/hermes-connector/docker-authority.ts": "b670aa302fa8375bfc6ca5432aec3171566abe654f34dc38245fb7433130c1f5",
+    "apps/control-plane/workbench-execution/index.ts": "1b3a04d632acec691b35da8cca12dd8d10190231e04757b874619f30f1045c8e",
+    "apps/control-plane/workbench-routes.integration.ts": "501bd4d9268a936a8bd904349821fc962e7ceaf15a9290b6e474647e66be3bad"
+  },
+  "limitations": [
+    "installed_desktop_live_flow_pending",
+    "persistent_deployment_and_grant_renewal_pending",
+    "shared_untrusted_tenant_vm_isolation_pending",
+    "actual_served_model_metadata_not_reported"
+  ],
+  "previous_failure": {
+    "scope": "cleanup of read-only generated skill directories",
+    "corrected": true,
+    "first_receipt_sha256": "09b9b22c857819797e6d9d525bcc494fa6da93a595fa429a34108763c1bf77f0"
+  },
+  "independent_deadline_followup": {
+    "verified": true,
+    "model_calls": 0,
+    "connector_parent_exited_before_deadline": true,
+    "container_stopped_with_pid_zero": true,
+    "expiry_extension_rejected": true,
+    "receipt_sha256": "82d457aae73907dba9da2d8a28a7dafbdc089480e59bb2a2929f246e50c7c81c",
+    "source_sha256": {
+      "apps/runner/hermes-connector/deadline-main.ts": "3c851932ca450a043a52158bd052df5a1375ea8e1734b58137a9f25cb9d2e582",
+      "apps/runner/hermes-connector/deadline.integration.ts": "5fd59f74be4be7b0f615d628eed6048801f22cbb96d8234ded3046d85aa5ad85",
+      "apps/runner/hermes-connector/deadline.ts": "2294043b5bc7290bf35d46d7ae086fcccab6bea081e4890639b41100efdb1c7d"
+    }
+  }
+}

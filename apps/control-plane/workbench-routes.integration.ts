@@ -1,21 +1,23 @@
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { randomBytes, randomUUID } from 'node:crypto';
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { randomBytes, randomUUID, X509Certificate } from 'node:crypto';
+import { chmod, lstat, mkdir, mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import { createServer } from 'node:https';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { isAbsolute, join } from 'node:path';
 import { test } from 'node:test';
 import { getCACertificates, setDefaultCACertificates } from 'node:tls';
 import { exportJWK, generateKeyPair, SignJWT } from 'jose';
 import { Kysely, PostgresDialect, sql } from 'kysely';
 import { Pool } from 'pg';
 import { getConstructionPlans, PgBoss } from 'pg-boss';
+import { HermesAdapter } from '@harniqo/hermes-adapter';
+import { createDockerHermesAuthority } from '../runner/hermes-connector/docker-authority.ts';
 import { createControlPlane } from './discovery.ts';
-import { assignHermesJob, executeHermesAssignment } from './workbench-execution/index.ts';
-import type { OpenAuthorizedExecution } from './workbench-execution/index.ts';
-import { WORKBENCH_QUEUE_SCHEMA, WORKBENCH_RUN_QUEUE } from './workbench-queue/index.ts';
-import type { WorkbenchRunJob } from './workbench-queue/index.ts';
+import { initializeConnectorState, openHermesConnector } from '../runner/hermes-connector/index.ts';
+import type { HermesConnector } from '../runner/hermes-connector/index.ts';
+import { loadHermesWorker } from './hermes-worker-runtime.ts';
+import { WORKBENCH_QUEUE_SCHEMA } from './workbench-queue/index.ts';
 import { loadWorkbench } from './workbench-runtime.ts';
 
 const host = '127.0.0.1';
@@ -23,12 +25,27 @@ const issuer = 'https://127.0.0.1:10074';
 const origin = 'https://127.0.0.1:10073';
 const audience = 'harniqo-workbench';
 const desktopClientId = 'harniqo-desktop';
+const liveCredentials = process.env.HARNIQO_LIVE_HERMES_CREDENTIAL_DIRECTORY;
 
 function database(url: URL) {
   return new Kysely<unknown>({ dialect: new PostgresDialect({ pool: new Pool({ connectionString: url.href, max: 2 }) }) });
 }
 
-test('HTTPS workbench authenticates a JWT and accepts an authorized Run with its queue and budget', { timeout: 30_000 }, async () => {
+async function removeDisposableRuntime(directory: string): Promise<void> {
+  const restoreDirectories = async (path: string): Promise<void> => {
+    const stat = await lstat(path);
+    if (!stat.isDirectory() || stat.isSymbolicLink()) return;
+    if (stat.uid !== process.getuid?.()) throw new Error('disposable_runtime_owner_mismatch');
+    await chmod(path, 0o700);
+    for (const item of await readdir(path, { withFileTypes: true })) {
+      if (item.isDirectory()) await restoreDirectories(join(path, item.name));
+    }
+  };
+  await restoreDirectories(directory);
+  await rm(directory, { force: true, recursive: true });
+}
+
+test('HTTPS workbench authenticates a JWT and accepts an authorized Run with its queue and budget', { timeout: liveCredentials ? 120_000 : 30_000 }, async () => {
   const adminUrl = new URL(process.env.HARNIQO_TEST_POSTGRES_URL!);
   assert.equal(adminUrl.protocol, 'postgresql:');
   assert.equal(adminUrl.hostname, host);
@@ -44,16 +61,18 @@ test('HTTPS workbench authenticates a JWT and accepts an authorized Run with its
   const [ownerUrl, runtimeUrl, workerUrl] = roles as [URL, URL, URL];
   const admin = database(adminUrl);
   const owner = database(ownerUrl);
-  const worker = database(workerUrl);
   const organizationId = randomUUID();
   const projectId = randomUUID();
   const workspaceId = randomUUID();
   const sessionId = randomUUID();
   const principalId = randomUUID();
   const executionId = randomUUID();
+  const runtimeInstanceId = randomUUID();
+  const harnessReleaseId = randomUUID();
   const submission = {
     deployment_revision_id: randomUUID(), configuration_revision_id: randomUUID(),
-    input_snapshot_id: randomUUID(), budget_policy_id: randomUUID(), prompt: 'qualification command',
+    input_snapshot_id: randomUUID(), budget_policy_id: randomUUID(),
+    prompt: liveCredentials ? '只回复 HARNIQO_WORKBENCH_LIVE_OK，不使用任何工具。' : 'qualification command',
     required_capabilities: [],
   };
   const projectPath = `/v1/organizations/${organizationId}/projects/${projectId}`;
@@ -62,7 +81,10 @@ test('HTTPS workbench authenticates a JWT and accepts an authorized Run with its
   let provider: ReturnType<typeof createServer> | undefined;
   let workbench: Awaited<ReturnType<typeof loadWorkbench>> | undefined;
   let server: ReturnType<typeof createControlPlane> | undefined;
-  let consumer: PgBoss | undefined;
+  let backgroundWorker: Awaited<ReturnType<typeof loadHermesWorker>> | undefined;
+  let connector: HermesConnector | undefined;
+  let liveContainer: string | undefined;
+  let requestedModel: string | undefined;
   try {
     for (const role of roles) {
       await sql`CREATE ROLE ${sql.id(role.username)} LOGIN NOSUPERUSER NOBYPASSRLS PASSWORD ${sql.lit(role.password)}`.execute(admin);
@@ -90,7 +112,7 @@ test('HTTPS workbench authenticates a JWT and accepts an authorized Run with its
         organization_id, project_id, principal_id, execution_target_id, deployment_revision_id,
         workspace_id, runtime_instance_id, harness_release_id, platform_epoch, instance_generation, enabled, ready_until
       ) VALUES (${organizationId}, ${projectId}, ${principalId}, ${executionId}, ${submission.deployment_revision_id},
-        ${workspaceId}, ${randomUUID()}, ${randomUUID()}, ${epoch}, 1, true, now() + interval '30 seconds')`.execute(tx);
+        ${workspaceId}, ${runtimeInstanceId}, ${harnessReleaseId}, ${epoch}, 1, true, now() + interval '120 seconds')`.execute(tx);
       await sql`INSERT INTO harniqo.workbench_organization_budgets (organization_id, run_limit, concurrent_limit)
         VALUES (${organizationId}, 1, 1)`.execute(tx);
       await sql`INSERT INTO harniqo.workbench_project_budgets (organization_id, project_id, budget_policy_id, run_limit, concurrent_limit)
@@ -131,6 +153,98 @@ test('HTTPS workbench authenticates a JWT and accepts an authorized Run with its
     assert.throws(() => createControlPlane(discovery, null, workbench), /workbench_tls_required/u);
     server = createControlPlane(discovery, tls, workbench);
     await server.listen({ host, port: 10073 });
+    const binding = {
+      organizationId, projectId, principalId, executionTargetId: executionId, workspaceId,
+      deploymentRevisionId: submission.deployment_revision_id, configurationRevisionId: submission.configuration_revision_id,
+      inputSnapshotId: submission.input_snapshot_id, budgetPolicyId: submission.budget_policy_id,
+      runtimeInstanceId, harnessReleaseId, platformEpoch: epoch, instanceGeneration: 1,
+    };
+    const stateDirectory = join(temp, 'connector-state');
+    await mkdir(stateDirectory, { mode: 0o700 });
+    initializeConnectorState(stateDirectory);
+    let starts = 0;
+    const nativeRunId = 'run_' + randomBytes(16).toString('hex');
+    const fixtureReply = liveCredentials ? 'HARNIQO_WORKBENCH_LIVE_OK' : 'Reply from the controlled execution fixture.';
+    const hermesToken = randomBytes(32).toString('hex');
+    const imageId = process.env.HARNIQO_LIVE_HERMES_IMAGE;
+    if (liveCredentials) {
+      assert.equal(process.platform, 'linux');
+      assert.match(imageId ?? '', /^sha256:[0-9a-f]{64}$/u);
+      assert.ok(isAbsolute(liveCredentials));
+      const modelConfig = JSON.parse(await readFile(join(liveCredentials, 'model.json'), 'utf8')) as { model?: unknown };
+      assert.equal(typeof modelConfig.model, 'string');
+      requestedModel = modelConfig.model as string;
+      await mkdir(join(temp, 'hermes-home'), { mode: 0o700 });
+      await mkdir(join(temp, 'hermes-workspace'), { mode: 0o700 });
+      await writeFile(join(temp, 'hermes-token'), hermesToken, { mode: 0o600 });
+      liveContainer = execFileSync('docker', [
+        'run', '-d', '--pull', 'never', '--user', process.getuid!() + ':' + process.getgid!(),
+        '--init', '--read-only', '--cap-drop', 'ALL', '--security-opt', 'no-new-privileges',
+        '--pids-limit', '128', '--memory', '4g', '--cpus', '2',
+        '--tmpfs', '/tmp:rw,noexec,nosuid,nodev,size=256m,mode=1777', '--publish', '127.0.0.1:10010:8642',
+        '--label', 'org.harniqo.organization-id=' + organizationId,
+        '--label', 'org.harniqo.project-id=' + projectId,
+        '--label', 'org.harniqo.workspace-id=' + workspaceId,
+        '--label', 'org.harniqo.runtime-instance-id=' + runtimeInstanceId,
+        '--mount', 'type=bind,src=' + join(temp, 'hermes-home') + ',dst=/data/hermes',
+        '--mount', 'type=bind,src=' + join(temp, 'hermes-workspace') + ',dst=/data/workspace',
+        '--mount', 'type=bind,src=' + liveCredentials + '/model.json,dst=/run/config/model.json,readonly',
+        '--mount', 'type=bind,src=' + liveCredentials + '/model-api-key,dst=/run/secrets/model-api-key,readonly',
+        '--mount', 'type=bind,src=' + join(temp, 'hermes-token') + ',dst=/run/secrets/api-token,readonly',
+        imageId!,
+      ], { encoding: 'utf8', timeout: 15_000 }).trim();
+      assert.match(liveContainer, /^[0-9a-f]{64}$/u);
+      const startupDeadline = Date.now() + 30_000;
+      for (;;) {
+        const healthy = await fetch('http://127.0.0.1:10010/health', { signal: AbortSignal.timeout(1000) })
+          .then(response => response.ok).catch(() => false);
+        if (healthy) break;
+        assert.ok(Date.now() < startupDeadline, 'pinned Hermes must become healthy');
+        await new Promise(resolve => setTimeout(resolve, 250));
+      }
+    }
+    let containerAuthority: ReturnType<typeof createDockerHermesAuthority> | undefined;
+    connector = openHermesConnector({
+      tls: { ...tls, ca: tls.cert }, binding, stateDirectory,
+      controllerFingerprint256: new X509Certificate(tls.cert).fingerprint256,
+      authority: liveCredentials ? {
+        async authorize(identity, signal) {
+          containerAuthority ??= createDockerHermesAuthority({ assignment: identity, expiresAt: Date.now() + 110_000,
+            containerId: liveContainer!, imageId: imageId!, nativeOrigin: 'http://127.0.0.1:10010', nativeToken: hermesToken,
+            deadlineDirectory: stateDirectory });
+          return containerAuthority.authorize(identity, signal);
+        },
+        async hasNativeSession(identity, signal) { return containerAuthority!.hasNativeSession(identity, signal); },
+        async confirmTerminal(identity, id, signal) { return containerAuthority!.confirmTerminal(identity, id, signal); },
+      } : {
+        async authorize() { return { expiresAt: Date.now() + 30_000 }; },
+        async hasNativeSession() { return true; },
+        async confirmTerminal(_assignment, id) { return { nativeRunId: id, writerExited: true }; },
+      },
+      hermes: liveCredentials ? new HermesAdapter({ origin: 'http://127.0.0.1:10010', token: hermesToken }) : {
+        async attach(nativeSessionId) { return { nativeSessionId }; },
+        async start(input) {
+          assert.equal(input.text, submission.prompt);
+          starts++;
+          return { nativeRunId, replayed: false };
+        },
+        async inspect(id, nativeSessionId) {
+          return { nativeRunId: id, nativeSessionId, status: 'completed', output: fixtureReply };
+        },
+        async readReply() { return fixtureReply; },
+      },
+    });
+    await new Promise<void>((resolve, reject) => {
+      connector!.server.once('error', reject);
+      connector!.server.listen(10076, host, resolve);
+    });
+    const workerFile = join(temp, 'worker.json');
+    const workerDatabase = join(temp, 'worker-database');
+    await writeFile(workerDatabase, workerUrl.href, { mode: 0o600 });
+    await writeFile(workerFile, JSON.stringify({
+      targets: [{ binding, origin: 'https://127.0.0.1:10076', caFile: certPath, certFile: certPath, keyFile: keyPath }],
+      concurrency: 1, pollIntervalMs: 100,
+    }));
     const jwt = (sub: string, typ = 'Bearer') => new SignJWT({ typ, azp: desktopClientId })
       .setProtectedHeader({ kid: 'fixture', alg: 'RS256', typ: 'JWT' })
       .setIssuer(issuer).setAudience(audience).setSubject(sub).setIssuedAt().setExpirationTime('2 minutes').sign(privateKey);
@@ -178,35 +292,16 @@ test('HTTPS workbench authenticates a JWT and accepts an authorized Run with its
         (SELECT count(*) FROM harniqo.workbench_budget_reservations)::int AS holds`.execute(owner);
     assert.deepEqual(queued.rows[0], { jobs: 1, holds: 1 });
 
-    consumer = new PgBoss({ connectionString: workerUrl.href, schema: WORKBENCH_QUEUE_SCHEMA,
-      supervise: false, schedule: false, createSchema: false, migrate: false, registerInstance: false });
-    await consumer.start();
-    const [job] = await consumer.fetch<WorkbenchRunJob>(WORKBENCH_RUN_QUEUE);
-    assert.ok(job);
-    assert.equal(job.id, receipt.run_id);
-    assert.equal(await assignHermesJob(worker, job.data), 'assigned');
-    await consumer.complete(WORKBENCH_RUN_QUEUE, job.id);
-    const nativeRunId = 'run_' + randomBytes(16).toString('hex');
-    const fixtureReply = 'Reply from the controlled execution fixture.';
-    const open: OpenAuthorizedExecution = async identity => ({
-      identity,
-      async assertLive() { return identity.workspaceId === workspaceId; },
-      async hasNativeSession() { return true; },
-      async confirmTerminal(id) { return { nativeRunId: id, writerExited: true, servedModel: 'fixture-model' }; },
-      hermes: {
-        async attach(nativeSessionId) { return { nativeSessionId }; },
-        async start(input) {
-          assert.equal(input.text, submission.prompt);
-          return { nativeRunId, replayed: false };
-        },
-        async inspect(id, nativeSessionId) {
-          return { nativeRunId: id, nativeSessionId, status: 'completed', output: fixtureReply };
-        },
-        async readReply() { return fixtureReply; },
-      },
-    });
-    assert.equal(await executeHermesAssignment(worker, job.data, open), 'pending');
-    assert.equal(await executeHermesAssignment(worker, job.data, open), 'terminal');
+    backgroundWorker = await loadHermesWorker(workerFile, workerDatabase);
+    const deadline = Date.now() + (liveCredentials ? 90_000 : 10_000);
+    for (;;) {
+      const response = await http(projectPath + '/runs/' + receipt.run_id, bearer);
+      const snapshot = await response.json() as { run: { state: string } };
+      if (snapshot.run.state === 'succeeded') break;
+      assert.ok(Date.now() < deadline, 'background workbench task must finish');
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+    if (!liveCredentials) assert.equal(starts, 1);
     const finished = await http(projectPath + '/runs/' + receipt.run_id, bearer);
     assert.equal(finished.status, 200);
     assert.equal((await finished.json() as { run: { state: string } }).run.state, 'succeeded');
@@ -214,18 +309,28 @@ test('HTTPS workbench authenticates a JWT and accepts an authorized Run with its
     assert.equal(finalPage.status, 200);
     const page = await finalPage.json() as { events: { source?: { type: string; payload: { text?: string } } }[] };
     assert.equal(page.events.find(event => event.source?.type === 'text.delta')?.source?.payload.text, fixtureReply);
+    if (liveCredentials) {
+      const native = await sql<{ native_run_id: string; native_session_id: string }>`
+        SELECT native_run_id, native_session_id FROM harniqo.hermes_attempts WHERE run_id = ${receipt.run_id}::uuid`.execute(owner);
+      console.log(JSON.stringify({ liveHarness: true, runId: receipt.run_id, ...native.rows[0],
+        requestedModel, replyMatched: true, terminalWriterStopped: true, servedModelReported: false }));
+    }
     await sql`UPDATE harniqo.hermes_execution_bindings SET ready_until = now() - interval '1 second'`.execute(owner);
     assert.deepEqual(await (await http(list, bearer)).json(), { deployments: [] });
   } finally {
     await server?.close();
     await workbench?.close?.();
-    await consumer?.stop();
+    await backgroundWorker?.stop();
+    await connector?.close();
+    if (liveContainer) {
+      execFileSync('docker', ['container', 'rm', '-f', liveContainer], { stdio: 'ignore', timeout: 15_000 });
+    }
     if (provider) {
       const instance = provider;
       await new Promise<void>(resolve => { instance.close(() => resolve()); instance.closeAllConnections(); });
     }
     setDefaultCACertificates(ca);
-    await Promise.all([owner.destroy(), admin.destroy(), worker.destroy()]);
-    await rm(temp, { force: true, recursive: true });
+    await Promise.all([owner.destroy(), admin.destroy()]);
+    await removeDisposableRuntime(temp);
   }
 });
