@@ -1,0 +1,120 @@
+{
+  "date_local": "2026-11-25",
+  "tasks": [
+    "M2-03",
+    "M2-04",
+    "M2-05",
+    "M2-06"
+  ],
+  "parent_task_status": "IN_PROGRESS",
+  "subtask_status": "VERIFIED",
+  "subtask_label": "已开发完成：安装版首个 Hermes 真实对话纵向子项",
+  "source_commit": "0135fb01415636492b8fb2e304dfe063cdf20ac5",
+  "source_input_sha256": "82a0ae7cd7246de30994b97e0462e84fe9fa23c6a1c61d709e273d020aa07f0e",
+  "environment": {
+    "desktop": "macOS arm64 installed internal application",
+    "server": "designated Ubuntu x86_64 host",
+    "node": "24.22.1",
+    "electron": "45.2.1",
+    "postgres": "17",
+    "pg_boss": "12.38.2"
+  },
+  "installed_app": "~/Applications/Harniqo.app",
+  "transport": {
+    "platform_discovery": "HTTP",
+    "browser_identity": "HTTPS with system certificate validation",
+    "business_api": "HTTPS with system certificate validation",
+    "worker_connector": "mutual TLS",
+    "tls_verification_bypass": false,
+    "ingress": "approved LAN subnet only"
+  },
+  "harness": {
+    "name": "Hermes",
+    "upstream_commit": "a382af23f4c067d23463b5781958684c2cda82bc",
+    "image_id": "sha256:75bb26db4828c79a92565bcf00b61ea40d4da35d807007f50a9f91fe7ffb7e52",
+    "requested_model": "qwen3.8-flash",
+    "served_model_reported": false,
+    "isolation_scope": "trusted dedicated container"
+  },
+  "deployment_id": "baaf424a-225c-4c16-9e88-bd928af2fbfd",
+  "runs": [
+    {
+      "run_id": "94550612-e0ca-4f74-b594-c7e7249ed5cd",
+      "state": "succeeded",
+      "native_run_id": "run_3d514e973eae4ef9a098c8730e4dda1f",
+      "native_session_id": "harniqo_1d8f9597-f941-4973-a726-a97cd964b9ba",
+      "lease_generation": 2,
+      "reply_matched": true,
+      "writer_stopped": true,
+      "claim_released": true,
+      "grant_ms": 90000,
+      "stop_receipt_sha256": "df8932a514f6be72094fcf51e44fb2b5f0552cac38dc8f69d6ea7d247a9f5864"
+    },
+    {
+      "run_id": "95249b1a-9f66-4f27-a996-24d915d36a9c",
+      "state": "succeeded",
+      "native_run_id": "run_b9b4318db3d64fbb9fd30d591b75d437",
+      "native_session_id": "harniqo_1d8f9597-f941-4973-a726-a97cd964b9ba",
+      "lease_generation": 3,
+      "reply_matched": true,
+      "writer_stopped": true,
+      "claim_released": true,
+      "grant_ms": 90000,
+      "stop_receipt_sha256": "ec1bb95c85ea8455455f4dda32e91b04619fea3616624ca56c5b6b4cb17c8658"
+    }
+  ],
+  "checks": {
+    "actual_installed_form_submissions": 2,
+    "real_replies_and_final_states": true,
+    "same_native_session": true,
+    "distinct_native_runs": true,
+    "previous_writer_stopped_before_next_start": true,
+    "database_and_queue_persistent": true,
+    "three_services_enabled_and_active": true,
+    "idle_service_restart_preserves_runs_and_events": true,
+    "original_user_has_target_and_submit_permission": true,
+    "denied_account_has_no_ui_target_or_submit_form": true,
+    "denied_actual_run_events_receipt_and_submission_http_status": 403,
+    "denied_requests_do_not_change_budget_or_runs": true,
+    "single_canonical_app_and_archived_old_owned_copies": true,
+    "temporary_qa_users_and_local_passwords_removed": true
+  },
+  "failure_and_correction": {
+    "failed_source_commit": "043cc67e9a02013dd70ace0911bfd1f61d618ee7",
+    "failed_run_id": "2cf7f2b7-c9fc-49ca-b74a-3a03687b9ff4",
+    "symptom": "readiness loss during approximately 5.5 second native cold startup stranded a prestart Run in reconciling",
+    "correction": "wait while queued/provisioning before start authorization; reconcile after native start remains required",
+    "regression": "real PostgreSQL red then green; readiness returns and native start is issued once",
+    "failed_run_model_start_authorized": false,
+    "failed_run_operator_recovery": "exact stopped container, unchanged deadline receipt, empty connector assignments and absent native start authorization checked; failed event and reservation release recorded; no records deleted or expiry extended"
+  },
+  "evidence_sha256": {
+    "installedAllowed": "0fbc1b0d3445a8a33dcb91c0dc074cbcbc9731c36cc3393b0950d5087c59738f",
+    "installedDenied": "7bbf13851d48d76d28dc88e2dbd68c507048210693954864077f6100c6b4afaf",
+    "canonicalInstall": "3ee37d627c603d2299182eee83b2dff8e7f5a0be0a55de099b05f9c34a63fe5a",
+    "backend": "f7f3cb408959feb78cc968b3e13c9c8ea1cf75c2564fadda1958db4665346754",
+    "deniedExistingResources": "8ad4c3c7f35a69a0e354dcc32e6cfb49ee67cb405d72754916d2b5f337bbd2b0",
+    "idleServiceRestart": "263ee1762b4d35d0ddaee71fcf41e40ced74ca81a439f5b64c6548e8816cd881",
+    "failedPrestartRecovery": "521435912ef632c76a929cb1c919862285a7a8a655fb767529ee4944887e46a7",
+    "coldStartRegressionRed": "8953ad9101a61a0127013ea7dea3cc4814267ced4cfb5ca5ec197468f989d6b2",
+    "coldStartRegressionGreen": "6e3c5a2c74f34e639195394c371dd47b021c0ba8de2ef80a46d5e59fc175b41b",
+    "persistentDockerRegression": "7d2b8b5edd30f5f47e56696dfe201eca67def51d2aee2b8abfaba3ce5fd801d1",
+    "qaCleanup": "badcc9e9b6181d64af9349c85d0fb01439f36c137f44dd75f87be305b9d7d63d"
+  },
+  "limitations": [
+    "parent M2 tasks and stage are not accepted by this subtask",
+    "desktop shows the current Run; history pagination and reopening/restoring the session remain next M2-06 work",
+    "idle terminal-service restart does not establish in-flight kill/recovery acceptance",
+    "dynamic deployment and model configuration, cancellation, files and model cost accounting remain original backlog work",
+    "actual provider-served model identity was not reported",
+    "shared untrusted tenant VM isolation and signed cross-platform production release remain unaccepted",
+    "the bounded connector ledger admits up to 128 Attempts; lifecycle maintenance and long-running operational acceptance remain M2-05 work"
+  ],
+  "installed_asar_sha256": "749184cf65b55bc29d6f8bdef03a3299acb255cfc2259c9dcc1a037bc1903ec3",
+  "server_source_archive_sha256": "7b0a2e36fe7f7d657d7b3c037ff970a97e02596caca38e684721a5096d2e81ea",
+  "operating_bounds": {
+    "per_attempt_deadline_ms": 90000,
+    "concurrency": 1,
+    "per_connector_ledger_attempt_capacity": 128
+  }
+}
