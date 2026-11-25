@@ -1,6 +1,7 @@
 import { readFile } from 'node:fs/promises';
-import { Kysely, PostgresDialect } from 'kysely';
+import { Kysely, PostgresDialect, sql } from 'kysely';
 import { Pool } from 'pg';
+import { setTimeout as sleep } from 'node:timers/promises';
 import { loadHermesConnector } from './workbench-connector/index.ts';
 import type { AssignmentIdentity, OpenAuthorizedExecution } from './workbench-execution/index.ts';
 import { startWorkbenchProducer } from './workbench-queue/index.ts';
@@ -73,9 +74,12 @@ export async function loadHermesWorker(configPath: string, databasePath: string)
   const db = new Kysely<unknown>({ dialect: new PostgresDialect({ pool }) });
   let queue: Awaited<ReturnType<typeof startWorkbenchProducer>> | undefined;
   let worker: Awaited<ReturnType<typeof startHermesWorker>> | undefined;
+  const healthStopping = new AbortController();
+  let healthLoop: Promise<void> | undefined;
   let stopping: Promise<void> | undefined;
   const stop = () => stopping ??= (async () => {
-    try { await worker?.stop(); }
+    healthStopping.abort();
+    try { await worker?.stop(); await healthLoop; }
     finally {
       try { await queue?.stop({ graceful: true, close: true }); }
       finally { await db.destroy(); }
@@ -83,11 +87,43 @@ export async function loadHermesWorker(configPath: string, databasePath: string)
   })();
   try {
     queue = await startWorkbenchProducer(connectionString);
+    const renewReadiness = async () => {
+      await Promise.all(targets.map(async target => {
+        const b = target.binding;
+        let healthy = false;
+        try {
+          const status = await target.open.ready(AbortSignal.any([healthStopping.signal, AbortSignal.timeout(3000)]));
+          healthy = status.ready && bindingKeys.every(key => status.binding[key] === b[key]);
+        } catch { /* A failed probe expires availability while execution remains fenced separately. */ }
+        await db.transaction().execute(async tx => {
+          await sql`SELECT set_config('app.organization_id', ${b.organizationId}, true),
+            set_config('app.project_id', ${b.projectId}, true), set_config('app.principal_id', ${b.principalId}, true)`.execute(tx);
+          await sql`UPDATE harniqo.hermes_execution_bindings SET ready_until =
+            CASE WHEN ${healthy && !healthStopping.signal.aborted} THEN statement_timestamp() + interval '10 seconds' ELSE NULL END
+            WHERE organization_id = ${b.organizationId} AND project_id = ${b.projectId} AND principal_id = ${b.principalId}
+              AND execution_target_id = ${b.executionTargetId} AND workspace_id = ${b.workspaceId}
+              AND deployment_revision_id = ${b.deploymentRevisionId} AND runtime_instance_id = ${b.runtimeInstanceId}
+              AND harness_release_id = ${b.harnessReleaseId} AND platform_epoch = ${b.platformEpoch}
+              AND instance_generation = ${b.instanceGeneration} AND enabled`.execute(tx);
+        });
+      }));
+    };
+    await renewReadiness();
     worker = await startHermesWorker({ db, queue, scopes, open, concurrency: config.concurrency,
       pollIntervalMs: config.pollIntervalMs, onIssue: issue => {
         console.error(JSON.stringify({ event: 'hermes_worker_issue', code: issue.code,
           ...(issue.runId ? { runId: issue.runId } : {}) }));
       } });
+    healthLoop = (async () => {
+      while (!healthStopping.signal.aborted) {
+        try {
+          await sleep(3000, undefined, { signal: healthStopping.signal });
+          await renewReadiness();
+        } catch {
+          if (!healthStopping.signal.aborted) console.error('Harniqo Hermes runtime readiness could not be renewed.');
+        }
+      }
+    })();
     return { stop };
   } catch (error) {
     await stop();

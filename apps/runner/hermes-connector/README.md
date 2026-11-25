@@ -25,6 +25,16 @@ An optional `servedModelReceipt` callback can provide independently correlated m
 
 This dedicated-container profile requires an administrator-controlled trust domain. Shared untrusted tenant execution requires the separately qualified workspace VM and credential egress policy. Production deployment must additionally provision and renew current assignment grants, maintain immutable runtime identity, and reconcile a stopped runtime before authorizing its next assignment.
 
+## Persistent dedicated workspace
+
+The persistent entry configuration uses the same TLS, container, native credential, state and listener fields. Replace `assignment` and `expiresAt` with the administrator's fixed `binding` and `runDeadlineMs` (1000–120000, normally 90000). The pinned mTLS control worker supplies each complete Assignment. The runtime accepts a strictly newer lease only after the preceding native writer is confirmed stopped and its independent deadline receipt is durable.
+
+Initialize the new empty state directory by calling `initializeConnectorState(directory)` first, then `initializePersistentDockerState(directory)` from `persistent.ts`. Normal startup requires both existing ledgers. The supervisor preserves the immutable grant expiry for each Attempt, prepares an independent deadline before starting the stopped container, and reuses the same native HOME and workspace between confirmed runs. A prepared start whose outcome is uncertain remains blocked until explicit reconciliation. Each ledger retains up to 128 attempts.
+
+`GET /connector/v1/ready` uses the same client-certificate pin. It returns the fixed binding and readiness without allocating a grant. The controller can extend its database readiness heartbeat while the exact runtime is ready. Native execution grants retain their original per-Attempt deadline. Cached terminal replies and writer proofs remain available to the exact trusted Assignment after grant expiry, while terminal mutations remain denied.
+
+The real Linux no-model regression uses `HARNIQO_PERSISTENT_TEST_IMAGE` with the pinned Hermes image ID and runs `node --test apps/runner/hermes-connector/persistent.integration.ts`. It verifies two sequential container starts, original deadline preservation across supervisor restart, and rejection of another active or previous lease.
+
 ## Verification
 
 The standalone entry point reads `HARNIQO_CONNECTOR_FILE` as an absolute path to an administrator-provisioned `0600` JSON file. Its exact fields are `assignment`, `expiresAt`, `containerId`, `imageId`, `nativeOrigin`, `nativeTokenFile`, `tls`, `controllerFingerprint256`, `stateDirectory`, `host` and `port`. `assignment` contains the full persisted assignment, `expiresAt` is the finite grant deadline in Unix milliseconds, and `tls` contains `keyFile`, `certFile` and `caFile` absolute paths. The native token and TLS private key must be caller-owned `0600` files. The listener uses the explicit IP address and an approved port in `10000–10100`, excluding SSH port `10023`.

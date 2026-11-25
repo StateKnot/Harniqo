@@ -55,6 +55,9 @@ async function inspectPlatformProbe(window: BrowserWindow) {
   const httpOrigin = process.env['HARNIQO_SMOKE_HTTP_DISCOVERY_ORIGIN'];
   const unconfiguredOrigin = process.env['HARNIQO_SMOKE_UNCONFIGURED_DISCOVERY_ORIGIN'];
   const loginOrigin = process.env['HARNIQO_SMOKE_LOGIN_ORIGIN'];
+  const harnessRequested = process.env['HARNIQO_SMOKE_HARNESS_PROMPT'] !== undefined
+    || process.env['HARNIQO_SMOKE_WORKBENCH_EXPECT_DENIED'] === '1';
+  if (harnessRequested && !loginOrigin) throw new Error('HARNESS_SMOKE_LOGIN_REQUIRED');
   const denied = await window.webContents.executeJavaScript(
     `window.harniqo.probePlatform(${JSON.stringify(origin ?? httpOrigin ?? 'https://localhost:10050')})`,
   ) as { error?: string };
@@ -95,9 +98,10 @@ async function inspectPlatformProbe(window: BrowserWindow) {
   if (unconfiguredOrigin && !await submit(unconfiguredOrigin, 'identity_not_configured')) {
     throw new Error('PLATFORM_UNCONFIGURED_DISCOVERY_SMOKE_FAILED');
   }
+  let workbench: object | undefined;
   if (loginOrigin) {
     if (!await submit(loginOrigin, 'discovered')) throw new Error('LOGIN_DISCOVERY_SMOKE_FAILED');
-    await inspectBrowserSignIn(window, loginOrigin);
+    workbench = await inspectBrowserSignIn(window, loginOrigin);
   }
   return {
     userActionRequired: true,
@@ -105,13 +109,18 @@ async function inspectPlatformProbe(window: BrowserWindow) {
     ...(httpOrigin ? { httpDiscovered: true } : {}),
     ...(unconfiguredOrigin ? { identityPending: true } : {}),
     ...(loginOrigin ? { browserLogin: true, signedOutLocally: true } : {}),
+    ...(workbench ? { workbench } : {}),
   };
 }
 
-async function inspectBrowserSignIn(window: BrowserWindow, origin: string): Promise<void> {
+async function inspectBrowserSignIn(window: BrowserWindow, origin: string): Promise<object | undefined> {
   const http = origin.startsWith('http://');
   const issuer = process.env['HARNIQO_SMOKE_LOGIN_ISSUER'];
   const clientId = process.env['HARNIQO_SMOKE_LOGIN_CLIENT_ID'];
+  const apiOrigin = process.env['HARNIQO_SMOKE_API_ORIGIN'];
+  if (apiOrigin && (!/^https:\/\/[^/@?#\\\s]+\/?$/u.test(apiOrigin) || !URL.parse(apiOrigin)?.hostname)) {
+    throw new Error('HARNESS_SMOKE_API_ORIGIN_INVALID');
+  }
   if (http) {
     if (!issuer || !clientId) throw new Error('LOGIN_SMOKE_CONFIRMATION_REQUIRED');
     const wrongConfirmations = [undefined, { issuer, clientId: clientId + '-wrong' },
@@ -132,6 +141,7 @@ async function inspectBrowserSignIn(window: BrowserWindow, origin: string): Prom
     if (${http}) {
       setValue('#identity-issuer', ${JSON.stringify(issuer)});
       setValue('#identity-client-id', ${JSON.stringify(clientId)});
+      if (${JSON.stringify(apiOrigin)} !== undefined) setValue('#identity-api-origin', ${JSON.stringify(apiOrigin)});
     }
     document.querySelector('#platform-login').requestSubmit();
     const deadline = performance.now() + 20000;
@@ -144,6 +154,7 @@ async function inspectBrowserSignIn(window: BrowserWindow, origin: string): Prom
     return 'timeout';
   })()`, true);
   if (state !== 'signed_in') throw new Error(`LOGIN_SMOKE_FAILED: ${state}`);
+  const workbench = await inspectHarnessWorkbench(window);
   const signedOut = await window.webContents.executeJavaScript(`(async () => {
     document.querySelector('#platform-sign-out').click();
     const deadline = performance.now() + 2000;
@@ -154,4 +165,96 @@ async function inspectBrowserSignIn(window: BrowserWindow, origin: string): Prom
     return false;
   })()`, true);
   if (!signedOut) throw new Error('LOCAL_SIGN_OUT_SMOKE_FAILED');
+  return workbench;
+}
+
+async function inspectHarnessWorkbench(window: BrowserWindow): Promise<object | undefined> {
+  const prompt = process.env['HARNIQO_SMOKE_HARNESS_PROMPT'];
+  const expected = process.env['HARNIQO_SMOKE_HARNESS_EXPECT_REPLY'];
+  const followupPrompt = process.env['HARNIQO_SMOKE_HARNESS_FOLLOWUP_PROMPT'];
+  const followupExpected = process.env['HARNIQO_SMOKE_HARNESS_FOLLOWUP_EXPECT_REPLY'];
+  const deploymentId = process.env['HARNIQO_SMOKE_HARNESS_DEPLOYMENT_ID'];
+  const expectDenied = process.env['HARNIQO_SMOKE_WORKBENCH_EXPECT_DENIED'] === '1';
+  if (prompt === undefined && !expectDenied) {
+    if (expected !== undefined || followupPrompt !== undefined || followupExpected !== undefined) {
+      throw new Error('HARNESS_SMOKE_CONFIGURATION_INVALID');
+    }
+    return;
+  }
+  if (expectDenied && (prompt !== undefined || expected !== undefined || followupPrompt !== undefined || followupExpected !== undefined)) {
+    throw new Error('HARNESS_SMOKE_CONFIGURATION_INVALID');
+  }
+  if (deploymentId && !/^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/u.test(deploymentId)) {
+    throw new Error('HARNESS_SMOKE_CONFIGURATION_INVALID');
+  }
+  const catalog = await window.webContents.executeJavaScript(`(async () => {
+    const deadline = performance.now() + 15000;
+    while (performance.now() < deadline) {
+      const workspace = document.querySelector('[data-catalog-state]');
+      if (workspace?.dataset.catalogState === 'error') return { status: 'error' };
+      if (workspace?.dataset.catalogState === 'loaded') {
+        const select = document.querySelector('#harness-deployment');
+        return {
+          status: 'loaded',
+          deployments: select ? Array.from(select.options).filter(option => option.value).map(option => option.value) : [],
+          formPresent: Boolean(document.querySelector('#harness-submit'))
+        };
+      }
+      await new Promise(resolve => setTimeout(resolve, 50));
+    }
+    return { status: 'timeout' };
+  })()`) as { status: string; deployments?: string[]; formPresent?: boolean };
+  if (catalog.status !== 'loaded' || !catalog.deployments) throw new Error('HARNESS_CATALOG_SMOKE_FAILED');
+  if (expectDenied) {
+    if (catalog.deployments.length !== 0 || catalog.formPresent) throw new Error('HARNESS_UNAUTHORIZED_CATALOG_VISIBLE');
+    return { accessDenied: true, deploymentsVisible: 0 };
+  }
+  const selected = deploymentId ?? (catalog.deployments.length === 1 ? catalog.deployments[0] : undefined);
+  if (!selected || !catalog.deployments.includes(selected) || !catalog.formPresent) {
+    throw new Error('HARNESS_SMOKE_DEPLOYMENT_REQUIRED');
+  }
+  const turns = [[prompt, expected]];
+  if (followupPrompt !== undefined || followupExpected !== undefined) turns.push([followupPrompt, followupExpected]);
+  if (turns.some(([input, reply]) => !input?.trim() || input.length > 16384 || !reply || reply.length > 256 * 1024)) {
+    throw new Error('HARNESS_SMOKE_CONFIGURATION_INVALID');
+  }
+  const runs: { runId: string; state: 'succeeded'; replyMatched: true }[] = [];
+  for (const [input, reply] of turns) {
+    const previousRunId = runs.at(-1)?.runId;
+    const result = await window.webContents.executeJavaScript(`(async () => {
+      const select = document.querySelector('#harness-deployment');
+      const text = document.querySelector('#harness-input');
+      const button = document.querySelector('#harness-submit');
+      if (!select || !text || !button || select.disabled || text.disabled) return { status: 'form_unavailable' };
+      Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set.call(select, ${JSON.stringify(selected)});
+      select.dispatchEvent(new Event('change', { bubbles: true }));
+      Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value').set.call(text, ${JSON.stringify(input)});
+      text.dispatchEvent(new Event('input', { bubbles: true }));
+      await new Promise(resolve => setTimeout(resolve, 0));
+      if (button.disabled) return { status: 'form_unavailable' };
+      text.form.requestSubmit();
+      const deadline = performance.now() + 95000;
+      while (performance.now() < deadline) {
+        const section = document.querySelector('[data-run-state]');
+        const runId = section?.dataset.runId;
+        if (runId && runId !== ${JSON.stringify(previousRunId)}) {
+          const state = section.dataset.runState;
+          if (state === 'succeeded') {
+            return { status: state, runId, replyMatched: section.querySelector('.workbench-reply p')?.textContent === ${JSON.stringify(reply)} };
+          }
+          if (state === 'failed' || state === 'cancelled') return { status: state };
+          if (section.querySelector('.workbench-notice')) return { status: 'status_unavailable' };
+        }
+        if (document.querySelector('.workbench > .probe-error') || document.querySelector('.workbench > .workbench-notice')) {
+          return { status: 'submission_unconfirmed' };
+        }
+        await new Promise(resolve => setTimeout(resolve, 50));
+      }
+      return { status: 'timeout' };
+    })()`, true) as { status: string; runId?: string; replyMatched?: boolean };
+    if (result.status !== 'succeeded' || !result.runId || !/^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/u.test(result.runId)
+      || !result.replyMatched) throw new Error('HARNESS_DIALOGUE_SMOKE_FAILED');
+    runs.push({ runId: result.runId, state: 'succeeded', replyMatched: true });
+  }
+  return { deploymentId: selected, runs };
 }

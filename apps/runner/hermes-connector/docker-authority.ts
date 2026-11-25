@@ -29,13 +29,17 @@ export type DockerHermesAuthorityOptions = {
   nativeOrigin: string;
   nativeToken: string;
   deadlineDirectory: string;
+  awaitStart?: boolean;
   dockerBinary?: string;
   servedModelReceipt?: (assignment: Readonly<AssignmentIdentity>, nativeRunId: string, signal: AbortSignal) => Promise<string | undefined>;
 };
 
-type ContainerState = { id: string; image: string; running: boolean; pid: number };
+export type ContainerState = { id: string; image: string; running: boolean; pid: number };
 
-export function createDockerHermesAuthority(options: DockerHermesAuthorityOptions): ConnectorAuthority {
+export function createDockerHermesAuthority(options: DockerHermesAuthorityOptions): ConnectorAuthority & {
+  inspectRuntime(signal: AbortSignal): Promise<ContainerState>;
+  prepareDeadline(): Promise<DeadlineGuard>;
+} {
   const assignment = Object.freeze(parseAssignmentIdentity(options.assignment));
   const origin = URL.parse(options.nativeOrigin);
   if (process.platform !== 'linux' || !containerIdPattern.test(options.containerId) || !imageIdPattern.test(options.imageId)
@@ -55,6 +59,7 @@ export function createDockerHermesAuthority(options: DockerHermesAuthorityOption
   let guardPromise: Promise<DeadlineGuard> | undefined;
   const deadlineGuard = () => guardPromise ??= startDockerDeadline(options.deadlineDirectory, {
     assignment, containerId, imageId: expectedImage, expiresAt, dockerBinary: docker,
+    ...(options.awaitStart ? { awaitStart: true } : {}),
   });
   const native = new HermesAdapter({ origin: origin.origin, token: options.nativeToken, timeoutMs: 5000 });
   const nativeToken = options.nativeToken;
@@ -116,6 +121,8 @@ export function createDockerHermesAuthority(options: DockerHermesAuthorityOption
   }
 
   return {
+    inspectRuntime: inspect,
+    prepareDeadline: deadlineGuard,
     async authorize(actual, signal) {
       if (!inGrant(actual, signal)) return null;
       const guard = await deadlineGuard();

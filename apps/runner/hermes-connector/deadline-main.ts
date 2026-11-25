@@ -49,14 +49,20 @@ try {
     process.send!({ ready: true }, error => error ? reject(error) : resolve());
   });
   if (process.connected) process.disconnect();
+  let started = initial === 'running';
   for (;;) {
     try {
       let observed = await state();
+      if (observed === 'running') started = true;
+      if (!started && grant.awaitStart) {
+        const marker = await open(file + '.started', 'r').catch(() => undefined);
+        if (marker) { started = true; await marker.close(); }
+      }
       if (observed === 'running' && (interrupted || Date.now() >= grant.expiresAt)) {
         await docker(['container', 'stop', '--time', '1', grant.containerId]);
         observed = await state();
       }
-      if (observed !== 'running') {
+      if (observed !== 'running' && (!grant.awaitStart || started || interrupted || Date.now() >= grant.expiresAt)) {
         const receipt = file + '.receipt.json';
         const temporary = receipt + '.' + process.pid;
         const handle = await open(temporary, 'wx', 0o600);

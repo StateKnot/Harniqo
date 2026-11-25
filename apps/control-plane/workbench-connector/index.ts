@@ -6,7 +6,7 @@ import { createSecureContext } from 'node:tls';
 import type { AssignmentIdentity, OpenAuthorizedExecution } from '../workbench-execution/index.ts';
 import {
   HERMES_CONNECTOR_MAX_BYTES, HERMES_CONNECTOR_PATH, HermesConnectorError,
-  parseAssignmentIdentity, parseConnectorRequest, parseConnectorResponse,
+  connectorObject, parseAssignmentIdentity, parseConnectorRequest, parseConnectorResponse,
 } from './protocol.ts';
 import type { ConnectorOperation, ConnectorResults } from './protocol.ts';
 
@@ -57,7 +57,11 @@ function credentials(options: HermesConnectorOptions) {
   return tls;
 }
 
-export function createHermesConnector(options: HermesConnectorOptions): OpenAuthorizedExecution {
+export type HermesConnectorClient = OpenAuthorizedExecution & {
+  ready(signal: AbortSignal): Promise<{ binding: Record<string, unknown>; ready: boolean }>;
+};
+
+export function createHermesConnector(options: HermesConnectorOptions): HermesConnectorClient {
   const origin = connectorOrigin(options.origin);
   const tls = credentials(options);
   const timeoutMs = options.timeoutMs ?? 8000;
@@ -65,19 +69,17 @@ export function createHermesConnector(options: HermesConnectorOptions): OpenAuth
     throw new HermesConnectorError('invalid_configuration');
   }
 
-  async function send<O extends ConnectorOperation>(message: {
-    version: 1; assignment: AssignmentIdentity; operation: O; payload: unknown;
-  }, signal: AbortSignal): Promise<ConnectorResults[O]> {
-    const data = Buffer.from(JSON.stringify(message));
-    if (data.length > HERMES_CONNECTOR_MAX_BYTES) throw new HermesConnectorError('invalid_request');
+  async function exchange(message: unknown, signal: AbortSignal): Promise<unknown> {
+    const data = message === undefined ? undefined : Buffer.from(JSON.stringify(message));
+    if (data && data.length > HERMES_CONNECTOR_MAX_BYTES) throw new HermesConnectorError('invalid_request');
     const timeout = AbortSignal.timeout(timeoutMs);
     const effective = AbortSignal.any([signal, timeout]);
     const transportCode = () => signal.aborted ? 'aborted' : timeout.aborted ? 'timeout' : 'unavailable';
-    return new Promise<ConnectorResults[O]>((resolve, reject) => {
+    return new Promise<unknown>((resolve, reject) => {
       if (effective.aborted) { reject(new HermesConnectorError(transportCode())); return; }
-      const outgoing = httpsRequest(new URL(HERMES_CONNECTOR_PATH, origin), {
-        ...tls, rejectUnauthorized: true, method: 'POST', agent: false, maxHeaderSize: 8192, signal: effective,
-        headers: { 'content-type': 'application/json', accept: 'application/json', 'content-length': data.length,
+      const outgoing = httpsRequest(new URL(data ? HERMES_CONNECTOR_PATH : '/connector/v1/ready', origin), {
+        ...tls, rejectUnauthorized: true, method: data ? 'POST' : 'GET', agent: false, maxHeaderSize: 8192, signal: effective,
+        headers: { 'content-type': 'application/json', accept: 'application/json', ...(data ? { 'content-length': data.length } : {}),
           'cache-control': 'no-store', connection: 'close' },
       }, async response => {
         try {
@@ -98,7 +100,7 @@ export function createHermesConnector(options: HermesConnectorOptions): OpenAuth
           let json: unknown;
           try { json = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(Buffer.concat(chunks, size))); }
           catch { throw new HermesConnectorError('invalid_response'); }
-          resolve(parseConnectorResponse(message, json));
+          resolve(json);
         } catch (error) {
           response.destroy();
           reject(error instanceof HermesConnectorError ? error : new HermesConnectorError(transportCode()));
@@ -111,11 +113,11 @@ export function createHermesConnector(options: HermesConnectorOptions): OpenAuth
     });
   }
 
-  return async (untrustedIdentity, signal) => {
+  const openExecution: OpenAuthorizedExecution = async (untrustedIdentity, signal) => {
     const assignment = Object.freeze(parseAssignmentIdentity(untrustedIdentity));
     const invoke = async <O extends ConnectorOperation>(operation: O, payload: unknown, operationSignal: AbortSignal) => {
       const parsed = parseConnectorRequest({ version: 1, assignment, operation, payload });
-      return send<O>({ ...parsed, operation }, operationSignal);
+      return parseConnectorResponse<O>({ ...parsed, operation }, await exchange(parsed, operationSignal));
     };
     if (!(await invoke('open', {}, signal)).allowed) return null;
     return {
@@ -133,6 +135,23 @@ export function createHermesConnector(options: HermesConnectorOptions): OpenAuth
       },
     };
   };
+  return Object.assign(openExecution, {
+    async ready(signal: AbortSignal) {
+      const result = connectorObject(await exchange(undefined, signal));
+      const binding = connectorObject(result?.binding);
+      if (!result || result.version !== 1 || typeof result.ready !== 'boolean'
+        || Object.keys(result).sort().join(',') !== 'binding,ready,version' || !binding) {
+        throw new HermesConnectorError('invalid_response');
+      }
+      const identity = parseAssignmentIdentity({
+        ...binding, runId: '00000000-0000-4000-8000-000000000001',
+        commandId: '00000000-0000-4000-8000-000000000002', attemptId: '00000000-0000-4000-8000-000000000003',
+        leaseGeneration: 1, nativeSessionId: 'status',
+      });
+      if (Object.keys(binding).length !== Object.keys(identity).length - 5) throw new HermesConnectorError('invalid_response');
+      return { binding, ready: result.ready };
+    },
+  });
 }
 
 async function readCredential(path: string, secret: boolean): Promise<Buffer> {
@@ -149,7 +168,7 @@ async function readCredential(path: string, secret: boolean): Promise<Buffer> {
   }
 }
 
-export async function loadHermesConnector(options: HermesConnectorFiles): Promise<OpenAuthorizedExecution> {
+export async function loadHermesConnector(options: HermesConnectorFiles): Promise<HermesConnectorClient> {
   try {
     const [ca, cert, key] = await Promise.all([
       readCredential(options.caFile, false), readCredential(options.certFile, false), readCredential(options.keyFile, true),

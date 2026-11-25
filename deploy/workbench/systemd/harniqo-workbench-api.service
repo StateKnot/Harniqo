@@ -1,0 +1,20 @@
+[Unit]
+Description=Harniqo workbench API
+
+[Service]
+Type=simple
+WorkingDirectory=@REPOSITORY@
+EnvironmentFile=@PRIVATE@/api.env
+ExecStart="@NODE@" "@REPOSITORY@/apps/control-plane/main.ts"
+UMask=0077
+Restart=on-failure
+RestartSec=3
+TimeoutStopSec=40
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths="@PRIVATE@"
+
+[Install]
+WantedBy=default.target

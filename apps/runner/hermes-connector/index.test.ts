@@ -47,6 +47,7 @@ test('mTLS server binds one workspace and preserves an uncertain native start ac
     await mkdir(state, { mode: 0o700 });
     initializeConnectorState(state);
     const authority: ConnectorAuthority = {
+      async ready() { return available; },
       async authorize() { return available ? { expiresAt: Date.now() + 30_000 } : null; },
       async hasNativeSession() { return true; },
       async confirmTerminal() { return null; },
@@ -69,6 +70,7 @@ test('mTLS server binds one workspace and preserves an uncertain native start ac
     };
     await listen();
     const signal = AbortSignal.timeout(10_000);
+    assert.deepEqual(await open.ready(signal), { binding, ready: true });
     assert.equal(await open({ ...identity, workspaceId: randomUUID() }, signal), null);
     const session = await open(identity, signal);
     assert.ok(session);
@@ -86,6 +88,7 @@ test('mTLS server binds one workspace and preserves an uncertain native start ac
     const other = { ...identity, runId: randomUUID(), commandId: randomUUID(), attemptId: randomUUID(), leaseGeneration: 2 };
     assert.equal(await open(other, signal), null);
     available = false;
+    assert.deepEqual(await open.ready(signal), { binding, ready: false });
     assert.equal(await recovered.assertLive(signal), false);
     await assert.rejects(recovered.hasNativeSession(signal), { code: 'access_denied' });
   } finally {

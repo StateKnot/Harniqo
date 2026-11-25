@@ -13,9 +13,10 @@ export type DockerDeadline = {
   imageId: string;
   expiresAt: number;
   dockerBinary: string;
+  awaitStart?: boolean;
 };
 
-export type DeadlineGuard = { alive(): boolean };
+export type DeadlineGuard = { alive(): boolean; started(): Promise<void> };
 
 export async function readDeadline(path: string): Promise<DockerDeadline> {
   const file = await open(path, constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK);
@@ -48,6 +49,7 @@ export async function startDockerDeadline(directory: string, grant: DockerDeadli
     const prior = await readDeadline(path);
     if (prior.containerId !== grant.containerId || prior.imageId !== grant.imageId
       || prior.expiresAt !== grant.expiresAt || prior.dockerBinary !== grant.dockerBinary
+      || !!prior.awaitStart !== !!grant.awaitStart
       || !sameAssignment(prior.assignment, grant.assignment)) throw new HermesConnectorError('access_denied');
     const child: ChildProcess = spawn(process.execPath, [fileURLToPath(new URL('./deadline-main.ts', import.meta.url)), path], {
       detached: true, stdio: ['ignore', 'ignore', 'ignore', 'ipc'],
@@ -65,6 +67,12 @@ export async function startDockerDeadline(directory: string, grant: DockerDeadli
     child.unref();
     if (!ready) throw new HermesConnectorError('unavailable');
     return {
+      async started() {
+        const marker = await open(path + '.started', 'a', 0o600);
+        try { await marker.sync(); } finally { await marker.close(); }
+        const parent = await open(absolute, 'r');
+        try { await parent.sync(); } finally { await parent.close(); }
+      },
       alive() {
         if (!child.pid || child.exitCode !== null || child.signalCode !== null) return false;
         try { process.kill(child.pid, 0); return true; } catch { return false; }

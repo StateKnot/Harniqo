@@ -94,6 +94,7 @@ test('HTTPS workbench authenticates a JWT and accepts an authorized Run with its
     const migrations = await Promise.all([
       './workbench-store/001-first-run.sql', './workbench-access/002-external-identities.sql',
       './workbench-queue/003-workbench-queue.sql', './workbench-execution/004-hermes-execution.sql',
+      './workbench-execution/005-runtime-readiness.sql',
     ].map(path => readFile(new URL(path, import.meta.url), 'utf8')));
     const epoch = randomUUID();
     await owner.transaction().execute(async tx => {
@@ -208,6 +209,11 @@ test('HTTPS workbench authenticates a JWT and accepts an authorized Run with its
       tls: { ...tls, ca: tls.cert }, binding, stateDirectory,
       controllerFingerprint256: new X509Certificate(tls.cert).fingerprint256,
       authority: liveCredentials ? {
+        async ready() {
+          const running = execFileSync('docker', ['container', 'inspect', '--format', '{{.State.Running}}', liveContainer!],
+            { encoding: 'utf8', timeout: 5000 }).trim();
+          return running === 'true';
+        },
         async authorize(identity, signal) {
           containerAuthority ??= createDockerHermesAuthority({ assignment: identity, expiresAt: Date.now() + 110_000,
             containerId: liveContainer!, imageId: imageId!, nativeOrigin: 'http://127.0.0.1:10010', nativeToken: hermesToken,
@@ -217,6 +223,7 @@ test('HTTPS workbench authenticates a JWT and accepts an authorized Run with its
         async hasNativeSession(identity, signal) { return containerAuthority!.hasNativeSession(identity, signal); },
         async confirmTerminal(identity, id, signal) { return containerAuthority!.confirmTerminal(identity, id, signal); },
       } : {
+        async ready() { return true; },
         async authorize() { return { expiresAt: Date.now() + 30_000 }; },
         async hasNativeSession() { return true; },
         async confirmTerminal(_assignment, id) { return { nativeRunId: id, writerExited: true }; },

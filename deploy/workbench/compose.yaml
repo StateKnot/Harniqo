@@ -1,0 +1,29 @@
+services:
+  database:
+    image: ${HARNIQO_WORKBENCH_POSTGRES_IMAGE:?Set the pinned PostgreSQL 17 image reference}
+    environment:
+      POSTGRES_DB: harniqo
+      POSTGRES_USER: harniqo_admin
+      POSTGRES_PASSWORD_FILE: /run/secrets/admin_password
+    secrets:
+      - admin_password
+    ports:
+      - "127.0.0.1:${HARNIQO_WORKBENCH_DATABASE_PORT:-10052}:5432"
+    volumes:
+      - workbench-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-h", "127.0.0.1", "-U", "harniqo_admin", "-d", "harniqo"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+    pids_limit: 128
+    mem_limit: 1g
+    cpus: 2
+
+secrets:
+  admin_password:
+    file: ${HARNIQO_WORKBENCH_ADMIN_PASSWORD_FILE:?Set the private bootstrap password file}
+
+volumes:
+  workbench-data:

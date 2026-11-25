@@ -34,7 +34,9 @@ try {
   // Avoid inherited Electron/Node debugging or run-as-Node modes changing what the smoke actually exercises.
   for (const key of ['ELECTRON_RUN_AS_NODE', 'NODE_OPTIONS', 'NODE_INSPECT_RESUME_ON_START', 'ELECTRON_ENABLE_LOGGING']) delete environment[key];
   const child = spawn(executable, packaged ? [] : [directory], { cwd: directory, env: environment, stdio: ['ignore', 'pipe', 'pipe'], windowsHide: false });
-  const timer = setTimeout(() => { timedOut = true; child.kill('SIGKILL'); }, 35000);
+  const harness = process.env.HARNIQO_SMOKE_HARNESS_PROMPT !== undefined;
+  const timeout = harness ? (process.env.HARNIQO_SMOKE_HARNESS_FOLLOWUP_PROMPT !== undefined ? 260000 : 160000) : 35000;
+  const timer = setTimeout(() => { timedOut = true; child.kill('SIGKILL'); }, timeout);
   child.stdout.on('data', (chunk) => { output = (output + chunk.toString()).slice(-131072); });
   child.stderr.on('data', (chunk) => { errorOutput = (errorOutput + chunk.toString()).slice(-32768); });
   let exitCode;

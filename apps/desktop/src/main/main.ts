@@ -38,7 +38,9 @@ let verifiedPlatform: { origin: string; metadata: LoginMetadata; requiresIdentit
 let login: AbortController | undefined;
 let workbench: DesktopWorkbench | undefined;
 let smokeFinished = false;
-const smokeTimer = smoke ? setTimeout(() => finishSmoke(new Error('NATIVE_SMOKE_TIMEOUT')), 25000) : undefined;
+const smokeTimeout = process.env['HARNIQO_SMOKE_HARNESS_FOLLOWUP_PROMPT'] ? 250_000
+  : process.env['HARNIQO_SMOKE_HARNESS_PROMPT'] ? 150_000 : 25_000;
+const smokeTimer = smoke ? setTimeout(() => finishSmoke(new Error('NATIVE_SMOKE_TIMEOUT')), smokeTimeout) : undefined;
 
 function finishSmoke(error?: Error, receipt?: object): void {
   if (smokeFinished) return;

@@ -22,6 +22,7 @@ export type ConnectorBinding = Omit<AssignmentIdentity,
   'runId' | 'commandId' | 'attemptId' | 'leaseGeneration' | 'nativeSessionId'>;
 
 export type ConnectorAuthority = {
+  ready?(signal: AbortSignal): Promise<boolean>;
   authorize(assignment: Readonly<AssignmentIdentity>, signal: AbortSignal): Promise<{ expiresAt: number } | null>;
   hasNativeSession(assignment: Readonly<AssignmentIdentity>, signal: AbortSignal): Promise<boolean>;
   confirmTerminal(assignment: Readonly<AssignmentIdentity>, nativeRunId: string, signal: AbortSignal):
@@ -108,6 +109,27 @@ export function openHermesConnector(options: HermesConnectorOptions): HermesConn
 
   async function execute(message: ConnectorRequest, signal: AbortSignal): Promise<unknown> {
     const assignment = Object.freeze(message.assignment);
+    if (!bound(assignment)) {
+      if (message.operation === 'open') return { allowed: false };
+      if (message.operation === 'assert_live') return { live: false };
+      throw new HermesConnectorError('access_denied');
+    }
+    const completed = journal.read(assignment);
+    if (completed?.phase === 'terminal') {
+      if (message.operation === 'open') return { allowed: true };
+      if (message.operation === 'assert_live') return { live: true };
+      if (message.operation === 'inspect' && completed.nativeRunId === message.payload.nativeRunId) {
+        return completed.observedRun;
+      }
+      if (message.operation === 'read_reply' && completed.nativeRunId === message.payload.run.nativeRunId
+        && completed.observedRun?.status === 'completed' && completed.observedRun.output === message.payload.run.output) {
+        return { reply: completed.reply ?? null };
+      }
+      if (message.operation === 'confirm_terminal' && completed.nativeRunId === message.payload.nativeRunId) {
+        return { proof: completed.terminalProof ?? null };
+      }
+      throw new HermesConnectorError('access_denied');
+    }
     const expiresAt = await grantExpiry(assignment, signal);
     const allowed = expiresAt !== undefined;
     if (message.operation === 'open') return { allowed: allowed && journal.admit(assignment) };
@@ -191,6 +213,14 @@ export function openHermesConnector(options: HermesConnectorOptions): HermesConn
     if (closed || !(socket instanceof TLSSocket) || !socket.authorized
       || socket.getPeerCertificate().fingerprint256?.replaceAll(':', '').toUpperCase() !== pin) {
       response(reply, 403, { error: 'access_denied' });
+      return;
+    }
+    if (request.method === 'GET' && request.url === '/connector/v1/ready') {
+      const signal = AbortSignal.any([shutdown.signal, AbortSignal.timeout(5000)]);
+      void Promise.resolve().then(() => options.authority.ready?.(signal) ?? false).then(
+        ready => response(reply, 200, { version: 1, binding, ready }),
+        () => response(reply, 503, { error: 'unavailable' }),
+      );
       return;
     }
     if (request.method !== 'POST' || request.url !== HERMES_CONNECTOR_PATH) {

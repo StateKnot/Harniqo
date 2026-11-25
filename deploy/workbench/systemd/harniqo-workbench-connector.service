@@ -1,0 +1,22 @@
+[Unit]
+Description=Harniqo dedicated Hermes connector
+
+[Service]
+Type=simple
+WorkingDirectory=@REPOSITORY@
+EnvironmentFile=@PRIVATE@/connector.env
+ExecStart="@NODE@" "@REPOSITORY@/apps/runner/hermes-connector/main.ts"
+UMask=0077
+Restart=on-failure
+RestartSec=3
+TimeoutStopSec=40
+# The independent expiry guard remains responsible for the running native task.
+KillMode=process
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths="@PRIVATE@"
+
+[Install]
+WantedBy=default.target

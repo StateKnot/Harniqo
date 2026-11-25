@@ -5,7 +5,8 @@ import { isAbsolute } from 'node:path';
 import { HermesAdapter } from '../../../packages/adapters/hermes/adapter.ts';
 import { parseAssignmentIdentity } from '../../control-plane/workbench-connector/protocol.ts';
 import { createDockerHermesAuthority, openHermesConnector } from './index.ts';
-import type { HermesConnector } from './index.ts';
+import type { ConnectorBinding, HermesConnector } from './index.ts';
+import { createPersistentDockerAuthority } from './persistent.ts';
 
 async function configFile(path: unknown, secret: boolean, maxBytes: number): Promise<Buffer> {
   if (typeof path !== 'string' || !isAbsolute(path)) throw new Error('invalid_connector_file');
@@ -31,13 +32,16 @@ function record(value: unknown, keys: readonly string[]): Record<string, unknown
 }
 
 async function start(): Promise<HermesConnector> {
-  const config = record(JSON.parse((await configFile(process.env.HARNIQO_CONNECTOR_FILE, true, 16 * 1024)).toString('utf8')), [
-    'assignment', 'expiresAt', 'containerId', 'imageId', 'nativeOrigin', 'nativeTokenFile',
+  const input = JSON.parse((await configFile(process.env.HARNIQO_CONNECTOR_FILE, true, 16 * 1024)).toString('utf8')) as Record<string, unknown>;
+  const persistent = !!input && Object.hasOwn(input, 'binding');
+  const config = record(input, [
+    ...(persistent ? ['binding', 'runDeadlineMs'] : ['assignment', 'expiresAt']),
+    'containerId', 'imageId', 'nativeOrigin', 'nativeTokenFile',
     'tls', 'controllerFingerprint256', 'stateDirectory', 'host', 'port',
   ]);
   const tlsConfig = record(config.tls, ['keyFile', 'certFile', 'caFile']);
-  const assignment = parseAssignmentIdentity(config.assignment);
-  if (typeof config.expiresAt !== 'number' || typeof config.containerId !== 'string'
+  const assignment = persistent ? undefined : parseAssignmentIdentity(config.assignment);
+  if ((persistent ? typeof config.runDeadlineMs !== 'number' : typeof config.expiresAt !== 'number') || typeof config.containerId !== 'string'
     || typeof config.imageId !== 'string' || typeof config.nativeOrigin !== 'string'
     || typeof config.controllerFingerprint256 !== 'string'
     || typeof config.stateDirectory !== 'string' || !isAbsolute(config.stateDirectory)
@@ -51,13 +55,23 @@ async function start(): Promise<HermesConnector> {
     configFile(tlsConfig.caFile, false, 256 * 1024), configFile(config.nativeTokenFile, true, 1024),
   ]);
   const nativeToken = new TextDecoder('utf-8', { fatal: true }).decode(token).trim();
-  const authority = createDockerHermesAuthority({
-    assignment, expiresAt: config.expiresAt, containerId: config.containerId, imageId: config.imageId,
+  const common = {
+    containerId: config.containerId, imageId: config.imageId,
     nativeOrigin: config.nativeOrigin, nativeToken, deadlineDirectory: config.stateDirectory,
-  });
-  if (!await authority.authorize(assignment, AbortSignal.timeout(5000))) throw new Error('connector_grant_unavailable');
-  const { runId: _run, commandId: _command, attemptId: _attempt, leaseGeneration: _lease,
-    nativeSessionId: _session, ...binding } = assignment;
+  };
+  const authority = persistent ? createPersistentDockerAuthority({
+    ...common, binding: config.binding as ConnectorBinding, runDeadlineMs: config.runDeadlineMs as number,
+    stateDirectory: config.stateDirectory,
+  }) : createDockerHermesAuthority({ ...common, assignment: assignment!, expiresAt: config.expiresAt as number });
+  let binding: ConnectorBinding;
+  if (assignment) {
+    if (!await authority.authorize(assignment, AbortSignal.timeout(5000))) throw new Error('connector_grant_unavailable');
+    const { runId: _run, commandId: _command, attemptId: _attempt, leaseGeneration: _lease,
+      nativeSessionId: _session, ...fixed } = assignment;
+    binding = fixed;
+  } else {
+    binding = config.binding as ConnectorBinding;
+  }
   const connector = openHermesConnector({
     tls: { key, cert, ca }, controllerFingerprint256: config.controllerFingerprint256,
     stateDirectory: config.stateDirectory, binding, authority,
@@ -69,12 +83,18 @@ async function start(): Promise<HermesConnector> {
       connector.server.listen(config.port as number, config.host as string, resolve);
     });
     connector.server.on('error', () => {
+      process.exitCode = 1;
       console.error('Harniqo Hermes connector listener failed.');
       void connector.close().catch(() => { process.exitCode = 1; });
     });
-    return connector;
+    let closing: Promise<void> | undefined;
+    return { server: connector.server, close: () => closing ??= (async () => {
+      try { await connector.close(); }
+      finally { if ('close' in authority && typeof authority.close === 'function') authority.close(); }
+    })() };
   } catch (error) {
     await connector.close();
+    if ('close' in authority && typeof authority.close === 'function') authority.close();
     throw error;
   }
 }
